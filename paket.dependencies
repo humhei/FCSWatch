@@ -1,0 +1,5 @@
+source https://api.nuget.org/v3/index.json
+storage: none
+nuget FSharp.Compiler.Service
+nuget Expecto
+nuget Dotnet.ProjInfo

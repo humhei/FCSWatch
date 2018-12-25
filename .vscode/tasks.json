@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build FcsWatch",
+            "command": "dotnet",
+            "group": "build",
+            "args": [
+                "build",
+                "FcsWatch/FcsWatch.fsproj"
+            ],
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile"
+        }
+    
+    ]
+}
