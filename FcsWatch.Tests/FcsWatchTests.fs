@@ -1,11 +1,12 @@
 module FcsWatchTests 
 open Expecto
-open System
-open System.Collections.Generic
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open System.IO
-open FcsWatch.Tests.ProjectCoreCracker
-
+open FcsWatch
+let pass() = Expect.isTrue true "passed"
+let fail() = Expect.isTrue false "failed"
+let root = Path.GetDirectoryName(__SOURCE_DIRECTORY__)
+let (</>) path1 path2 = Path.Combine(path1,path2) 
 type Package = string
 type CrackedFsproj =
     { ProjectFile: string
@@ -19,18 +20,12 @@ type CrackedFsproj =
 
 let tests =
     testList "main tests" [
-        ftestCase "compile project" <| fun _ ->
-            let compileArgWithDebuggerInfo dll script =
-                [| "fsc.exe"; "-o"; dll; "-a"; script;"--optimize-";"--debug"; |]
-                
-            let checker = FSharpChecker.Create()
-            let projectFile  = @"D:\VsCode\Github\FCSWatch\TestProject\TestProject.fsproj"
-            let projOptions = get
-            let dll = @"D:\VsCode\Github\FCSWatch\TestLib\bin\Debug\netstandard2.0\TestLib.dll"
-            let result = checker.Compile(compileArgWithDebuggerInfo dll projectFile) |> Async.RunSynchronously
-            printfn "Hello World from F#!"
-
-            printf ""
-
-
+        testCase "compile full project successly" <| fun _ ->
+            let checker = FSharpChecker.Create(keepAssemblyContents = true)
+            let projectFile  =  root </> @"TestProject\TestProject.fsproj"
+            let projOptions,_,_ = ProjectCoreCracker.getProjectOptionsFromProjectFile projectFile    
+            let fscArgs = Array.concat [[|"fsc.exe"|]; projOptions.OtherOptions;[|"--nowin32manifest"|]] 
+            let _, exitcode = checker.Compile(fscArgs) |> Async.RunSynchronously
+            if exitcode = 0 then pass()
+            else fail()
     ]

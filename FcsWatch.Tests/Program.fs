@@ -9,7 +9,8 @@ let testConfig =
          verbosity = LogLevel.Debug }
 
 let tests = 
-    testList "All tests" [  
+    testList "All tests" [ 
+        FcsWatchTests.tests             
     ] 
 // Create an interactive checker instance 
 [<EntryPoint>]

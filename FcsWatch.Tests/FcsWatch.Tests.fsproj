@@ -4,9 +4,16 @@
     <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ProjectCoreCracker.fs" />
+    <ProjectReference Include="..\FcsWatch\FcsWatch.fsproj">
+      <Name>FcsWatch.fsproj</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="FcsWatchTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
+    <ItemGroup>
+    <Reference Include="D:\VsCode\Github\FSharp.Compiler.Service\debug\fcs\netstandard2.0\FSharp.Compiler.Service.dll" />
+  </ItemGroup>
 </Project>
