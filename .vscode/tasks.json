@@ -7,12 +7,22 @@
             "group": "build",
             "args": [
                 "build",
-                "FcsWatch/FcsWatch.fsproj"
+                "FcsWatch.Tests/FcsWatch.Tests.fsproj"
             ],
             "presentation": {
                 "reveal": "silent"
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Update",
+            "command": "build",
+            "group": "build",
+            "args": [],
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": []
         }
     
     ]

@@ -8,11 +8,28 @@
             "name": "launch FcsWatch",
             "type": "coreclr",
             "request": "launch",
-            "program": "${workspaceFolder}/FcsWatch/bin/Debug/netcoreapp3.0/FcsWatch.exe",
+            "program": "${workspaceFolder}/FcsWatch.Tests/bin/Debug/netcoreapp3.0/FcsWatch.Tests.exe",
+            "cwd": "${workspaceFolder}",
             "args": [
             ],
             "preLaunchTask": "Build FcsWatch"
 
         },
+        {
+            "name": "attach TestProject",
+            "type": "coreclr",
+            "request": "attach",
+            "processName": "TestProject"
+        },
+        {
+            "name": "Debug My Build Script",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "D:\\Users\\Jia\\Documents\\MyData\\Tools\\fake-dotnetcore-portable\\fake.dll",
+            "args": ["run", "--fsiargs", "--debug:portable --optimize-", "build.fsx"],
+            "cwd": "${workspaceRoot}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
     ]
 }

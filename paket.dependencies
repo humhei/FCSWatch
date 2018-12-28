@@ -1,5 +1,26 @@
 source https://api.nuget.org/v3/index.json
+git https://github.com/humhei/Paket_NugetServer.git NugetStore Packages: /.nuget/
+redirects: force
+framework: auto-detect
 storage: none
 nuget FSharp.Compiler.Service
 nuget Expecto
 nuget Dotnet.ProjInfo
+nuget Fake.DotNet.Cli
+nuget Atrous.Core.Utils prerelease
+group build
+    source https://api.nuget.org/v3/index.json
+    git https://github.com/humhei/Paket_NugetServer.git NugetStore Packages: /.nuget/
+    nuget Fake.Core.Target
+    nuget Fake.DotNet.Cli
+    nuget ExcelDna.Interop
+    nuget ExcelDna.Integration
+    nuget SourceLink.Fake
+    nuget Fake.Tools.Git
+    nuget Atrous.Core.Utils prerelease
+    nuget FParsec
+    nuget Paket.Core
+    nuget Fake.DotNet.AssemblyInfoFile
+    nuget Fake.DotNet.Paket
+    nuget Atrous.Core.Utils prerelease
+    nuget Fake.DotNet.MSBuild
