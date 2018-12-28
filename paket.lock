@@ -570,18 +570,19 @@ NUGET
       System.Runtime.Handles (>= 4.3)
     System.ValueTuple (4.5)
   remote: paket-files/github.com/humhei/Paket_NugetServer/.nuget
-    Atrous.Core.Extensions (0.1.0-beta32)
-      Atrous.Core.Logger (>= 0.1.0-beta32)
+    Atrous.Core.Extensions (0.1.0-beta41)
+      Atrous.Core.Logger (>= 0.1.0-beta41)
       Deedle (>= 2.0.0-beta01)
       FParsec (>= 1.0.3)
       FSharp.Core (>= 4.5.4)
-    Atrous.Core.Logger (0.1.0-beta32)
+    Atrous.Core.Logger (0.1.0-beta41)
       Deedle (>= 2.0.0-beta01)
+      Fake.Core.Trace (>= 5.11.1)
       FSharp.Core (>= 4.5.4)
       SourceLink.Create.CommandLine (>= 2.8.3)
-    Atrous.Core.Utils (0.1.0-beta32)
-      Atrous.Core.Extensions (>= 0.1.0-beta32)
-      Atrous.Core.Logger (>= 0.1.0-beta32)
+    Atrous.Core.Utils (0.1.0-beta41)
+      Atrous.Core.Extensions (>= 0.1.0-beta41)
+      Atrous.Core.Logger (>= 0.1.0-beta41)
       Fake.Core.Process (>= 5.11.1)
       Fake.DotNet.Cli (>= 5.11.1)
       Fake.IO.FileSystem (>= 5.11.1)
@@ -591,23 +592,24 @@ NUGET
       System.ValueTuple (>= 4.5)
 GIT
   remote: https://github.com/humhei/Paket_NugetServer.git
-     (ad7f23f22ad404ba98b0596cc481b33d0be7c757)
+     (f781bb7658ac779d2c4af8b75294070926c5fe25)
       path: /.nuget/
 GROUP build
 NUGET
   remote: paket-files/build/github.com/humhei/Paket_NugetServer/.nuget
-    Atrous.Core.Extensions (0.1.0-beta32) - restriction: || (>= net462) (>= netstandard2.0)
-      Atrous.Core.Logger (>= 0.1.0-beta32) - restriction: || (>= net462) (>= netstandard2.0)
+    Atrous.Core.Extensions (0.1.0-beta40) - restriction: || (>= net462) (>= netstandard2.0)
+      Atrous.Core.Logger (>= 0.1.0-beta40) - restriction: || (>= net462) (>= netstandard2.0)
       Deedle (>= 2.0.0-beta01) - restriction: || (>= net462) (>= netstandard2.0)
       FParsec (>= 1.0.3) - restriction: || (>= net462) (>= netstandard2.0)
       FSharp.Core (>= 4.5.4) - restriction: || (>= net462) (>= netstandard2.0)
-    Atrous.Core.Logger (0.1.0-beta32) - restriction: || (>= net462) (>= netstandard2.0)
+    Atrous.Core.Logger (0.1.0-beta40) - restriction: || (>= net462) (>= netstandard2.0)
       Deedle (>= 2.0.0-beta01) - restriction: || (>= net462) (>= netstandard2.0)
+      Fake.Core.Trace (>= 5.11.1) - restriction: || (>= net462) (>= netstandard2.0)
       FSharp.Core (>= 4.5.4) - restriction: || (>= net462) (>= netstandard2.0)
       SourceLink.Create.CommandLine (>= 2.8.3) - restriction: || (>= net462) (>= netstandard2.0)
-    Atrous.Core.Utils (0.1.0-beta32)
-      Atrous.Core.Extensions (>= 0.1.0-beta32) - restriction: || (>= net462) (>= netstandard2.0)
-      Atrous.Core.Logger (>= 0.1.0-beta32) - restriction: || (>= net462) (>= netstandard2.0)
+    Atrous.Core.Utils (0.1.0-beta40)
+      Atrous.Core.Extensions (>= 0.1.0-beta40) - restriction: || (>= net462) (>= netstandard2.0)
+      Atrous.Core.Logger (>= 0.1.0-beta40) - restriction: || (>= net462) (>= netstandard2.0)
       Fake.Core.Process (>= 5.11.1) - restriction: || (>= net462) (>= netstandard2.0)
       Fake.DotNet.Cli (>= 5.11.1) - restriction: || (>= net462) (>= netstandard2.0)
       Fake.IO.FileSystem (>= 5.11.1) - restriction: || (>= net462) (>= netstandard2.0)
@@ -1463,5 +1465,5 @@ NUGET
       System.Xml.ReaderWriter (>= 4.3) - restriction: || (>= dnxcore50) (&& (< monoandroid) (< monotouch) (< net45) (>= netstandard1.3) (< win8) (< wpa81) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)) (&& (< monoandroid) (< net45) (>= netstandard1.0) (< netstandard1.3) (< win8) (< wp8) (< wpa81))
 GIT
   remote: https://github.com/humhei/Paket_NugetServer.git
-     (ad7f23f22ad404ba98b0596cc481b33d0be7c757)
+     (5b9493cf8583b8c11260a36b6fec828980ea4004)
       path: /.nuget/

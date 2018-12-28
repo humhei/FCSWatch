@@ -5,7 +5,7 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TestLib\TestLib.fsproj">
+    <ProjectReference Include="..\TestLib1\TestLib.fsproj">
       <Name>TestLib.fsproj</Name>
     </ProjectReference>
   </ItemGroup>

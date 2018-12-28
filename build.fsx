@@ -9,17 +9,14 @@ open Paket
 open Fake.Core
 open Atrous.Core.Utils.FakeHelper
 open Fake.IO
-let path1 = @"D:\VsCode\Github\FCSWatch\TestProject"
-let path2 = @"D:\VsCode\Github\FCSWatch\TestProject\bin\Debug\netcoreapp3.0\Ss.dll"
-let dependencies = Dependencies.Locate(__SOURCE_DIRECTORY__)
-let relative = Path.toRelativeFrom path1 path2
-let objRelative = 
-    if relative.StartsWith ".\\bin" then  ".\\obj" + relative.Substring 5
-    else failwithf "is not a valid bin relativePath %s" relative
+open System.IO
+open Fake.IO.FileSystemOperators
+open Fake.IO.Globbing.Operators
+
 Target.create "Default" (fun _ ->
     createSln()
     let dependencies = Dependencies.Locate(__SOURCE_DIRECTORY__)
-    dependencies.Update(false)
+    dependencies.Update(true)
     dotnet "./" "restore" []
 )
 Target.runOrDefault "Default"

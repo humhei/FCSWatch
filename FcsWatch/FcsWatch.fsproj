@@ -1,4 +1,3 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -6,9 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ProjectCoreCracker.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="D:\VsCode\Github\FSharp.Compiler.Service\debug\fcs\netstandard2.0\FSharp.Compiler.Service.dll" />
+    <Compile Include="Types.fs" />
+    <Compile Include="FcsWatcher.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
