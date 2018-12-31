@@ -9,6 +9,7 @@ nuget Dotnet.ProjInfo
 nuget Fake.DotNet.Cli
 nuget Atrous.Core.Utils prerelease
 group build
+    storage: none
     source https://api.nuget.org/v3/index.json
     git https://github.com/humhei/Paket_NugetServer.git NugetStore Packages: /.nuget/
     nuget Fake.Core.Target

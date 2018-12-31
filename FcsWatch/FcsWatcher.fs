@@ -7,10 +7,9 @@ open System
 open Atrous.Core.Utils
 
 type FcsWatcher(config: Config, checker: FSharpChecker, projectFile: string) =
-    let bundle = CrackedFsprojBundle.create projectFile
+    let bundle = EntryFsproj.create projectFile
     do (CrackedFsproj.warmupCompile config.Logger checker bundle.Entry |> Async.Start)
-    let lockerFactory = new LockerFactory<string>()
-    let fileMaps = CrackedFsprojBundle.fileMaps bundle
+    let fileMaps = EntryFsproj.fileMaps bundle
     let pattern = 
         let files = 
             fileMaps 
@@ -29,7 +28,7 @@ type FcsWatcher(config: Config, checker: FSharpChecker, projectFile: string) =
                     |> Seq.filter (fun fileMap -> fileMap.Value |> Array.contains change.FullPath)
                     |> Seq.exactlyOne
                 let projFile = projFilePair.Key
-                do! CrackedFsprojBundle.compileProject lockerFactory config.Logger projFile checker bundle
+                do! EntryFsproj.compileProject config.Logger projFile checker bundle
             } |> Async.Start
         | _ ->
             failwith "multiple files changed at some time" 

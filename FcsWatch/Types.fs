@@ -4,8 +4,6 @@ open System.IO
 open FcsWatch
 open Fake.IO
 open Fake.IO.FileSystemOperators
-open System.Collections.Generic
-open Atrous.Core.Extensions.InLocker
 open Atrous.Core
 open Atrous.Core.Utils
 
@@ -91,66 +89,108 @@ module CrackerFsprojFileTree =
             ProjPath = crackedFsProj.Path
         }
 
-type CrackedFsprojBundle = 
+
+type ReferenceProject =
     {
-        Entry: CrackedFsproj
-        Refs: CrackedFsprojBundle list
+        Value: CrackedFsproj
+        Refs: ReferenceProject list
     }
-    
+
 [<RequireQualifiedAccess>]
-module CrackedFsprojBundle =
-    let private createCommon buildCrackerFsproj projectFile =  
-        let dict = Dictionary<string,CrackedFsproj>()
-        let rec loop projectFile =
-            let entry = dict.GetOrAdd(projectFile,fun _ -> buildCrackerFsproj projectFile)            
+module ReferenceProject =
+    let create buildCrackerFsproj projectFile = 
+        let rec loop projectFile = 
+            let entry = buildCrackerFsproj projectFile         
             {
-                Entry = entry
+                Value = entry
                 Refs = entry.ProjRefs |> List.map loop
             }
+        loop projectFile        
 
-        loop projectFile
-    
-    let create projectFile =
-        createCommon (fun projectFile -> CrackedFsproj.create projectFile) projectFile  
-
-    let rec private getAllFsprojs (crackedFsProjBundle: CrackedFsprojBundle) =
+    let rec getAllFsprojs (referenceProject: ReferenceProject) =
         [
-            yield crackedFsProjBundle.Entry
-            yield! List.collect getAllFsprojs crackedFsProjBundle.Refs 
+            yield referenceProject.Value
+            yield! List.collect getAllFsprojs referenceProject.Refs 
         ] |> List.distinctBy (fun proj -> proj.Path) 
 
+    let tryFindByProject projectFile (referenceProject: ReferenceProject) =
+        let rec loop projectFile stack referenceProject =
+            let entryPath = referenceProject.Value.Path
+            let fileTree = CrackerFsprojFileTree.ofCrackedFsproj referenceProject.Value
+            if entryPath = projectFile then Some (referenceProject,stack)
+            else referenceProject.Refs |> List.tryPick (loop projectFile (fileTree::stack))       
+        loop projectFile [] referenceProject
 
-    let tryFindByProject projectFile (crackedFsProjBundle: CrackedFsprojBundle) =
-        let rec loop projectFile stack crackedFsProjBundle =
-            let entryPath = crackedFsProjBundle.Entry.Path
-            let fileTree = CrackerFsprojFileTree.ofCrackedFsproj crackedFsProjBundle.Entry
-            if entryPath = projectFile then Some (crackedFsProjBundle,stack)
-            else crackedFsProjBundle.Refs |> List.tryPick (loop projectFile (fileTree::stack))       
-        loop projectFile [] crackedFsProjBundle
-    
-    let compileProject (lockerFactory: LockerFactory<string>) logger projectFile checker (crackedFsProjBundle: CrackedFsprojBundle) = async {
+
+type CrackedFsprojBundle(projectFile: string, logger: Logger,checker: FSharpChecker) =
+
+    let lockerFactory = new LockerFactory<string>()
+    let crackedFsprojCache = new BufferedConcurrentDictionany<string,CrackedFsproj>(100,ignore)
+    let entry = CrackedFsproj.create projectFile
+    let refs = 
+        entry.ProjRefs 
+        |> List.map (crackedFsprojCache.GetOrAddF CrackedFsproj.create)
         
+
+    let compileProject projectFile = async {
         let copyFileInLocker origin target = lockerFactory.Lock target (fun _ -> Logger.copyFile origin target logger)
-        
-        match tryFindByProject projectFile crackedFsProjBundle with 
-        | Some (bundle,stack) ->
-            Logger.info (sprintf "Compiling %s" projectFile) logger
-            let! errors,exitCode = CrackedFsproj.compile checker bundle.Entry
-            if exitCode = 0 then 
-                let entry = bundle.Entry
-                let originFile = entry.ObjTargetFile
-                copyFileInLocker originFile entry.TargetPath      
-                stack 
-                |> List.iter (fun fileTree ->
-                    copyFileInLocker originFile fileTree.ObjTargetFile      
-                    copyFileInLocker originFile fileTree.TargetPath      
-                )
-            Logger.processCompileResult logger (errors,exitCode) 
-        | None -> return (failwithf "Cannot find project file %s" projectFile)   
+        match crackedFsprojCache.TryGet projectFile with 
+        | Some project -> 
+            
+            return ()
+        | None -> return (failwithf "Cannot find project file %s" projectFile)
+        // match tryFindByProject projectFile crackedFsProjBundle with 
+        // | Some (bundle,stack) ->
+        //     Logger.info (sprintf "Compiling %s" projectFile) logger
+        //     let! errors,exitCode = CrackedFsproj.compile checker bundle.Entry
+        //     if exitCode = 0 then 
+        //         let entry = bundle.Entry
+        //         let originFile = entry.ObjTargetFile
+        //         copyFileInLocker originFile entry.TargetPath      
+        //         stack 
+        //         |> List.iter (fun fileTree ->
+        //             copyFileInLocker originFile fileTree.ObjTargetFile      
+        //             copyFileInLocker originFile fileTree.TargetPath      
+        //         )
+        //     Logger.processCompileResult logger (errors,exitCode) 
+        // | None -> return (failwithf "Cannot find project file %s" projectFile)   
     }     
 
-    let fileMaps (crackedFsProjBundle: CrackedFsprojBundle) =
-        getAllFsprojs crackedFsProjBundle
-        |> List.map (fun proj -> proj.Path,proj.SourceFiles)
-        |> dict
+        // | Some projectFile -> 
+        // let rec loop projectFile stack crackedFsProjBundle =
+        //     let entryPath = crackedFsProjBundle.Entry.Path
+        //     let fileTree = CrackerFsprojFileTree.ofCrackedFsproj crackedFsProjBundle.Entry
+        //     if entryPath = projectFile then Some (crackedFsProjBundle,stack)
+        //     else crackedFsProjBundle.Refs |> List.tryPick (loop projectFile (fileTree :: stack))       
+        // loop projectFile [] crackedFsProjBundle
+    
+// [<RequireQualifiedAccess>]
+// module CrackedFsprojBundle =
+
+    
+//     let compileProject logger projectFile checker (crackedFsProjBundle: CrackedFsprojBundle) = async {
+        
+//         let copyFileInLocker origin target = lockerFactory.Lock target (fun _ -> Logger.copyFile origin target logger)
+        
+//         match tryFindByProject projectFile crackedFsProjBundle with 
+//         | Some (bundle,stack) ->
+//             Logger.info (sprintf "Compiling %s" projectFile) logger
+//             let! errors,exitCode = CrackedFsproj.compile checker bundle.Entry
+//             if exitCode = 0 then 
+//                 let entry = bundle.Entry
+//                 let originFile = entry.ObjTargetFile
+//                 copyFileInLocker originFile entry.TargetPath      
+//                 stack 
+//                 |> List.iter (fun fileTree ->
+//                     copyFileInLocker originFile fileTree.ObjTargetFile      
+//                     copyFileInLocker originFile fileTree.TargetPath      
+//                 )
+//             Logger.processCompileResult logger (errors,exitCode) 
+//         | None -> return (failwithf "Cannot find project file %s" projectFile)   
+//     }     
+
+//     let fileMaps (crackedFsProjBundle: CrackedFsprojBundle) =
+//         getAllFsprojs crackedFsProjBundle
+//         |> List.map (fun proj -> proj.Path,proj.SourceFiles)
+//         |> dict
 
