@@ -5,25 +5,13 @@ module Say =
         printfn "Hello %s" name
        
    
-  
-
-
-
-
-
-    
 
 
 
 
 
 
-
-
-
-
-
-
+   
 
 
 

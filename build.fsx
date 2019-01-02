@@ -5,18 +5,24 @@
 #r "netstandard" // windows
 #endif
 #load "./.fake/build.fsx/intellisense.fsx"
-open Paket
 open Fake.Core
-open Atrous.Core.Utils.FakeHelper
-open Fake.IO
+open Fake.Core.TargetOperators
+open Atrous.Core.Utils.FakeHelper.Build
 open System.IO
-open Fake.IO.FileSystemOperators
-open Fake.IO.Globbing.Operators
 
-Target.create "Default" (fun _ ->
-    createSln()
-    let dependencies = Dependencies.Locate(__SOURCE_DIRECTORY__)
-    dependencies.Update(true)
-    dotnet "./" "restore" []
+let path = Path.GetRandomFileName()
+Target.create "BetaVersionPush" (fun _ ->
+    let publisher = new MyBetaPublisher(id)
+    publisher.Publish()
 )
+
+
+Target.create "Default" ignore
+Target.create "Publish" ignore
+
+
+"BetaVersionPush"
+    ==> "Publish"
+
+
 Target.runOrDefault "Default"

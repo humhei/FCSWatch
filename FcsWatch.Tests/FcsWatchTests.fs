@@ -9,7 +9,6 @@ open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing
 open System.Threading
 open System.Collections.Generic
-open Atrous.Core.Extensions.InLocker
 open Atrous.Core
 open FcsWatch.Types
 
@@ -21,7 +20,6 @@ let root = Path.GetDirectoryName(__SOURCE_DIRECTORY__)
 
 let projectDir = root </> "TestProject"
 let projectFile  =  projectDir </> "TestProject.fsproj"
-/// For project references of main project, ignore dll and package references
 let tests =
     testList "main tests" [
         testCase "watch mode" <| fun _ ->
@@ -30,7 +28,7 @@ let tests =
             let manualSet = new ManualResetEventSlim(false)
             dotnet "./" "build" []
             let watcher = new FcsWatcher(config,FSharpChecker.Create(),projectFile)
+            /// Modify fs files in TestLib2
             File.append testFile ["\n"]
             manualSet.Wait()
-
     ]
