@@ -8,6 +8,7 @@ nuget Expecto
 nuget Dotnet.ProjInfo
 nuget Fake.DotNet.Cli
 nuget Atrous.Core.Utils prerelease
+nuget Saturn
 group build
     storage: none
     source https://api.nuget.org/v3/index.json

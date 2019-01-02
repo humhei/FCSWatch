@@ -24,10 +24,9 @@ let tests =
     testList "main tests" [
         testCase "watch mode" <| fun _ ->
             let testFile = Path.getFullName @"TestLib2/Library.fs"
-            let config = {Logger = Logger.Normal}
             let manualSet = new ManualResetEventSlim(false)
             dotnet "./" "build" []
-            let watcher = new FcsWatcher(config,FSharpChecker.Create(),projectFile)
+            let watcher = new FcsWatcher(id,FSharpChecker.Create(),projectFile)
             /// Modify fs files in TestLib2
             File.append testFile ["\n"]
             manualSet.Wait()

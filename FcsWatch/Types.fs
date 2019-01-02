@@ -8,21 +8,36 @@ open Atrous.Core
 open Atrous.Core.Utils
 open Fake.IO
 open System.Collections.Generic
+open System.Collections.Concurrent
+open System
 
 type Config =
     {
         Logger: Logger
+        DebuggingServerPort: int
     }
     
 module Logger =
     let copyFile src dest logger =
         File.Copy(src,dest,true)
-        Logger.info (sprintf "copy file %s to %s" src dest) logger
+        let msg = sprintf "copy file %s to %s" src dest
+        Logger.info msg logger
 
     let internal processCompileResult logger (errors,exitCode) =
         if exitCode = 0 then Logger.warn (sprintf "%A" errors) logger
         else Logger.error (sprintf "%A" errors) logger
 
+type internal CompilerResult =
+    { Dll: string
+      Errors: FSharpErrorInfo []
+      ExitCode: int }
+with 
+    member x.Pdb = Path.changeExtension ".pdb" x.Dll  
+
+module internal CompilerResult =
+    let processCompileResult logger compilerResult =
+        Logger.processCompileResult logger (compilerResult.Errors,compilerResult.ExitCode)
+        
 type CrackedFsprojInfo = 
     {
         ProjOptions: FSharpProjectOptions
@@ -54,7 +69,7 @@ with
          
         
 
-module CrackedFsprojInfo = 
+module internal CrackedFsprojInfo = 
     let create projectFile =
         let projOptions,projRefs,props = ProjectCoreCracker.getProjectOptionsFromProjectFile projectFile 
         {
@@ -77,10 +92,18 @@ module CrackedFsprojInfo =
         |> Logger.processCompileResult logger
     }
         
-    let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsprojInfo) =
-        let baseOptions = crackedFsProj.ProjOptions.OtherOptions |> Array.mapi (fun i op -> if i = 0 then "-o:" + crackedFsProj.ObjTargetFile else op)
+    let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsprojInfo) = async {
+        let tmpDll = crackedFsProj.ObjTargetFile
+        let baseOptions = crackedFsProj.ProjOptions.OtherOptions |> Array.mapi (fun i op -> if i = 0 then "-o:" + tmpDll else op)
         let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]] 
-        checker.Compile(fscArgs)
+        let! errors,exitCode = checker.Compile(fscArgs)
+        return 
+            {
+                Errors = errors
+                ExitCode = exitCode
+                Dll = tmpDll
+            }
+    }
 
 type CrackerFsprojFileTree =
     {
@@ -164,10 +187,9 @@ with
         | Fsproj.Ref ref -> Some ref
     
        
-and CrackedFsprojBundle(projectFile: string, logger: Logger,checker: FSharpChecker) =
-
-    let lockerFactory = new LockerFactory<string>()
+type CrackedFsprojBundle(projectFile: string, logger: Logger,checker: FSharpChecker) =
     let searchCache = new BufferedConcurrentDictionany<string,Fsproj>(100,ignore)
+
     let entry = (searchCache.GetOrAddF (CrackedFsprojInfo.create >> Fsproj.Entry)) projectFile
     let refs = 
         entry.ProjRefs 
@@ -180,8 +202,11 @@ and CrackedFsprojBundle(projectFile: string, logger: Logger,checker: FSharpCheck
         |> List.choose(Fsproj.asReference)
 
 
+    let getAllFsprojs() =
+        entry.Info :: (refs |> List.collect ReferenceProject.getAllFsprojs)
 
-    let scanProject projectFile : Fsproj * CrackerFsprojFileTree list =
+
+    member __.ScanProject projectFile =
         let entryFileTree = CrackerFsprojFileTree.ofCrackedFsproj entry.Info
         match searchCache.TryGet projectFile with 
         | Some fsproj ->
@@ -202,27 +227,15 @@ and CrackedFsprojBundle(projectFile: string, logger: Logger,checker: FSharpCheck
                 let result = loop  [entryFileTree] refs |> List.distinctBy (fun fileTree -> fileTree.ProjPath)
                 fsproj,result
         | None -> failwithf "Cannot find project file %s" projectFile
-
-    let getAllFsprojs() =
-        entry.Info :: (refs |> List.collect ReferenceProject.getAllFsprojs)
-
-    member x.FileMaps() =
+        
+    member __.FileMaps() =
         getAllFsprojs()
         |> List.map (fun proj -> proj.Path,proj.SourceFiles)
         |> dict
 
 
     member __.Entry = entry
-    member __.CompileProject projectFile = async {
 
-        let (fsproj,stack) = scanProject projectFile
+        
 
-        Logger.info (sprintf "Compiling %s" projectFile) logger
-        let! errors,exitCode = CrackedFsprojInfo.compile checker fsproj.Info
-        if exitCode = 0 then 
-            let fsprojFileTree = CrackerFsprojFileTree.ofCrackedFsproj fsproj.Info
-            fsprojFileTree :: stack 
-            |> List.iter (CrackerFsprojFileTree.copyFileInLocker lockerFactory logger fsprojFileTree)
-        Logger.processCompileResult logger (errors,exitCode) 
-    }     
 

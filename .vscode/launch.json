@@ -19,7 +19,14 @@
             "name": "attach TestProject",
             "type": "coreclr",
             "request": "attach",
+            "preLaunchTask": "emitCompilerTmp",
             "processName": "TestProject"
+        },
+        {
+            "name": "launch TestProject",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/TestProject/bin/Debug/netcoreapp3.0/TestProject.exe",
         },
         {
             "name": "Debug My Build Script",

@@ -15,14 +15,9 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "Update",
-            "command": "build",
-            "group": "build",
-            "args": [],
-            "presentation": {
-                "reveal": "silent"
-            },
-            "problemMatcher": []
+            "label": "emitCompilerTmp",
+            "command": "curl",
+            "args": ["http://localhost:8050/emitCompilerTmp"],
         }
     
     ]
