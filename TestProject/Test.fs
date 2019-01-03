@@ -3,10 +3,10 @@
 open System
 open System.Collections.Concurrent
 open System.Threading
-let cache = new ConcurrentDictionary<string,string>()
+
 [<EntryPoint>]
 let main _ =
-    printfn "sdsadsddsdadsassaasdasd"
+    printfn "12dasasddassadsadasdas3"
     Console.ReadLine() |> ignore  
     0 // return an integer exit code
  

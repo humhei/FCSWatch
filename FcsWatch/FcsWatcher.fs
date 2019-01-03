@@ -16,16 +16,13 @@ open System.Diagnostics
 
 
 
-type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
+type internal DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
     // do (CrackedFsprojInfo.warmupCompile config.Logger checker bundle.Entry.Info |> Async.Start)
     let logger = config.Logger
     let lockerFactory = new LockerFactory<string>()
     let mutable compilingNumber = 0
     let emitSet = new ManualResetEventSlim(true)
-    let refreshEmitSet() = 
-        if compilingNumber = 0 then emitSet.Set()
-        else emitSet.Reset() 
 
     let compilingSet = new ManualResetEventSlim(true)
 
@@ -36,9 +33,8 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
         fun (next : HttpFunc) (ctx : HttpContext) ->
             task {
-                // refreshEmitSet()     
-                // emitSet.Wait()
-                // compilingSet.Reset()
+                emitSet.Wait()
+                compilingSet.Reset()
 
                 compilerTmp.Values |> Seq.iter (fun valueOp ->
                     match valueOp with 
@@ -49,7 +45,7 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
                     | None -> ()
                 )
                 compilerTmp.Clear()
-                // compilingSet.Set()
+                compilingSet.Set()
                 return! text "Ready to debug" next ctx
             }
     
@@ -63,20 +59,25 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
         url (sprintf "http://0.0.0.0:%d" config.DebuggingServerPort) 
         use_router webApp
     }
-
+    member  __.IncrCompilingNumber() = 
+        compilingNumber <- compilingNumber + 1
+        if compilingNumber = 0 then emitSet.Set()
+        else emitSet.Reset() 
+    member  __.DecrCompilingNumber() = 
+        compilingNumber <- compilingNumber - 1
+        if compilingNumber = 0 then emitSet.Set()
+        else emitSet.Reset() 
     member __.Run() = async {run app}
 
 
     member __.CompileProject projectFile = async {
         let! newValue = async {
-            compilingNumber <- compilingNumber + 1            
             let stopWatch = Stopwatch.StartNew()            
             let (fsproj,stack) = bundle.ScanProject projectFile
             let fsprojInfo = fsproj.Info
+            compilingSet.Wait()
             let! compilerResult = CrackedFsprojInfo.compile checker fsprojInfo
             CompilerResult.processCompileResult logger compilerResult
-            compilingNumber <- compilingNumber - 1  
-            refreshEmitSet()          
             if compilerResult.ExitCode = 0 then 
                 Logger.important 
                     (sprintf 
@@ -105,7 +106,7 @@ type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projec
             Logger = Logger.Normal
             DebuggingServerPort = 8050
             WorkingDir = Path.getFullName "./"
-            // FileSavingTimeBeforeDebugging = 1000
+            FileSavingTimeBeforeDebugging = 100
         }
     do (Logger.info (sprintf "fcs watcher is running in logger level %A" config.Logger) config.Logger)
     do (Logger.info (sprintf "fcs watcher's working directory is %s" config.WorkingDir) config.Logger)
@@ -127,6 +128,7 @@ type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projec
             match List.ofSeq changes with 
             | [change] -> 
                 Logger.important (sprintf "file %s is changed" change.FullPath) config.Logger
+                debuggingServer.IncrCompilingNumber()
                 async {
                     let projFilePair = 
                         fileMaps 
@@ -134,6 +136,7 @@ type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projec
                         |> Seq.exactlyOne
                     let projFile = projFilePair.Key
                     do! debuggingServer.CompileProject projFile
+                    debuggingServer.DecrCompilingNumber()
                 } |> Async.Start
             | _ ->
                 failwith "multiple files changed at some time" 
