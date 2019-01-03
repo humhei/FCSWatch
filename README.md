@@ -1,5 +1,9 @@
 # FCSWatch
 Run standard fsharp codes in watch mode
+
+## MiniSample 
+https://github.com/humhei/FcsWatchMiniSample
+    
 ## Get started
 
 1. Install [fake5](https://fake.build/fake-gettingstarted.html)
