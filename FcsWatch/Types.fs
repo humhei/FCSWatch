@@ -6,15 +6,15 @@ open Fake.IO
 open Fake.IO.FileSystemOperators
 open Atrous.Core
 open Atrous.Core.Utils
-open Fake.IO
 open System.Collections.Generic
-open System.Collections.Concurrent
-open System
 
 type Config =
     {
         Logger: Logger
         DebuggingServerPort: int
+        WorkingDir: string
+        /// the timer waiting the watcher get the file change when press F5
+        FileSavingTimeBeforeDebugging: int 
     }
     
 module Logger =
@@ -24,8 +24,8 @@ module Logger =
         Logger.info msg logger
 
     let internal processCompileResult logger (errors,exitCode) =
-        if exitCode = 0 then Logger.warn (sprintf "%A" errors) logger
-        else Logger.error (sprintf "%A" errors) logger
+        if exitCode = 0 then Logger.warn (sprintf "WARNINGS:\n%A" errors) logger
+        else Logger.error (sprintf "ERRORS:\n%A" errors) logger
 
 type internal CompilerResult =
     { Dll: string
@@ -89,7 +89,7 @@ module internal CrackedFsprojInfo =
         let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]] 
         checker.Compile(fscArgs)
         |> Async.RunSynchronously
-        |> Logger.processCompileResult logger
+        |> ignore
     }
         
     let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsprojInfo) = async {

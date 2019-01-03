@@ -1,28 +1,23 @@
-#if FAKE
-#r "paket: groupref build //"
-#endif
-#if !FAKE
-#r "netstandard" // windows
-#endif
-#load "./.fake/build.fsx/intellisense.fsx"
-open Fake.Core
-open Fake.Core.TargetOperators
-open Atrous.Core.Utils.FakeHelper.Build
-open System.IO
+#r "paket:
+nuget Atrous.Core.Utils prerelease
+nuget Fake.Core.Target
+nuget FcsWatch prerelease//"
 
-let path = Path.GetRandomFileName()
-Target.create "BetaVersionPush" (fun _ ->
-    let publisher = new MyBetaPublisher(id)
-    publisher.Publish()
+#load "./.fake/build.fsx/intellisense.fsx"
+
+// start build
+open Fake.Core
+open Fake.IO
+open Microsoft.FSharp.Compiler.SourceCodeServices
+open FcsWatch.FakeHelper
+
+
+Target.create "FcsWatch" (fun _ -> 
+    let projectFile = Path.getFullName "TestProject/TestProject.fsproj"
+    let checker = FSharpChecker.Create()
+    runFcsWatcher checker projectFile
 )
 
-
 Target.create "Default" ignore
-Target.create "Publish" ignore
-
-
-"BetaVersionPush"
-    ==> "Publish"
-
 
 Target.runOrDefault "Default"

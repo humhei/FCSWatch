@@ -12,31 +12,42 @@ open Saturn
 open System.Threading
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.AspNetCore.Http
+open System.Diagnostics
 
 
-type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
+type internal DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
-    do (CrackedFsprojInfo.warmupCompile config.Logger checker bundle.Entry.Info |> Async.Start)
+    // do (CrackedFsprojInfo.warmupCompile config.Logger checker bundle.Entry.Info |> Async.Start)
     let logger = config.Logger
     let lockerFactory = new LockerFactory<string>()
+    let mutable compilingNumber = 0
+    let emitSet = new ManualResetEventSlim(true)
 
-    
+    let compilingSet = new ManualResetEventSlim(true)
+
     let compilerTmp = new ConcurrentDictionary<string, option<CrackerFsprojFileTree * CrackerFsprojFileTree list>>()
-
+    
 
     let emitCompilerTmpHandle : HttpHandler =
+
         fun (next : HttpFunc) (ctx : HttpContext) ->
-            compilerTmp.Values |> Seq.iter (fun valueOp ->
-                match valueOp with 
-                | Some (originFileTree,fsprojFileTrees) ->
-                    fsprojFileTrees |> Seq.iter (fun fsprojFileTree ->
-                        CrackerFsprojFileTree.copyFileInLocker lockerFactory logger originFileTree fsprojFileTree
-                    )
-                | None -> ()
-            )
-            compilerTmp.Clear()
-            text "Ready to debug" next ctx
+            task {
+                emitSet.Wait()
+                compilingSet.Reset()
+
+                compilerTmp.Values |> Seq.iter (fun valueOp ->
+                    match valueOp with 
+                    | Some (originFileTree,fsprojFileTrees) ->
+                        fsprojFileTrees |> Seq.iter (fun fsprojFileTree ->
+                            CrackerFsprojFileTree.copyFileInLocker lockerFactory logger originFileTree fsprojFileTree
+                        )
+                    | None -> ()
+                )
+                compilerTmp.Clear()
+                compilingSet.Set()
+                return! text "Ready to debug" next ctx
+            }
     
     let webApp =
         choose [
@@ -48,21 +59,40 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
         url (sprintf "http://0.0.0.0:%d" config.DebuggingServerPort) 
         use_router webApp
     }
-
+    member  __.IncrCompilingNumber() = 
+        compilingNumber <- compilingNumber + 1
+        if compilingNumber = 0 then emitSet.Set()
+        else emitSet.Reset() 
+    member  __.DecrCompilingNumber() = 
+        compilingNumber <- compilingNumber - 1
+        if compilingNumber = 0 then emitSet.Set()
+        else emitSet.Reset() 
     member __.Run() = async {run app}
 
 
     member __.CompileProject projectFile = async {
         let! newValue = async {
-            Logger.info (sprintf "Compiling %s" projectFile) logger
+            let stopWatch = Stopwatch.StartNew()            
             let (fsproj,stack) = bundle.ScanProject projectFile
-            let! compilerResult = CrackedFsprojInfo.compile checker fsproj.Info
+            let fsprojInfo = fsproj.Info
+            compilingSet.Wait()
+            let! compilerResult = CrackedFsprojInfo.compile checker fsprojInfo
             CompilerResult.processCompileResult logger compilerResult
             if compilerResult.ExitCode = 0 then 
-                let fsprojFileTree = CrackerFsprojFileTree.ofCrackedFsproj fsproj.Info
-                return Some (CrackerFsprojFileTree.ofCrackedFsproj fsproj.Info,fsprojFileTree :: stack) 
+                Logger.important 
+                    (sprintf 
+                        "Summary:
+-- origin: %s
+-- dest： %s 
+-- elapsed: %d milliseconds" 
+                        projectFile 
+                        compilerResult.Dll 
+                        stopWatch.ElapsedMilliseconds) logger
+                let fsprojFileTree = CrackerFsprojFileTree.ofCrackedFsproj fsprojInfo
+                return Some (CrackerFsprojFileTree.ofCrackedFsproj fsprojInfo,fsprojFileTree :: stack) 
             else return None
         }
+        
         compilerTmp.AddOrUpdate (projectFile,newValue,fun _ value ->
             match newValue with 
             | None -> value
@@ -72,7 +102,14 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
 
 type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projectFile: string) =
-    let config = buildingConfig {Logger = Logger.Normal;DebuggingServerPort = 8050}
+    let config = buildingConfig {
+            Logger = Logger.Normal
+            DebuggingServerPort = 8050
+            WorkingDir = Path.getFullName "./"
+            FileSavingTimeBeforeDebugging = 100
+        }
+    do (Logger.info (sprintf "fcs watcher is running in logger level %A" config.Logger) config.Logger)
+    do (Logger.info (sprintf "fcs watcher's working directory is %s" config.WorkingDir) config.Logger)
     let bundle = CrackedFsprojBundle(projectFile,config.Logger,checker)
     let debuggingServer = DebuggingServer(config,checker,bundle)
     do (debuggingServer.Run() |> Async.Start)
@@ -84,12 +121,14 @@ type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projec
                 fileMaps 
                 |> Seq.collect (fun pair -> pair.Value) 
                 |> List.ofSeq
-            { BaseDirectory = Path.getFullName "./"
+            { BaseDirectory = config.WorkingDir
               Includes = files
               Excludes = [] }
         pattern |> ChangeWatcher.run (fun changes ->
             match List.ofSeq changes with 
             | [change] -> 
+                Logger.important (sprintf "file %s is changed" change.FullPath) config.Logger
+                debuggingServer.IncrCompilingNumber()
                 async {
                     let projFilePair = 
                         fileMaps 
@@ -97,6 +136,7 @@ type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projec
                         |> Seq.exactlyOne
                     let projFile = projFilePair.Key
                     do! debuggingServer.CompileProject projFile
+                    debuggingServer.DecrCompilingNumber()
                 } |> Async.Start
             | _ ->
                 failwith "multiple files changed at some time" 
