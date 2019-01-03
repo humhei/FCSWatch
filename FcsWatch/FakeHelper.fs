@@ -4,7 +4,7 @@ open Atrous.Core.Utils.FakeHelper
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Types
 
-let runWatcher (checker: FSharpChecker) projectFile root = 
+let runFcsWatcher (checker: FSharpChecker) projectFile root = 
     let manualSet = new ManualResetEventSlim(false)
     dotnet root "build" []
     let watcher = 
