@@ -36,7 +36,6 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
         fun (next : HttpFunc) (ctx : HttpContext) ->
             task {
-                do! Async.Sleep(config.FileSavingTimeBeforeDebugging)
                 refreshEmitSet()     
                 emitSet.Wait()
                 compilingSet.Reset()
@@ -107,7 +106,7 @@ type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projec
             Logger = Logger.Normal
             DebuggingServerPort = 8050
             WorkingDir = Path.getFullName "./"
-            FileSavingTimeBeforeDebugging = 1000
+            // FileSavingTimeBeforeDebugging = 1000
         }
     do (Logger.info (sprintf "fcs watcher is running in logger level %A" config.Logger) config.Logger)
     do (Logger.info (sprintf "fcs watcher's working directory is %s" config.WorkingDir) config.Logger)

@@ -16,9 +16,47 @@
         },
         {
             "label": "emitCompilerTmp",
+            "type": "shell",
             "command": "curl",
             "args": ["http://localhost:8050/emitCompilerTmp"],
-        }
-    
+            "presentation": {
+                "reveal": "silent"
+            }
+        },
+        {
+            "label": "FcsWatch",
+            "command": "fake",
+            "group": "build",
+            "args": [
+                "build",
+                "-t",
+                "FcsWatch"
+            ],
+            "problemMatcher": []
+            
+        },
+        {
+            "label": "BetaVersion.Publish",
+            "command": "fake",
+            "group": "build",
+            "args": [
+                "build",
+                "-t",
+                "BetaVersion.Publish"
+            ],
+            "problemMatcher": []
+            
+        },
+        {
+            "label": "BetaVersion.UpdateDependencies",
+            "command": "fake",
+            "group": "build",
+            "args": [
+                "build",
+                "-t",
+                "BetaVersion.UpdateDependencies"
+            ],
+            "problemMatcher": []
+        },
     ]
 }

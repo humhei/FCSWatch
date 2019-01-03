@@ -8,28 +8,32 @@
 open Fake.Core
 open Fake.Core.TargetOperators
 open Atrous.Core.Utils.FakeHelper.Build
+open Atrous.Core.Utils.FakeHelper
+open Atrous.Core
 open System.IO
+open Fake.IO.Globbing.Operators
 open Fake.IO
-open Fake.IO.FileSystemOperators
+open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FakeHelper
-let root = Path.getFullName "./"
-let projectFile =  Path.getFullName "./TestProject/TestProject.fsproj"
-let path = Path.GetRandomFileName()
-Target.create "BetaVersionPush" (fun _ ->
-    let publisher = new MyBetaPublisher(id)
+
+
+let publisher = new MyBetaPublisher(id)
+
+
+Target.create "BetaVersion.Publish" (fun _ ->
     publisher.Publish()
 )
 
-// Target.create "RunFcsWatcher" (fun _ -> 
-//     runWatcher(FSharpChecker.Create(),projectFile)
-// )
+Target.create "BetaVersion.UpdateDependencies" (fun _ ->
+    publisher.UpdateDependencies()
+)
+
+Target.create "FcsWatch" (fun _ -> 
+    let projectFile = Path.getFullName "TestProject/TestProject.fsproj"
+    let checker = FSharpChecker.Create()
+    runFcsWatcher checker projectFile
+)
 
 Target.create "Default" ignore
-Target.create "Publish" ignore
-
-
-"BetaVersionPush"
-    ==> "Publish"
-
 
 Target.runOrDefault "Default"

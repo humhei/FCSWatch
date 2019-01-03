@@ -14,7 +14,7 @@ type Config =
         DebuggingServerPort: int
         WorkingDir: string
         /// the timer waiting the watcher get the file change when press F5
-        FileSavingTimeBeforeDebugging: int 
+        // FileSavingTimeBeforeDebugging: int 
     }
     
 module Logger =

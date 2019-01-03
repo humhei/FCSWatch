@@ -6,6 +6,28 @@ NUGET
     Argu (5.2)
       FSharp.Core (>= 4.3.2)
       System.Configuration.ConfigurationManager (>= 4.4)
+    Atrous.Core.Extensions (0.1.1-beta00071)
+      Atrous.Core.Logger (>= 0.1.1-beta00071)
+      Deedle (>= 2.0.0-beta01)
+      FParsec (>= 1.0.3)
+      FSharp.Core (>= 4.5.4)
+    Atrous.Core.Logger (0.1.1-beta00071)
+      BlackFox.ColoredPrintf (>= 1.0.3)
+      Deedle (>= 2.0.0-beta01)
+      Fake.Core.Trace (>= 5.11.1)
+      FSharp.Core (>= 4.5.4)
+      SourceLink.Create.CommandLine (>= 2.8.3)
+    Atrous.Core.Utils (0.1.1-beta00071)
+      Atrous.Core.Extensions (>= 0.1.1-beta00071)
+      Atrous.Core.Logger (>= 0.1.1-beta00071)
+      Fake.Core.Process (>= 5.11.1)
+      Fake.DotNet.Cli (>= 5.11.1)
+      Fake.IO.FileSystem (>= 5.11.1)
+      Fake.Tools.Git (>= 5.11.1)
+      FParsec (>= 1.0.3)
+      FSharp.Compiler.Service (>= 25.0.1)
+      FSharp.Core (>= 4.5.4)
+      System.ValueTuple (>= 4.5)
     BlackFox.ColoredPrintf (1.0.3)
       BlackFox.MasterOfFoo (>= 1.0.2 < 2.0)
       FSharp.Core (>= 4.2.3 < 5.0)
@@ -1146,51 +1168,28 @@ NUGET
       System.Reflection.Emit.Lightweight (>= 4.3)
       System.Threading.Tasks.Extensions (>= 4.4)
       System.ValueTuple (>= 4.4)
-  remote: paket-files/github.com/humhei/Paket_NugetServer/.nuget
-    Atrous.Core.Extensions (0.1.1-beta00068)
-      Atrous.Core.Logger (>= 0.1.1-beta00068)
-      Deedle (>= 2.0.0-beta01)
-      FParsec (>= 1.0.3)
-      FSharp.Core (>= 4.5.4)
-    Atrous.Core.Logger (0.1.1-beta00068)
-      BlackFox.ColoredPrintf (>= 1.0.3)
-      Deedle (>= 2.0.0-beta01)
-      Fake.Core.Trace (>= 5.11.1)
-      FSharp.Core (>= 4.5.4)
-      SourceLink.Create.CommandLine (>= 2.8.3)
-    Atrous.Core.Utils (0.1.1-beta00068)
-      Atrous.Core.Extensions (>= 0.1.1-beta00068)
-      Atrous.Core.Logger (>= 0.1.1-beta00068)
-      Fake.Core.Process (>= 5.11.1)
-      Fake.DotNet.Cli (>= 5.11.1)
-      Fake.IO.FileSystem (>= 5.11.1)
-      Fake.Tools.Git (>= 5.11.1)
-      FParsec (>= 1.0.3)
-      FSharp.Compiler.Service (>= 25.0.1)
-      FSharp.Core (>= 4.5.4)
-      System.ValueTuple (>= 4.5)
 GIT
   remote: https://github.com/humhei/Paket_NugetServer.git
-     (0c35cc1c7a918b339cd0b53baf1dafe66006b2eb)
+     (e6da09ae02145c9c303aac070cb7ad4e2d194fbd)
       path: /.nuget/
 GROUP build
 STORAGE: NONE
 NUGET
-  remote: paket-files/build/github.com/humhei/Paket_NugetServer/.nuget
-    Atrous.Core.Extensions (0.1.1-beta00068) - restriction: >= netstandard2.0
-      Atrous.Core.Logger (>= 0.1.1-beta00068) - restriction: >= netstandard2.0
+  remote: https://api.nuget.org/v3/index.json
+    Atrous.Core.Extensions (0.1.1-beta00071) - restriction: >= netstandard2.0
+      Atrous.Core.Logger (>= 0.1.1-beta00071) - restriction: >= netstandard2.0
       Deedle (>= 2.0.0-beta01) - restriction: >= netstandard2.0
       FParsec (>= 1.0.3) - restriction: >= netstandard2.0
       FSharp.Core (>= 4.5.4) - restriction: >= netstandard2.0
-    Atrous.Core.Logger (0.1.1-beta00068) - restriction: >= netstandard2.0
+    Atrous.Core.Logger (0.1.1-beta00071) - restriction: >= netstandard2.0
       BlackFox.ColoredPrintf (>= 1.0.3) - restriction: >= netstandard2.0
       Deedle (>= 2.0.0-beta01) - restriction: >= netstandard2.0
       Fake.Core.Trace (>= 5.11.1) - restriction: >= netstandard2.0
       FSharp.Core (>= 4.5.4) - restriction: >= netstandard2.0
       SourceLink.Create.CommandLine (>= 2.8.3) - restriction: >= netstandard2.0
-    Atrous.Core.Utils (0.1.1-beta00068)
-      Atrous.Core.Extensions (>= 0.1.1-beta00068) - restriction: >= netstandard2.0
-      Atrous.Core.Logger (>= 0.1.1-beta00068) - restriction: >= netstandard2.0
+    Atrous.Core.Utils (0.1.1-beta00071)
+      Atrous.Core.Extensions (>= 0.1.1-beta00071) - restriction: >= netstandard2.0
+      Atrous.Core.Logger (>= 0.1.1-beta00071) - restriction: >= netstandard2.0
       Fake.Core.Process (>= 5.11.1) - restriction: >= netstandard2.0
       Fake.DotNet.Cli (>= 5.11.1) - restriction: >= netstandard2.0
       Fake.IO.FileSystem (>= 5.11.1) - restriction: >= netstandard2.0
@@ -1199,7 +1198,6 @@ NUGET
       FSharp.Compiler.Service (>= 25.0.1) - restriction: >= netstandard2.0
       FSharp.Core (>= 4.5.4) - restriction: >= netstandard2.0
       System.ValueTuple (>= 4.5) - restriction: >= netstandard2.0
-  remote: https://api.nuget.org/v3/index.json
     BlackFox.ColoredPrintf (1.0.3) - restriction: >= netstandard2.0
       BlackFox.MasterOfFoo (>= 1.0.2 < 2.0) - restriction: || (>= net45) (>= netstandard2.0)
       FSharp.Core (>= 4.0.0.1 < 5.0) - restriction: >= net45
@@ -1283,8 +1281,8 @@ NUGET
       Fake.Core.Trace (>= 5.11.1) - restriction: || (>= net46) (>= netstandard2.0)
       Fake.IO.FileSystem (>= 5.11.1) - restriction: || (>= net46) (>= netstandard2.0)
       FSharp.Core (>= 4.3.4) - restriction: || (>= net46) (>= netstandard2.0)
-    FcsWatch (0.1.0-beta9)
-      Atrous.Core.Utils (>= 0.1.0-beta63) - restriction: >= netstandard2.0
+    FcsWatch (0.1.1-beta00013)
+      Atrous.Core.Utils (>= 0.1.1-beta00068) - restriction: >= netstandard2.0
       Dotnet.ProjInfo (>= 0.20) - restriction: >= netstandard2.0
       Fake.DotNet.Cli (>= 5.11.1) - restriction: >= netstandard2.0
       FSharp.Compiler.Service (>= 25.0.1) - restriction: >= netstandard2.0
@@ -2332,5 +2330,5 @@ NUGET
       System.ValueTuple (>= 4.4) - restriction: || (&& (>= net45) (< netstandard2.0)) (&& (< net45) (>= netstandard2.0)) (>= net47)
 GIT
   remote: https://github.com/humhei/Paket_NugetServer.git
-     (0c35cc1c7a918b339cd0b53baf1dafe66006b2eb)
+     (e6da09ae02145c9c303aac070cb7ad4e2d194fbd)
       path: /.nuget/
