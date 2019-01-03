@@ -9,6 +9,6 @@ let runWatcher (checker: FSharpChecker) projectFile root =
     dotnet root "build" []
     let watcher = 
         let buildConfig = fun config -> {config with WorkingDir = root}
-        new FcsWatcher(buildConfig,FSharpChecker.Create(),projectFile)
+        new FcsWatcher(buildConfig,checker,projectFile)
     /// Modify fs files in TestLib2
     manualSet.Wait()
