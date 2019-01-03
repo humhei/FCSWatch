@@ -4,11 +4,10 @@ open Atrous.Core.Utils.FakeHelper
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open Types
 
-let runFcsWatcher (checker: FSharpChecker) projectFile root = 
+let runFcsWatcher (checker: FSharpChecker) projectFile = 
     let manualSet = new ManualResetEventSlim(false)
     dotnet root "build" []
     let watcher = 
-        let buildConfig = fun config -> {config with WorkingDir = root}
-        new FcsWatcher(buildConfig,checker,projectFile)
+        new FcsWatcher(id,checker,projectFile)
     /// Modify fs files in TestLib2
     manualSet.Wait()
