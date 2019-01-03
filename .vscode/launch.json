@@ -9,23 +9,20 @@
             "type": "coreclr",
             "request": "launch",
             "program": "${workspaceFolder}/FcsWatch.Tests/bin/Debug/netcoreapp3.0/FcsWatch.Tests.exe",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/FcsWatch.Tests",
             "args": [
             ],
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
             "preLaunchTask": "Build FcsWatch"
 
-        },
-        {
-            "name": "attach TestProject",
-            "type": "coreclr",
-            "request": "attach",
-            "preLaunchTask": "emitCompilerTmp",
-            "processName": "TestProject"
         },
         {
             "name": "launch TestProject",
             "type": "coreclr",
             "request": "launch",
+            "preLaunchTask": "emitCompilerTmp",
             "program": "${workspaceFolder}/TestProject/bin/Debug/netcoreapp3.0/TestProject.exe",
         },
         {

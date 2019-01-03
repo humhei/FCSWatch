@@ -9,7 +9,7 @@ open Fake.Core
 open Fake.Core.TargetOperators
 open Atrous.Core.Utils.FakeHelper.Build
 open System.IO
-
+open Fake.IO
 let path = Path.GetRandomFileName()
 Target.create "BetaVersionPush" (fun _ ->
     let publisher = new MyBetaPublisher(id)
