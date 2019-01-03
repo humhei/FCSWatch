@@ -6,9 +6,9 @@ Run standard fsharp codes in watch mode
 2. Replace build.fsx with below codes
 ```fsharp
 #r "paket:
-nuget Atrous.Core.Utils prerelease
+nuget Atrous.Core.Utils
 nuget Fake.Core.Target
-nuget FcsWatch prerelease//"
+nuget FcsWatch  //"
 
 #load "./.fake/build.fsx/intellisense.fsx"
 
