@@ -36,9 +36,9 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
         fun (next : HttpFunc) (ctx : HttpContext) ->
             task {
-                refreshEmitSet()     
-                emitSet.Wait()
-                compilingSet.Reset()
+                // refreshEmitSet()     
+                // emitSet.Wait()
+                // compilingSet.Reset()
 
                 compilerTmp.Values |> Seq.iter (fun valueOp ->
                     match valueOp with 
@@ -49,7 +49,7 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
                     | None -> ()
                 )
                 compilerTmp.Clear()
-                compilingSet.Set()
+                // compilingSet.Set()
                 return! text "Ready to debug" next ctx
             }
     
@@ -73,7 +73,6 @@ type DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
             let stopWatch = Stopwatch.StartNew()            
             let (fsproj,stack) = bundle.ScanProject projectFile
             let fsprojInfo = fsproj.Info
-            compilingSet.Wait()
             let! compilerResult = CrackedFsprojInfo.compile checker fsprojInfo
             CompilerResult.processCompileResult logger compilerResult
             compilingNumber <- compilingNumber - 1  

@@ -16,7 +16,6 @@
         },
         {
             "label": "emitCompilerTmp",
-            "type": "shell",
             "command": "curl",
             "args": ["http://localhost:8050/emitCompilerTmp"],
             "presentation": {
