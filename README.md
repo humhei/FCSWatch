@@ -2,7 +2,8 @@
 Run standard fsharp codes in watch mode
 
 ## MiniSample 
-https://github.com/humhei/FcsWatchMiniSample
+For a quick play around 
+Try https://github.com/humhei/FcsWatchMiniSample 
     
 ## Get started
 
