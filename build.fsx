@@ -21,7 +21,7 @@ Target.create "BetaVersionPush" (fun _ ->
 )
 
 // Target.create "RunFcsWatcher" (fun _ -> 
-//     runWatcher(FSharpChecker.Create(),projectFile,root)
+//     runWatcher(FSharpChecker.Create(),projectFile)
 // )
 
 Target.create "Default" ignore
