@@ -55,10 +55,11 @@ When you are debugging files,watch mode still take effect
 
 
 
-###Why?
+### Why?
 why not use dotnet watch:
 1. dotnet watch reference all dlls every time (which will take at least 3000ms?) (while fcs hold dlls in runtime cache)
 2. not easy to debug when you are using dotnet watch
 
 
+![](https://github.com/humhei/Resources/blob/Resources/TestfsFCSWatchVisualStud.gif)
 
