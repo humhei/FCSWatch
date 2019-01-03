@@ -8,7 +8,7 @@ Run standard fsharp codes in watch mode
 #r "paket:
 nuget Atrous.Core.Utils
 nuget Fake.Core.Target
-nuget FcsWatch  //"
+nuget FcsWatch //"
 
 #load "./.fake/build.fsx/intellisense.fsx"
 
@@ -17,14 +17,19 @@ open Fake.Core
 open Fake.IO
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FakeHelper
+open Atrous.Core.Utils.FakeHelper
 
-
-Target.create "FcsWatch" (fun _ -> 
-    /// replace 
+let root = Path.getDirectory "./"
+Target.create "FcsWatch" (fun _ ->  
     let projectFile = Path.getFullName "YourProject/YourProject.fsproj"
+    dotnet root "restore" ["projectFile"]
     let checker = FSharpChecker.Create()
     runFcsWatcher checker projectFile
 )
+
+Target.create "Default" ignore
+
+Target.runOrDefault "Default"
 ```
 3. `fake build -t "FcsWatch"`
 4. `Change fs files in YourProject` and save it
