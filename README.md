@@ -51,13 +51,18 @@ You can also launch debugging when running in watch mode
         "preLaunchTask": "emitCompilerTmp",
         "program": "${workspaceFolder}/YourProject/bin/Debug/targetFramwork/YourProject.exe",
     },
+    /// send a http request to copy dlls in obj to bin
     {
-      "label": "emitCompilerTmp",
-      "command": "curl",
-      "args": ["http://localhost:8050/emitCompilerTmp"],
-      "presentation": {
-          "reveal": "silent"
-      }
+        "label": "emitCompilerTmp",
+        "command": "curl",
+        "args": [
+            "--config",
+            ".fake/fcswatch/port.cache"
+        ],
+        "presentation": {
+            "reveal": "silent"
+        }
+    },
   },
 ```
 

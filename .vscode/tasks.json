@@ -17,7 +17,10 @@
         {
             "label": "emitCompilerTmp",
             "command": "curl",
-            "args": ["http://localhost:8050/emitCompilerTmp"],
+            "args": [
+                "--config",
+                ".fake/fcswatch/port.cache"
+            ],
             "presentation": {
                 "reveal": "silent"
             }
@@ -32,7 +35,6 @@
                 "FcsWatch"
             ],
             "problemMatcher": []
-            
         },
         {
             "label": "BetaVersion.Publish",
@@ -44,7 +46,6 @@
                 "BetaVersion.Publish"
             ],
             "problemMatcher": []
-            
         },
         {
             "label": "BetaVersion.UpdateDependencies",

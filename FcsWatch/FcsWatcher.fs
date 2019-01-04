@@ -13,12 +13,25 @@ open System.Threading
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.AspNetCore.Http
 open System.Diagnostics
-
+open System.Net
+open Fake.IO.FileSystemOperators
 
 
 type internal DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle) =
 
     // do (CrackedFsprojInfo.warmupCompile config.Logger checker bundle.Entry.Info |> Async.Start)
+    let freePort =
+        let l = Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
+        l.Start()
+        let port = (l.LocalEndpoint :?> IPEndPoint).Port
+        l.Stop()
+        port
+    do (
+        let cacheDir = config.WorkingDir </> ".fake" </> "fcswatch"
+        let fileName = cacheDir </> "port.cache"
+        Directory.ensure cacheDir
+        File.writeString false fileName (sprintf "url: http://localhost:%d/emitCompilerTmp" freePort)
+    )    
     let logger = config.Logger
     let lockerFactory = new LockerFactory<string>()
     let mutable compilingNumber = 0
@@ -56,9 +69,10 @@ type internal DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle
     
 
     let app = application {
-        url (sprintf "http://0.0.0.0:%d" config.DebuggingServerPort) 
+        url (sprintf "http://0.0.0.0:%d" freePort) 
         use_router webApp
     }
+    
     member  __.IncrCompilingNumber() = 
         compilingNumber <- compilingNumber + 1
         if compilingNumber = 0 then emitSet.Set()
@@ -104,7 +118,6 @@ type internal DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle
 type FcsWatcher(buildingConfig: Config -> Config, checker: FSharpChecker, projectFile: string) =
     let config = buildingConfig {
             Logger = Logger.Normal
-            DebuggingServerPort = 8050
             WorkingDir = Path.getFullName "./"
             FileSavingTimeBeforeDebugging = 100
         }
