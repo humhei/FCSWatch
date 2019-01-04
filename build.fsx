@@ -4,29 +4,30 @@
 #if !FAKE
 #r "netstandard" // windows
 #endif
-
 #load "./.fake/build.fsx/intellisense.fsx"
 open Fake.Core
 open Atrous.Core.Utils.FakeHelper.Build
 open Fake.IO
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FakeHelper
-open Microsoft.FSharp.Compiler.SourceCodeServices
-open FcsWatch.Types
-open Fake.IO.Globbing
-open Fake.IO
-open System
+open Fake.IO.FileSystemOperators
+open Newtonsoft.Json
 
-let webApp =
-    choose [
-        route "/emitCompilerTmp"   >=>  emitCompilerTmpHandle
-    ]
+type CodeTask =
+    {
+        label: string
+        args: string list
+    }
 
+type CodeTasks = 
+    {
+        tasks: CodeTask list
+    }
+let root = Path.getFullName "./"
+let taskJson = root </> ".vscode" </> "tasks.json"
+let text = File.readAsString taskJson
 
-let app = application {
-    url (sprintf "http://0.0.0.0:%d" config.DebuggingServerPort) 
-    use_router webApp
-}
+let obj = JsonConvert.DeserializeObject<CodeTasks>(text)
 let publisher = new MyBetaPublisher(id)
 
 

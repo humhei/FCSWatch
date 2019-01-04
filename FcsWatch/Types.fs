@@ -11,7 +11,6 @@ open System.Collections.Generic
 type Config =
     {
         Logger: Logger
-        DebuggingServerPort: int
         WorkingDir: string
         /// the timer waiting the watcher get the file change when press F5
         FileSavingTimeBeforeDebugging: int 
@@ -24,7 +23,9 @@ module Logger =
         Logger.info msg logger
 
     let internal processCompileResult logger (errors,exitCode) =
-        if exitCode = 0 then Logger.warn (sprintf "WARNINGS:\n%A" errors) logger
+        if exitCode = 0 then 
+            if not <| Array.isEmpty errors then 
+                Logger.warn (sprintf "WARNINGS:\n%A" errors) logger
         else Logger.error (sprintf "ERRORS:\n%A" errors) logger
 
 type internal CompilerResult =
