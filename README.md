@@ -27,7 +27,7 @@ open Atrous.Core.Utils.FakeHelper
 let root = Path.getDirectory "./"
 Target.create "FcsWatch" (fun _ ->  
     let projectFile = Path.getFullName "YourProject/YourProject.fsproj"
-    dotnet root "restore" ["projectFile"]
+    dotnet root "build" ["projectFile"]
     let checker = FSharpChecker.Create()
     runFcsWatcher checker projectFile
 )
