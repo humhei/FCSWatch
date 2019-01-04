@@ -59,6 +59,7 @@ type internal DebuggingServer(config: Config,checker,bundle: CrackedFsprojBundle
         url (sprintf "http://0.0.0.0:%d" config.DebuggingServerPort) 
         use_router webApp
     }
+    
     member  __.IncrCompilingNumber() = 
         compilingNumber <- compilingNumber + 1
         if compilingNumber = 0 then emitSet.Set()
