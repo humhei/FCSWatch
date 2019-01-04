@@ -63,7 +63,8 @@ You can also launch debugging when running in watch mode
 
 When you are debugging files,watch mode still take effect
 
-
+### Multiple reference projects
+It is supported if you pass the entry project argument to it
 
 ### Why?
 why not use dotnet watch:
