@@ -8,6 +8,7 @@ open Fake.IO
 open Fake.IO.FileSystemOperators
 open System.Threading
 open FcsWatch.Types
+open FcsWatch.FcsWatcher
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"
@@ -26,8 +27,9 @@ let tests =
             dotnet root "build" []
             let watcher = 
                 let buildConfig = fun config -> {config with WorkingDir = root}
-                new FcsWatcher(buildConfig,FSharpChecker.Create(),projectFile)
+                let checker = FSharpChecker.Create()
+                fcsWatcher buildConfig checker projectFile
             /// Modify fs files in TestLib2
-            File.append testFile ["\n"]
+            // File.append testFile ["\n"]
             manualSet.Wait()
     ]
