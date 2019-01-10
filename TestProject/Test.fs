@@ -6,7 +6,7 @@ open System.Threading
 
 [<EntryPoint>]
 let main _ =
-    printfn "12121221   "
-    Console.ReadLine() |> ignore  
+    printfn "y54564"
+    Console.Read()
     0 // return an integer exit code
  

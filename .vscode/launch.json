@@ -12,9 +12,9 @@
             "cwd": "${workspaceFolder}/FcsWatch.Tests",
             "args": [
             ],
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            },
+            // "env": {
+            //     "ASPNETCORE_ENVIRONMENT": "Development"
+            // },
             "preLaunchTask": "Build FcsWatch"
 
         },

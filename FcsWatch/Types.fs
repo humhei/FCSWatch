@@ -7,13 +7,13 @@ open Fake.IO.FileSystemOperators
 open Atrous.Core
 open Atrous.Core.Utils
 open System.Collections.Generic
+open System.Xml
+open System.Collections.Generic
 
 type Config =
     {
         Logger: Logger
         WorkingDir: string
-        /// the timer waiting the watcher get the file change when press F5
-        FileSavingTimeBeforeDebugging: int 
     }
     
 module Logger =
@@ -28,7 +28,7 @@ module Logger =
                 Logger.warn (sprintf "WARNINGS:\n%A" errors) logger
         else Logger.error (sprintf "ERRORS:\n%A" errors) logger
 
-type internal CompilerResult =
+type CompilerResult =
     { Dll: string
       Errors: FSharpErrorInfo []
       ExitCode: int }
@@ -80,19 +80,6 @@ module internal CrackedFsprojInfo =
             Path = projectFile
         }
 
-
-    let internal warmupCompile logger (checker: FSharpChecker) (crackedFsProj: CrackedFsprojInfo) = async {
-        let baseOptions = 
-            crackedFsProj.ProjOptions.OtherOptions 
-            |> Array.mapi (fun i op -> if i = 0 then "-o:" + Path.GetTempFileName() else op)
-            |> Array.filter (fun op -> not <| op.EndsWith ".fs")
-
-        let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]] 
-        checker.Compile(fscArgs)
-        |> Async.RunSynchronously
-        |> ignore
-    }
-        
     let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsprojInfo) = async {
         let tmpDll = crackedFsProj.ObjTargetFile
         let baseOptions = crackedFsProj.ProjOptions.OtherOptions |> Array.mapi (fun i op -> if i = 0 then "-o:" + tmpDll else op)
@@ -131,112 +118,131 @@ module CrackerFsprojFileTree =
             TargetPdbPath = crackedFsProj.TargetPdbPath
         }
 
-    let copyFileInLocker (lockerFactory: LockerFactory<string>) (logger: Logger) (crackerFsprojFileTree1: CrackerFsprojFileTree) (crackerFsprojFileTree2: CrackerFsprojFileTree)=                
+    let copyFile  (logger: Logger) (crackerFsprojFileTree1: CrackerFsprojFileTree) (crackerFsprojFileTree2: CrackerFsprojFileTree)=                
         let targetFileName = crackerFsprojFileTree1.TargetFileName
         let targetPdbName = crackerFsprojFileTree1.TargetPdbName
         let originFile = crackerFsprojFileTree1.ObjTargetFile  
         let originDll = crackerFsprojFileTree1.ObjTargetPdb
         let targetPath =  crackerFsprojFileTree2.TargetDir </> targetFileName
-        lockerFactory.Lock targetPath (fun _ -> 
-            Logger.copyFile originFile targetPath logger
-        )
+        Logger.copyFile originFile targetPath logger
         let targetPdb = crackerFsprojFileTree2.TargetDir </> targetPdbName
-        lockerFactory.Lock targetPdb (fun _ -> 
-            Logger.copyFile originDll targetPdb logger
-        )   
+        Logger.copyFile originDll targetPdb logger
 
+module Dictionary =
 
-type ReferenceProject =
+    let toMap dictionary = 
+        (dictionary :> seq<_>)
+        |> Seq.map (|KeyValue|)
+        |> Map.ofSeq
+
+type Fsproj =
     {
         Value: CrackedFsprojInfo
-        Refs: ReferenceProject list
+        Refs: Fsproj list
     }
 
-[<RequireQualifiedAccess>]
-module ReferenceProject =
-    let create buildCrackerFsproj projectFile = 
-        let rec loop projectFile = 
-            let entry = buildCrackerFsproj projectFile         
-            {
-                Value = entry
-                Refs = entry.ProjRefs |> List.map loop
-            }
-        loop projectFile        
-
-    let rec getAllFsprojs (referenceProject: ReferenceProject) =
-        [
-            yield referenceProject.Value
-            yield! List.collect getAllFsprojs referenceProject.Refs 
-        ] |> List.distinctBy (fun proj -> proj.Path) 
-
 
 [<RequireQualifiedAccess>]
-type Fsproj =
-    | Entry of CrackedFsprojInfo
-    | Ref of ReferenceProject
-with 
-    member x.Info = 
-        match x with 
-        | Fsproj.Entry info -> info
-        | Fsproj.Ref ref -> ref.Value
-    member x.TargetFileName = x.Info.TargetFileName
-    member x.Path = x.Info.Path
+module Fsproj =
+    let private easyGetAllProjects (projectFile: string) =
+        let values = new HashSet<string>()
+        let add projectFile = values.Add projectFile |> ignore
+        let rec loop (projectFile: string) = 
+            add projectFile
 
-    member x.ProjRefs = x.Info.ProjRefs
-    static member asReference = function
-        | Fsproj.Entry _ -> None
-        | Fsproj.Ref ref -> Some ref
-    
-       
-type CrackedFsprojBundle(projectFile: string, logger: Logger,checker: FSharpChecker) =
-    let searchCache = new BufferedConcurrentDictionany<string,Fsproj>(100,ignore)
+            let dir = Path.getDirectory projectFile
+            let doc = new XmlDocument()
+            doc.Load(projectFile)
+            for node in doc.GetElementsByTagName "ProjectReference" do
+                let includeAttr = node.Attributes.GetNamedItem ("Include")
+                let includeValue = includeAttr.Value
+                let path = Path.getFullName (dir </> includeValue)
+                loop path
+        loop projectFile 
+        Set.ofSeq values       
 
-    let entry = (searchCache.GetOrAddF (CrackedFsprojInfo.create >> Fsproj.Entry)) projectFile
-    let refs = 
-        entry.ProjRefs 
-        |> List.map (
-                searchCache.GetOrAddF(
-                    (ReferenceProject.create (fun projectFile -> CrackedFsprojInfo.create projectFile)) 
-                    >> Fsproj.Ref
-                )
+    let private sourceFileMaps (cache: Map<string,CrackedFsprojInfo>) = 
+        let dict = new Dictionary<string, string>()
+        cache |> Seq.iter (fun pair -> 
+            pair.Value.SourceFiles |> Seq.iter (fun sourceFile ->
+                dict.Add(sourceFile,pair.Key)
+            )
         )
-        |> List.choose(Fsproj.asReference)
+        Dictionary.toMap dict
+
+    let getAllFsprojInfos projectFile =
+        let allProjects = easyGetAllProjects projectFile
+        allProjects
+        |> Seq.map (fun projectFile -> async {
+            return CrackedFsprojInfo.create projectFile
+        })
+        |> Async.Parallel
+        |> Async.RunSynchronously
+
+    let create (cache: Map<string,CrackedFsprojInfo>) projectFile = 
+        let cacheMutable = Dictionary<string,CrackedFsprojInfo>(cache)
+        let allProjectInfos = getAllFsprojInfos projectFile
+        allProjectInfos |> Seq.iter (fun projectInfo -> cacheMutable.Add (projectInfo.Path,projectInfo))
+
+        let rec loop projectFile = 
+            let projectInfo = cacheMutable.[projectFile]         
+            {
+                Value = projectInfo
+                Refs = projectInfo.ProjRefs |> List.map loop
+            }
+    
+        let project = loop projectFile
+
+        let newCache = 
+            cacheMutable 
+            |> Dictionary.toMap
+
+        project,newCache,sourceFileMaps newCache    
+
+    let scan (fsproj: Fsproj) =
+        let cacheMutable = new Dictionary<string,CrackerFsprojFileTree list>()
+        let rec loop (stack: CrackerFsprojFileTree list) (fsproj: Fsproj) = 
+            match cacheMutable.TryGetValue fsproj.Value.Path with 
+            | true,_ -> ()
+            | false,_ ->
+                let newStack = (CrackerFsprojFileTree.ofCrackedFsproj fsproj.Value) :: stack
+                cacheMutable.Add(fsproj.Value.Path,newStack)
+                fsproj.Refs |> List.iter (loop newStack)
+
+        loop [] fsproj
+        cacheMutable 
+        |> Dictionary.toMap
+            
+
+type CrackerFsprojFileBundleCache =
+    {
+        FileTreesMaps: Map<string,CrackerFsprojFileTree list>
+        ProjectMaps: Map<string,CrackedFsprojInfo>
+
+        /// sourceFile,projectFile
+        SourceFileMaps: Map<string,string>
+    }
 
 
-    let getAllFsprojs() =
-        entry.Info :: (refs |> List.collect ReferenceProject.getAllFsprojs)
-
-
-    member __.ScanProject projectFile =
-        let entryFileTree = CrackerFsprojFileTree.ofCrackedFsproj entry.Info
-        match searchCache.TryGet projectFile with 
-        | Some fsproj ->
-            match fsproj with 
-            | Fsproj.Entry _ -> fsproj,[entryFileTree]     
-            | Fsproj.Ref _ ->
-                let cache = new HashSet<string>()
-                let rec loop (stack: CrackerFsprojFileTree list) (refs: ReferenceProject list) = 
-                    refs |> List.collect (fun ref ->
-                        if cache.Contains ref.Value.Path then stack
-                        else 
-                            cache.Add(ref.Value.Path) |> ignore
-                            if ref.Value.Path = projectFile then stack
-                            else
-                                let fileTree = CrackerFsprojFileTree.ofCrackedFsproj ref.Value
-                                loop (fileTree :: stack) ref.Refs        
-                    )
-                let result = loop  [entryFileTree] refs |> List.distinctBy (fun fileTree -> fileTree.ProjPath)
-                fsproj,result
-        | None -> failwithf "Cannot find project file %s" projectFile
-        
-    member __.FileMaps() =
-        getAllFsprojs()
-        |> List.map (fun proj -> proj.Path,proj.SourceFiles)
-        |> dict
-
-
-    member __.Entry = entry
-
-        
-
-
+[<RequireQualifiedAccess>]
+type CrackedFsprojBundleMsg =
+    | Cache of replyChannel: AsyncReplyChannel<CrackerFsprojFileBundleCache>
+let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
+    let rec loop (entry: Fsproj) cache = async {
+        let! msg = inbox.Receive()
+        match msg with 
+        | CrackedFsprojBundleMsg.Cache replyChannel ->
+            replyChannel.Reply cache
+            return! loop entry cache
+    }
+    let (project,searchCache,sourceFileMap) = Fsproj.create Map.empty projectFile
+    let scanCache = Fsproj.scan project
+    let cache =
+        {
+            FileTreesMaps = scanCache
+            ProjectMaps = searchCache
+            SourceFileMaps = sourceFileMap 
+        }
+    /// warm start    
+    loop project cache
+)

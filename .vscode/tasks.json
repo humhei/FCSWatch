@@ -22,8 +22,8 @@
                 ".fake/fcswatch/port.cache"
             ],
             "presentation": {
-                "reveal": "silent"
-            }
+                "reveal": "never"
+            },
         },
         {
             "label": "FcsWatch",
