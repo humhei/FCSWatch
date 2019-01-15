@@ -36,6 +36,18 @@
             ],
             "problemMatcher": []
         },
+
+        {
+            "label": "ReleaseVersion.Publish",
+            "command": "fake",
+            "group": "build",
+            "args": [
+                "build",
+                "-t",
+                "ReleaseVersion.Publish"
+            ],
+            "problemMatcher": []
+        },
         {
             "label": "BetaVersion.Publish",
             "command": "fake",

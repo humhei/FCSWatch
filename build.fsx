@@ -16,36 +16,22 @@ open Microsoft.Build.Definition
 open System.Collections.Generic
 open System.Xml
 
-let private easyGetAllProjects (projectFile: string) =
-    let values = new HashSet<string>()
-    let add projectFile = values.Add projectFile |> ignore
-    let rec loop (projectFile: string) = 
-        add projectFile
+  
 
-        let dir = Path.getDirectory projectFile
-        let doc = new XmlDocument()
-        doc.Load(projectFile)
-        for node in doc.GetElementsByTagName "ProjectReference" do
-            let includeAttr = node.Attributes.GetNamedItem ("Include")
-            let includeValue = includeAttr.Value
-            let path = Path.getFullName (dir </> includeValue)
-            loop path
-    loop projectFile 
-    Set.ofSeq values       
-let projectFile = Path.getFullName "TestProject/TestProject.fsproj"
-easyGetAllProjects projectFile
-let project = Project.FromFile(projectFile,new ProjectOptions())
-let s = project.ProjectCollection
 
-let publisher = new MyBetaPublisher(id)
+let publisher = lazy (MyPublisher.create(id))
 
 
 Target.create "BetaVersion.Publish" (fun _ ->
-    publisher.Publish()
+    publisher.Value.PublishPackages(VersionStatus.Release)
+)
+
+Target.create "ReleaseVersion.Publish" (fun _ ->
+    publisher.Value.PublishPackages(VersionStatus.Build)
 )
 
 Target.create "BetaVersion.UpdateDependencies" (fun _ ->
-    publisher.UpdateDependencies()
+    publisher.Value.UpdateDependencies()
 )
 
 Target.create "FcsWatch" (fun _ -> 
