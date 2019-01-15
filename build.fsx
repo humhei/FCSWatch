@@ -11,18 +11,28 @@ open Fake.IO
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FakeHelper
 open Fake.IO.FileSystemOperators
-open Newtonsoft.Json
+open Microsoft.Build.Evaluation
+open Microsoft.Build.Definition
+open System.Collections.Generic
+open System.Xml
+
+  
 
 
-let publisher = new MyBetaPublisher(id)
+let publisher = lazy (MyPublisher.create(id))
 
 
-Target.create "BetaVersion.Publish" (fun _ ->
-    publisher.Publish()
+Target.create "MyPublisher.NextBuild" (fun _ ->
+    publisher.Value.PublishPackages(VersionStatus.Build)
 )
 
-Target.create "BetaVersion.UpdateDependencies" (fun _ ->
-    publisher.UpdateDependencies()
+Target.create "MyPublisher.NextRelease" (fun _ ->
+    printfn "Hello"
+    publisher.Value.PublishPackages(VersionStatus.Release)
+)
+
+Target.create "MyPublisher.UpdateDependencies" (fun _ ->
+    publisher.Value.UpdateDependencies()
 )
 
 Target.create "FcsWatch" (fun _ -> 

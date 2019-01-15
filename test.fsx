@@ -5,10 +5,15 @@ open System.Collections.Concurrent
 open System.Threading
 open System.IO
 open System.Net
+open System.Collections.Generic
+open System.Collections
 
-let freePort =
-    let l = Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
-    l.Start()
-    let port = (l.LocalEndpoint :?> IPEndPoint).Port
-    l.Stop()
-    port
+let rec loop (searchCache:Map<string,string>) = async {
+    if searchCache.Count > 0 then
+        printfn "HelloWorld" 
+    else 
+        return! loop (searchCache.Add("6","5"))      
+        return! loop (searchCache.Add("6","5"))  
+        printfn "Yes"    
+}
+let r = loop Map.empty |> Async.RunSynchronously

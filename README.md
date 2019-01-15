@@ -1,4 +1,4 @@
-# FCSWatch
+# FCSWatch [![](https://img.shields.io/nuget/v/fcswatch.svg)](https://www.nuget.org/packages/FcsWatch)
 Run standard fsharp codes in watch mode
 
 ## MiniSample 

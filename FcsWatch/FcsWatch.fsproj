@@ -6,6 +6,9 @@
   <ItemGroup>
     <Compile Include="ProjectCoreCracker.fs" />
     <Compile Include="Types.fs" />
+    <Compile Include="CompilerTmpEmitter.fs" />
+    <Compile Include="DebuggingServer.fs" />
+    <Compile Include="Compiler.fs" />
     <Compile Include="FcsWatcher.fs" />
     <Compile Include="FakeHelper.fs" />
   </ItemGroup>

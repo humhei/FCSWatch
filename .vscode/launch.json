@@ -12,9 +12,9 @@
             "cwd": "${workspaceFolder}/FcsWatch.Tests",
             "args": [
             ],
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            },
+            // "env": {
+            //     "ASPNETCORE_ENVIRONMENT": "Development"
+            // },
             "preLaunchTask": "Build FcsWatch"
 
         },
@@ -22,7 +22,7 @@
             "name": "launch TestProject",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "emitCompilerTmp",
+            // "preLaunchTask": "emitCompilerTmp",
             "program": "${workspaceFolder}/TestProject/bin/Debug/netcoreapp3.0/TestProject.exe",
         },
         {

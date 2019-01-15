@@ -22,8 +22,8 @@
                 ".fake/fcswatch/port.cache"
             ],
             "presentation": {
-                "reveal": "silent"
-            }
+                "reveal": "never"
+            },
         },
         {
             "label": "FcsWatch",
@@ -36,25 +36,37 @@
             ],
             "problemMatcher": []
         },
+
         {
-            "label": "BetaVersion.Publish",
+            "label": "MyPublisher.NextRelease",
             "command": "fake",
             "group": "build",
             "args": [
                 "build",
                 "-t",
-                "BetaVersion.Publish"
+                "MyPublisher.NextRelease"
             ],
             "problemMatcher": []
         },
         {
-            "label": "BetaVersion.UpdateDependencies",
+            "label": "MyPublisher.UpdateDependencies",
             "command": "fake",
             "group": "build",
             "args": [
                 "build",
                 "-t",
-                "BetaVersion.UpdateDependencies"
+                "MyPublisher.UpdateDependencies"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "MyPublisher.NextBuild",
+            "command": "fake",
+            "group": "build",
+            "args": [
+                "build",
+                "-t",
+                "MyPublisher.NextBuild"
             ],
             "problemMatcher": []
         },
