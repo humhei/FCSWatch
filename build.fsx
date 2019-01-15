@@ -22,15 +22,16 @@ open System.Xml
 let publisher = lazy (MyPublisher.create(id))
 
 
-Target.create "BetaVersion.Publish" (fun _ ->
-    publisher.Value.PublishPackages(VersionStatus.Release)
-)
-
-Target.create "ReleaseVersion.Publish" (fun _ ->
+Target.create "MyPublisher.NextBuild" (fun _ ->
     publisher.Value.PublishPackages(VersionStatus.Build)
 )
 
-Target.create "BetaVersion.UpdateDependencies" (fun _ ->
+Target.create "MyPublisher.NextRelease" (fun _ ->
+    printfn "Hello"
+    publisher.Value.PublishPackages(VersionStatus.Release)
+)
+
+Target.create "MyPublisher.UpdateDependencies" (fun _ ->
     publisher.Value.UpdateDependencies()
 )
 

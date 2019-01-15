@@ -38,35 +38,35 @@
         },
 
         {
-            "label": "ReleaseVersion.Publish",
+            "label": "MyPublisher.NextRelease",
             "command": "fake",
             "group": "build",
             "args": [
                 "build",
                 "-t",
-                "ReleaseVersion.Publish"
+                "MyPublisher.NextRelease"
             ],
             "problemMatcher": []
         },
         {
-            "label": "BetaVersion.Publish",
+            "label": "MyPublisher.UpdateDependencies",
             "command": "fake",
             "group": "build",
             "args": [
                 "build",
                 "-t",
-                "BetaVersion.Publish"
+                "MyPublisher.UpdateDependencies"
             ],
             "problemMatcher": []
         },
         {
-            "label": "BetaVersion.UpdateDependencies",
+            "label": "MyPublisher.NextBuild",
             "command": "fake",
             "group": "build",
             "args": [
                 "build",
                 "-t",
-                "BetaVersion.UpdateDependencies"
+                "MyPublisher.NextBuild"
             ],
             "problemMatcher": []
         },
