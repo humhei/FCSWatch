@@ -1,6 +1,8 @@
-# Release Notes
+﻿# Release Notes
 
-## 0.1.2 - tbd
+## 0.1.2-alpha - tbd
+
+## 0.1.2 - 2019-01-15
 * Refector to actor model
 * Warm compile
 * Add nuget icon to README
