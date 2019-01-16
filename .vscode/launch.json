@@ -22,7 +22,7 @@
             "name": "launch TestProject",
             "type": "coreclr",
             "request": "launch",
-            // "preLaunchTask": "emitCompilerTmp",
+            "preLaunchTask": "emitCompilerTmp",
             "program": "${workspaceFolder}/TestProject/bin/Debug/netcoreapp3.0/TestProject.exe",
         },
         {

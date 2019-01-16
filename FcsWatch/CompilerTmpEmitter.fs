@@ -44,28 +44,32 @@ module CompilerTmpEmiiterState =
         match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
         | 0, h::t ->
             t |> List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.GONE "request is cancelled"))
-
-            let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
-            let result = lastTask.Task.Result
-            if result.ExitCode <> 0 then 
-                let errorText =  
-                    result.Errors 
-                    |> Seq.map (fun error -> error.ToString())
-                    |> String.concat "\n"
-                h.Reply (RequestErrors.BAD_REQUEST errorText)
-                { compilerTmpEmiiterState with EmitReplyChannels = [] } 
-            else            
-                let projectMaps = cache.ProjectMaps
-                let fileTreeMaps = cache.FileTreesMaps
-                compilerTmpEmiiterState.CompilerTmp |> Seq.iter (fun projectFile ->
-                    let originFileTree = CrackerFsprojFileTree.ofCrackedFsproj projectMaps.[projectFile]
-                    let fsprojFileTrees = fileTreeMaps.[projectFile]
-                    fsprojFileTrees |> Seq.iter (fun fsprojFileTree ->
-                        CrackerFsprojFileTree.copyFile logger originFileTree fsprojFileTree
-                    )
-                )
+            match compilerTmpEmiiterState.CompilerTasks with
+            | [] -> 
                 h.Reply (Successful.OK "fcswatch: Ready to debug")
-                empty
+                compilerTmpEmiiterState
+            | _ ->
+                let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
+                let result = lastTask.Task.Result
+                if result.ExitCode <> 0 then 
+                    let errorText =  
+                        result.Errors 
+                        |> Seq.map (fun error -> error.ToString())
+                        |> String.concat "\n"
+                    h.Reply (RequestErrors.BAD_REQUEST errorText)
+                    { compilerTmpEmiiterState with EmitReplyChannels = [] } 
+                else            
+                    let projectMaps = cache.ProjectMaps
+                    let fileTreeMaps = cache.FileTreesMaps
+                    compilerTmpEmiiterState.CompilerTmp |> Seq.iter (fun projectFile ->
+                        let originFileTree = CrackerFsprojFileTree.ofCrackedFsproj projectMaps.[projectFile]
+                        let fsprojFileTrees = fileTreeMaps.[projectFile]
+                        fsprojFileTrees |> Seq.iter (fun fsprojFileTree ->
+                            CrackerFsprojFileTree.copyFile logger originFileTree fsprojFileTree
+                        )
+                    )
+                    h.Reply (Successful.OK "fcswatch: Ready to debug")
+                    empty
         | _ -> compilerTmpEmiiterState    
 
 

@@ -11,10 +11,8 @@ with
 
 [<EntryPoint>]
 let main _ =
-    let s = {Name = "Yes"}
-    let p  = s.Say
-    let k = s.Say
-    printfn "y54564"
+    printfn "sdasadsda"
+    let a = ""
     Console.Read()
     0 // return an integer exit code
  

@@ -1,6 +1,7 @@
 ﻿# Release Notes
 
-## 0.1.2-alpha - tbd
+## 0.1.3-alpha - tbd
+* Release nuget
 
 ## 0.1.2 - 2019-01-15
 * Refector to actor model
