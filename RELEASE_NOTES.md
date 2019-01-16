@@ -1,7 +1,7 @@
 ﻿# Release Notes
 
-## 0.1.3-alpha - tbd
-* Release nuget
+## 0.2.0-beta - tbd
+* Add fs file to project without interrupting watcher
 
 ## 0.1.2 - 2019-01-15
 * Refector to actor model

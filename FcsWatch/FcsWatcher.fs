@@ -8,9 +8,24 @@ open FcsWatch.DebuggingServer
 open FcsWatch.Compiler
 open FcsWatch.CompilerTmpEmiiter
 open System.Threading
+open System
 
+[<RequireQualifiedAccess>]
 type FcsWatcherMsg =
-    | DetectFileChange of fileChange: FileChange
+    | DetectSourceFileChange of fileChange: FileChange * AsyncReplyChannel<int>
+    | DetectProjectFileChange of fileChange: FileChange
+
+
+let inline (<!>) msg content  = 
+    fun replyChannel ->
+        msg (content, replyChannel)
+
+
+type FcsWatcherModel = 
+    { SourceFileWatcher: IDisposable
+      CrackerFsprojFileBundleCache: CrackerFsprojFileBundleCache }
+
+
 let fcsWatcher 
     (buildingConfig: Config -> Config) 
     (checker: FSharpChecker) 
@@ -20,39 +35,87 @@ let fcsWatcher
                 WorkingDir = Path.getFullName "./"
             }
 
-        let projectBundleAgent = crackedFsprojBundle projectFile
-        let cache = projectBundleAgent.PostAndReply CrackedFsprojBundleMsg.Cache
-        let projectMaps = cache.ProjectMaps
-        let entry = projectMaps.[projectFile]
+
         let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->
+
+
+        
+            let newSourceFileWatcher cache = 
+                let pattern = 
+                    let files = cache.SourceFileMaps |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
+                    { BaseDirectory = config.WorkingDir
+                      Includes = files
+                      Excludes = [] }
+
+                pattern |> ChangeWatcher.run (fun changes ->
+                    match List.ofSeq changes with 
+                    | [change] -> 
+                        inbox.PostAndAsyncReply (fun reply ->
+                            FcsWatcherMsg.DetectSourceFileChange (change,reply)
+                        ) 
+                        |> Async.StartAsTask
+                        |> ignore
+
+                    | _ ->
+                        failwith "multiple files changed at some time" 
+                    )     
+
             Logger.info (sprintf "fcs watcher is running in logger level %A" config.Logger) config.Logger
             Logger.info (sprintf "fcs watcher's working directory is %s" config.WorkingDir) config.Logger
-            let compilerTmpEmitterAgent = compilerTmpEmitter config projectBundleAgent
+
+            let projectBundleAgent = crackedFsprojBundle projectFile
+            let cache = projectBundleAgent.PostAndReply CrackedFsprojBundleMsg.Cache
+            let projectMaps = cache.ProjectMaps
+            let entry = projectMaps.[projectFile]
+
+            let projectFilesWatcher =
+                let pattern =
+                    let files = cache.AllProjectFiles |> List.ofSeq
+                    { BaseDirectory = config.WorkingDir
+                      Includes = files
+                      Excludes = [] }
+                  
+                pattern |> ChangeWatcher.run (fun changes ->
+                    match List.ofSeq changes with 
+                    | [change] -> inbox.Post(FcsWatcherMsg.DetectProjectFileChange change)
+                    | _ ->
+                        failwith "multiple project files changed at some time" 
+                )        
+            
+            let compilerTmpEmitterAgent = compilerTmpEmitter config cache
             let debuggingServerAgent = debuggingServer compilerTmpEmitterAgent config
             debuggingServerAgent.Post DebuggingServerMsg.StartServer
-            let compilerAgent = compiler compilerTmpEmitterAgent projectBundleAgent config checker
+            let compilerAgent = compiler compilerTmpEmitterAgent cache config checker
             compilerAgent.Post(CompilerMsg.WarmCompile entry)
+            
             let rec loop state = async {
+                let cache = state.CrackerFsprojFileBundleCache
+                let sourceFileMaps = cache.SourceFileMaps
+                let projectMaps = cache.ProjectMaps
                 let! msg = inbox.Receive()
                 match msg with 
-                | FcsWatcherMsg.DetectFileChange fileChange ->
+                | FcsWatcherMsg.DetectSourceFileChange (fileChange,replyChannel) ->
                     Logger.important (sprintf "file %s is changed" fileChange.FullPath) config.Logger
-                    compilerAgent.Post(CompilerMsg.DetectFileChange fileChange)
+                    let projFile = sourceFileMaps.[fileChange.FullPath]
+                    compilerAgent.Post(CompilerMsg.CompilerProject projectMaps.[projFile])
+                    let allCompilerTaskNumber = 
+                        compilerAgent.PostAndReply CompilerMsg.AllCompilerTaskNumber
+                    replyChannel.Reply allCompilerTaskNumber                    
                     return! loop state
+
+                | FcsWatcherMsg.DetectProjectFileChange fileChange ->
+                    Logger.important (sprintf "project file %s is changed" fileChange.FullPath) config.Logger
+                    let newCache = projectBundleAgent.PostAndReply (CrackedFsprojBundleMsg.DetectProjectFileChange <!> fileChange)
+                    let sourceFileWatcher = 
+                        state.SourceFileWatcher.Dispose()
+                        newSourceFileWatcher newCache
+                    compilerAgent.Post(CompilerMsg.UpdateCache newCache)
+                    compilerTmpEmitterAgent.Post(CompilerTmpEmitterMsg.UpdateCache newCache)
+                    return! loop { state with SourceFileWatcher = sourceFileWatcher }
             }
-            loop ()
+            let sourceFileWatcher = newSourceFileWatcher cache
+            loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojFileBundleCache = cache }
         )
 
-        let pattern = 
-            let files = cache.SourceFileMaps |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
-            { BaseDirectory = config.WorkingDir
-              Includes = files
-              Excludes = [] }
-
-        pattern |> ChangeWatcher.run (fun changes ->
-            match List.ofSeq changes with 
-            | [change] -> agent.Post(FcsWatcherMsg.DetectFileChange change)
-            | _ ->
-                failwith "multiple files changed at some time" 
-        )
+        agent
         

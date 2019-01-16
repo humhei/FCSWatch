@@ -7,7 +7,7 @@ type Hello = {Name: string}
 with 
     member x.Say = 
         printfn "Hello"
-        "Hello"
+        "Hello"  
 
 [<EntryPoint>]
 let main _ =

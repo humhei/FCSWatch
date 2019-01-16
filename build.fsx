@@ -18,7 +18,6 @@ open System.Xml
 
   
 
-
 let publisher = lazy (MyPublisher.create(id))
 
 

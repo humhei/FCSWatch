@@ -8,12 +8,5 @@ open System.Net
 open System.Collections.Generic
 open System.Collections
 
-let rec loop (searchCache:Map<string,string>) = async {
-    if searchCache.Count > 0 then
-        printfn "HelloWorld" 
-    else 
-        return! loop (searchCache.Add("6","5"))      
-        return! loop (searchCache.Add("6","5"))  
-        printfn "Yes"    
-}
-let r = loop Map.empty |> Async.RunSynchronously
+let rec a k = b k 
+and b s = a s
