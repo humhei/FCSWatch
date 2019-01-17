@@ -111,7 +111,7 @@ let fcsWatcher
                         newSourceFileWatcher newCache
                     compilerAgent.Post(CompilerMsg.UpdateCache newCache)
                     compilerTmpEmitterAgent.Post(CompilerTmpEmitterMsg.UpdateCache newCache)
-                    return! loop { state with SourceFileWatcher = sourceFileWatcher }
+                    return! loop { state with SourceFileWatcher = sourceFileWatcher; CrackerFsprojFileBundleCache = newCache }
             }
             let sourceFileWatcher = newSourceFileWatcher cache
             loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojFileBundleCache = cache }

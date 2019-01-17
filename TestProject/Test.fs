@@ -11,7 +11,8 @@ with
 
 [<EntryPoint>]
 let main _ =
-    printfn "sdasadsda"
+    printfn "HWhatisello " 
+    printfn "%sHsdsdaasasdasadadsadassssasello " FS.ss
     let a = ""
     Console.Read()
     0 // return an integer exit code
