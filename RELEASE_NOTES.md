@@ -1,5 +1,5 @@
 ﻿# Release Notes
-
+ 
 ## 0.2.0 - tbd
 * Add fs file to project without interrupting watcher
 
