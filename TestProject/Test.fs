@@ -7,14 +7,13 @@ type Hello = {Name: string}
 with 
     member x.Say = 
         printfn "Hello"
-        "Hello"
+        "Hello"  
 
 [<EntryPoint>]
 let main _ =
-    let s = {Name = "Yes"}
-    let p  = s.Say
-    let k = s.Say
-    printfn "y54564"
+    printfn "HWhatisello " 
+    printfn "%sHsdsdaasasdasadadsadassssasello " FS.ss
+    let a = ""
     Console.Read()
     0 // return an integer exit code
  

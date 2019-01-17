@@ -161,7 +161,7 @@ module Fsproj =
         loop projectFile 
         Set.ofSeq values       
 
-    let private sourceFileMaps (cache: Map<string,CrackedFsprojInfo>) = 
+    let sourceFileMaps (cache: Map<string,CrackedFsprojInfo>) = 
         let dict = new Dictionary<string, string>()
         cache |> Seq.iter (fun pair -> 
             pair.Value.SourceFiles |> Seq.iter (fun sourceFile ->
@@ -216,17 +216,33 @@ module Fsproj =
 
 type CrackerFsprojFileBundleCache =
     {
+        /// projectFile, project refers
         FileTreesMaps: Map<string,CrackerFsprojFileTree list>
+        
+
         ProjectMaps: Map<string,CrackedFsprojInfo>
 
         /// sourceFile,projectFile
         SourceFileMaps: Map<string,string>
     }
+with 
+    member x.AllProjectFiles = x.ProjectMaps |> Seq.map (fun pair -> pair.Key)
 
+[<RequireQualifiedAccess>]
+module CrackerFsprojFileBundleCache =
+    let update projectFile (cache:CrackerFsprojFileBundleCache) =
+        let info = CrackedFsprojInfo.create projectFile
+        let newProjectMaps = Map.add projectFile info cache.ProjectMaps
+        let newSourceFileMaps = Fsproj.sourceFileMaps newProjectMaps
+        { cache with 
+            ProjectMaps = newProjectMaps 
+            SourceFileMaps = newSourceFileMaps }
 
 [<RequireQualifiedAccess>]
 type CrackedFsprojBundleMsg =
     | Cache of replyChannel: AsyncReplyChannel<CrackerFsprojFileBundleCache>
+    | DetectProjectFileChange of FileChange * AsyncReplyChannel<CrackerFsprojFileBundleCache>
+
 let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
     let rec loop (entry: Fsproj) cache = async {
         let! msg = inbox.Receive()
@@ -234,6 +250,11 @@ let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBun
         | CrackedFsprojBundleMsg.Cache replyChannel ->
             replyChannel.Reply cache
             return! loop entry cache
+        | CrackedFsprojBundleMsg.DetectProjectFileChange (fileChange,replyChannel) ->
+            let projectFile = fileChange.FullPath
+            let newCache = CrackerFsprojFileBundleCache.update projectFile cache
+            replyChannel.Reply newCache
+            return! loop entry newCache
     }
     let (project,searchCache,sourceFileMap) = Fsproj.create Map.empty projectFile
     let scanCache = Fsproj.scan project
@@ -242,7 +263,7 @@ let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBun
             FileTreesMaps = scanCache
             ProjectMaps = searchCache
             SourceFileMaps = sourceFileMap 
-        }
     /// warm start    
+        }
     loop project cache
 )

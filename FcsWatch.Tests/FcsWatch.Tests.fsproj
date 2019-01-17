@@ -10,6 +10,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Types.fs" />
     <Compile Include="FcsWatchTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

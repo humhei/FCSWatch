@@ -71,6 +71,10 @@ When you are debugging files,watch mode still take effect
 ### Multiple reference projects
 It is supported if you pass the entry project argument to it
 
+### Add fs file in fsproject
+Import notes: After version 0.2.0
+You can add fs file to project without interrupting watcher
+
 ### Why?
 why not use dotnet watch:
 1. dotnet watch reference all dlls every time (which will take at least 3000ms?) (while fcs hold dlls in runtime cache)

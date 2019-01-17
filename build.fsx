@@ -18,7 +18,6 @@ open System.Xml
 
   
 
-
 let publisher = lazy (MyPublisher.create(id))
 
 
@@ -27,7 +26,6 @@ Target.create "MyPublisher.NextBuild" (fun _ ->
 )
 
 Target.create "MyPublisher.NextRelease" (fun _ ->
-    printfn "Hello"
     publisher.Value.PublishPackages(VersionStatus.Release)
 )
 
