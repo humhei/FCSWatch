@@ -43,13 +43,20 @@ module CompilerTmpEmiiterState =
                 CompilerTasks = []
                 CrackerFsprojFileBundleCache = cache
             }
-    let tryEmit logger cache compilerTmpEmiiterState =
+    let tryEmit (config: Config) logger cache compilerTmpEmiiterState =
         match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
         | 0, h::t ->
+
+                
             t |> List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.GONE "request is cancelled"))
+            
+            let replySuccess() = 
+                config.AfterEmitTmp()
+                h.Reply (Successful.OK "fcswatch: Ready to debug")
+
             match compilerTmpEmiiterState.CompilerTasks with
             | [] -> 
-                h.Reply (Successful.OK "fcswatch: Ready to debug")
+                replySuccess()
                 compilerTmpEmiiterState
             | _ ->
                 let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
@@ -71,7 +78,7 @@ module CompilerTmpEmiiterState =
                             CrackerFsprojFileTree.copyFile logger originFileTree fsprojFileTree
                         )
                     )
-                    h.Reply (Successful.OK "fcswatch: Ready to debug")
+                    replySuccess()
                     createEmpty cache
         | _ -> compilerTmpEmiiterState    
 
@@ -92,7 +99,7 @@ let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxPro
             assert (state.CompilingNumber > 0)
             let newState = 
                 {state with CompilingNumber = compilingNumber}
-                |> CompilerTmpEmiiterState.tryEmit logger cache
+                |> CompilerTmpEmiiterState.tryEmit config logger cache
 
             return! loop newState      
         | CompilerTmpEmitterMsg.IncrCompilingNum -> 
@@ -104,9 +111,10 @@ let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxPro
         | CompilerTmpEmitterMsg.AddTmp projectFile -> return! loop {state with CompilerTmp = state.CompilerTmp.Add projectFile}        
         | CompilerTmpEmitterMsg.Emit replyChannel ->
             diagnosticsMessage state.CompilingNumber "Emit"
+            config.BeforeEmitTmp()
             let newState =
                 {state with EmitReplyChannels = replyChannel :: state.EmitReplyChannels}
-                |> CompilerTmpEmiiterState.tryEmit logger cache
+                |> CompilerTmpEmiiterState.tryEmit config logger cache
             return! loop newState
         | CompilerTmpEmitterMsg.AddTask task -> 
             diagnosticsMessage state.CompilingNumber "AddTask"

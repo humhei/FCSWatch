@@ -33,6 +33,8 @@ let fcsWatcher
         let config = buildingConfig {
                 Logger = Logger.Normal
                 WorkingDir = Path.getFullName "./"
+                BeforeEmitTmp = ignore
+                AfterEmitTmp = ignore
             }
 
 

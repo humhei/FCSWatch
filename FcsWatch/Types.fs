@@ -14,6 +14,8 @@ type Config =
     {
         Logger: Logger
         WorkingDir: string
+        BeforeEmitTmp: unit -> unit 
+        AfterEmitTmp: unit -> unit 
     }
     
 module Logger =
