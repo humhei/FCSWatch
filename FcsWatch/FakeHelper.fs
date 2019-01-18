@@ -8,7 +8,7 @@ let runFcsWatcher (checker: FSharpChecker) projectFile =
     let watcher = fcsWatcher id checker projectFile 
     manualSet.Wait()
 
-let runFcsWatcherWithConfig config (checker: FSharpChecker) projectFile = 
+let runFcsWatcherWith buidingConfig (checker: FSharpChecker) projectFile = 
     let manualSet = new ManualResetEventSlim(false)
-    let watcher = fcsWatcher config checker projectFile 
+    let watcher = fcsWatcher buidingConfig checker projectFile 
     manualSet.Wait()
