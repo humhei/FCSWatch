@@ -4,6 +4,23 @@ module FcsWatch.ProjectCoreCracker
 open System
 open System.IO
 
+#if NET462
+let inline internal Ok x = Choice1Of2 x
+let inline internal Error x = Choice2Of2 x
+
+let inline internal (|Ok|Error|) x =
+    match x with
+    | Choice1Of2 x -> Ok x
+    | Choice2Of2 e -> Error e
+
+type internal Result<'Ok,'Err> = Choice<'Ok,'Err>
+
+module internal Result =
+  let map f inp = match inp with Error e -> Error e | Ok x -> Ok (f x)
+  let mapError f inp = match inp with Error e -> Error (f e) | Ok x -> Ok x
+  let bind f inp = match inp with Error e -> Error e | Ok x -> f x        
+#endif
+
 open Microsoft.FSharp.Compiler.SourceCodeServices
 
 module MSBuildPrj = Dotnet.ProjInfo.Inspect
@@ -76,9 +93,9 @@ let rec private projInfo additionalMSBuildProps (file: string) =
 
   let todo =
       match results with
-      | Result.Ok [getFscArgsResult; getP2PRefsResult; gpResult] ->
+      | Ok [getFscArgsResult; getP2PRefsResult; gpResult] ->
           match getFscArgsResult, getP2PRefsResult, gpResult with
-          | Result.Error(MSBuildPrj.MSBuildSkippedTarget), Result.Error(MSBuildPrj.MSBuildSkippedTarget), Result.Ok(MSBuildPrj.GetResult.Properties props) ->
+          | Error(MSBuildPrj.MSBuildSkippedTarget), Error(MSBuildPrj.MSBuildSkippedTarget), Ok(MSBuildPrj.GetResult.Properties props) ->
               // Projects with multiple target frameworks, fails if the target framework is not choosen
               let prop key = props |> Map.ofList |> Map.tryFind key
 
@@ -87,13 +104,13 @@ let rec private projInfo additionalMSBuildProps (file: string) =
                   CrossTargeting tfms
               | _ ->
                   failwithf "error getting msbuild info: some targets skipped, found props: %A" props
-          | Result.Ok(MSBuildPrj.GetResult.FscArgs fa), Result.Ok(MSBuildPrj.GetResult.ResolvedP2PRefs p2p), Result.Ok(MSBuildPrj.GetResult.Properties p) ->
+          | Ok(MSBuildPrj.GetResult.FscArgs fa), Ok(MSBuildPrj.GetResult.ResolvedP2PRefs p2p), Ok(MSBuildPrj.GetResult.Properties p) ->
               NoCrossTargeting { FscArgs = fa; P2PRefs = p2p; Properties = p |> Map.ofList }
           | r ->
               failwithf "error getting msbuild info: %A" r
-      | Result.Ok r ->
+      | Ok r ->
           failwithf "error getting msbuild info: internal error, more info returned than expected %A" r
-      | Result.Error r ->
+      | Error r ->
           match r with
           | Dotnet.ProjInfo.Inspect.GetProjectInfoErrors.MSBuildSkippedTarget ->
               failwithf "Unexpected MSBuild result, all targets skipped"
