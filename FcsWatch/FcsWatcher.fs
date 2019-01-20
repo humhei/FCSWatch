@@ -9,6 +9,7 @@ open FcsWatch.Compiler
 open FcsWatch.CompilerTmpEmiiter
 open System.Threading
 open System
+open System.Diagnostics
 
 [<RequireQualifiedAccess>]
 type FcsWatcherMsg =
@@ -35,8 +36,9 @@ let fcsWatcher
                 WorkingDir = Path.getFullName "./"
                 BeforeEmitTmp = ignore
                 AfterEmitTmp = ignore
+                EnableDebugging = false
             }
-
+        if config.EnableDebugging then Debugger.Launch() |> ignore
 
         let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->
 
