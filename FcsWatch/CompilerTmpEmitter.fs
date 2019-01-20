@@ -88,8 +88,9 @@ let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxPro
     let rec loop state = async {
         let cache = state.CrackerFsprojFileBundleCache        
         let diagnosticsMessage compilingNumber msg = 
-            sprintf "compilerTmpEmitter agent receive message %s,current compiling number is %d" msg compilingNumber
-            |> Logger.diagnostics
+            Logger.info
+                (sprintf "compilerTmpEmitter agent receive message %s,current compiling number is %d" msg compilingNumber)
+                logger
 
         let! msg = inbox.Receive()
         match msg with 

@@ -31,7 +31,7 @@ let fcsWatcher
     (checker: FSharpChecker) 
     (projectFile: string) = 
         let config = buildingConfig {
-                Logger = Logger.Normal
+                Logger = Logger.Minimal
                 WorkingDir = Path.getFullName "./"
                 BeforeEmitTmp = ignore
                 AfterEmitTmp = ignore
