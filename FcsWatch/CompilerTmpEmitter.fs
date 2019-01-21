@@ -86,8 +86,8 @@ module CompilerTmpEmiiterState =
                             CrackerFsprojFileTree.copyFile logger originFileTree fsprojFileTree
                         )
                     )
-                    load()
                     replySuccess()
+                    load()
                     { createEmpty cache with GetTmpReplyChannels = compilerTmpEmiiterState.GetTmpReplyChannels }
 
         match config.DevelopmentTarget with 
