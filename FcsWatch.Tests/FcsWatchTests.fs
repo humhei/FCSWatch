@@ -63,7 +63,6 @@ let tests =
                 let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> model.FileChange)
                 match allCompilerTaskNumber,model.GetCompilerTmp() with 
                 /// warmCompile + TestLib2/Library.fs
-                /// compiler tmp is not emmited as emitCompilerTmp task is not trigger (see tasks.json)
                 | 2,[a] -> pass()
                 | _ -> fail()    
             ) 
@@ -78,7 +77,6 @@ let tests =
                     let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> fileChange)
                     match allCompilerTaskNumber,model.GetCompilerTmp() with 
                     /// warmCompile + TestLib2/Added.fs
-                    /// compiler tmp is not emmited as emitCompilerTmp task is not trigger (see tasks.json)
                     | 2,[a] -> pass()
                     | _ -> fail()  
 
@@ -86,10 +84,10 @@ let tests =
                     Fsproj.removeFileFromProject "Added.fs" model.ProjectFile
             )
 
-        testCase "in plugin mode emit cache everytime when file change is deteched" <| fun _ ->
+        testCase "in at once mode emit cache everytime when file change is deteched" <| fun _ ->
             let installPlugin() = printfn "install plugin" 
             let unInstallPlugin() = printfn "uninstall plugin" 
-            let pluginMode config = { config with DevelopmentTarget = DevelopmentTarget.Plugin(installPlugin,unInstallPlugin) } 
+            let pluginMode config = { config with DevelopmentTarget = DevelopmentTarget.AtOnce(installPlugin,unInstallPlugin) } 
             inTest pluginMode (fun model ->
                 let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> model.FileChange)
                 let tmps = model.GetCompilerTmp()

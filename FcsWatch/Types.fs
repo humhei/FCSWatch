@@ -12,8 +12,8 @@ open System.Collections.Generic
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
-    | Program
-    | Plugin of load: (unit -> unit) * unLoad: (unit -> unit)
+    | Program of load: (unit -> unit) * unLoad: (unit -> unit)
+    | AtOnce of load: (unit -> unit) * unLoad: (unit -> unit)
 
 type Config =
     {

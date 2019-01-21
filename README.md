@@ -72,7 +72,7 @@ When you are debugging files,watch mode still take effect
 It is supported if you pass the entry project argument to it
 
 ### Add fs file in fsproject
-Import notes: After version 0.2.0
+After version 0.2.0
 You can add fs file to project without interrupting watcher
 
 ### Why?

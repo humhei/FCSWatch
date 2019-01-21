@@ -37,7 +37,7 @@ let fcsWatcher
         let config = buildingConfig {
                 Logger = Logger.Minimal
                 WorkingDir = Path.getFullName "./"
-                DevelopmentTarget = DevelopmentTarget.Program
+                DevelopmentTarget = DevelopmentTarget.Program(ignore,ignore)
             }
 
         let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->

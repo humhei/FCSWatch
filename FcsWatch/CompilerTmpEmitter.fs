@@ -60,7 +60,7 @@ module CompilerTmpEmiiterState =
         | _ -> compilerTmpEmiiterState
 
     let tryEmitAction (config: Config) logger cache compilerTmpEmiiterState =
-        let emitCommon unLoad replyFailure replySuccess =
+        let emitCommon load unLoad replyFailure replySuccess =
             match compilerTmpEmiiterState.CompilerTasks with
             | [] ->
                 replySuccess()
@@ -86,11 +86,12 @@ module CompilerTmpEmiiterState =
                             CrackerFsprojFileTree.copyFile logger originFileTree fsprojFileTree
                         )
                     )
+                    load()
                     replySuccess()
                     { createEmpty cache with GetTmpReplyChannels = compilerTmpEmiiterState.GetTmpReplyChannels }
 
         match config.DevelopmentTarget with 
-        | DevelopmentTarget.Program ->
+        | DevelopmentTarget.Program (load,unload) ->
             match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
             | 0, h::t ->
                 t |> List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.GONE "request is cancelled"))
@@ -99,15 +100,15 @@ module CompilerTmpEmiiterState =
                     h.Reply (Successful.OK "fcswatch: Ready to debug")
 
                 let replyFailure errorText = h.Reply (RequestErrors.BAD_REQUEST errorText)    
-                emitCommon ignore replyFailure replySuccess
+                emitCommon load unload replyFailure replySuccess
             | _ -> compilerTmpEmiiterState
 
-        | DevelopmentTarget.Plugin (load,unLoad) ->
+        | DevelopmentTarget.AtOnce (load,unLoad) ->
             compilerTmpEmiiterState.EmitReplyChannels |> 
                 List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.BAD_REQUEST "invalid request"))
 
             match compilerTmpEmiiterState.CompilingNumber with 
-            | 0 -> emitCommon unLoad ignore load 
+            | 0 -> emitCommon load unLoad ignore ignore
             | _ -> compilerTmpEmiiterState 
 
 
