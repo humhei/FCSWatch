@@ -60,10 +60,11 @@ module CompilerTmpEmiiterState =
         | _ -> compilerTmpEmiiterState
 
     let tryEmitAction (config: Config) logger cache compilerTmpEmiiterState =
-        let emitCommon load unLoad replyFailure replySuccess =
+        let emitCommon calculate load unLoad replyFailure replySuccess =
             match compilerTmpEmiiterState.CompilerTasks with
             | [] ->
                 replySuccess()
+                calculate()
                 compilerTmpEmiiterState
             | _ ->            
                 let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
@@ -86,12 +87,14 @@ module CompilerTmpEmiiterState =
                             CrackerFsprojFileTree.copyFile logger originFileTree fsprojFileTree
                         )
                     )
-                    replySuccess()
                     load()
+                    replySuccess()
+                    calculate()
+                    
                     { createEmpty cache with GetTmpReplyChannels = compilerTmpEmiiterState.GetTmpReplyChannels }
 
         match config.DevelopmentTarget with 
-        | DevelopmentTarget.Program (load,unload) ->
+        | DevelopmentTarget.Program (load,unload,calculate) ->
             match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
             | 0, h::t ->
                 t |> List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.GONE "request is cancelled"))
@@ -100,7 +103,7 @@ module CompilerTmpEmiiterState =
                     h.Reply (Successful.OK "fcswatch: Ready to debug")
 
                 let replyFailure errorText = h.Reply (RequestErrors.BAD_REQUEST errorText)    
-                emitCommon load unload replyFailure replySuccess
+                emitCommon calculate load unload replyFailure replySuccess
             | _ -> compilerTmpEmiiterState
 
         | DevelopmentTarget.AtOnce (load,unLoad) ->
@@ -108,7 +111,7 @@ module CompilerTmpEmiiterState =
                 List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.BAD_REQUEST "invalid request"))
 
             match compilerTmpEmiiterState.CompilingNumber with 
-            | 0 -> emitCommon load unLoad ignore ignore
+            | 0 -> emitCommon ignore load unLoad ignore ignore
             | _ -> compilerTmpEmiiterState 
 
 

@@ -12,7 +12,7 @@ open System.Collections.Generic
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
-    | Program of load: (unit -> unit) * unLoad: (unit -> unit)
+    | Program of load: (unit -> unit) * unLoad: (unit -> unit) * calculate: (unit -> unit)
     | AtOnce of load: (unit -> unit) * unLoad: (unit -> unit)
 
 type Config =
