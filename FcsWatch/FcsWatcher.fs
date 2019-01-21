@@ -11,12 +11,15 @@ open System.Threading
 open System
 open System.Diagnostics
 
+type ReplyData =
+    { AllCompilerTaskNumber: int 
+      CompilerTmp: Set<string> }
+
 [<RequireQualifiedAccess>]
 type FcsWatcherMsg =
     | DetectSourceFileChange of fileChange: FileChange * AsyncReplyChannel<int>
     | DetectProjectFileChange of fileChange: FileChange
-
-
+    | GetEmitterAgent of AsyncReplyChannel<MailboxProcessor<CompilerTmpEmitterMsg>>
 let inline (<!>) msg content  = 
     fun replyChannel ->
         msg (content, replyChannel)
@@ -34,15 +37,10 @@ let fcsWatcher
         let config = buildingConfig {
                 Logger = Logger.Minimal
                 WorkingDir = Path.getFullName "./"
-                BeforeEmitTmp = ignore
-                AfterEmitTmp = ignore
-                EnableDebugging = false
+                DevelopmentTarget = DevelopmentTarget.Program
             }
-        if config.EnableDebugging then Debugger.Launch() |> ignore
 
         let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->
-
-
         
             let newSourceFileWatcher cache = 
                 let pattern = 
@@ -116,6 +114,9 @@ let fcsWatcher
                     compilerAgent.Post(CompilerMsg.UpdateCache newCache)
                     compilerTmpEmitterAgent.Post(CompilerTmpEmitterMsg.UpdateCache newCache)
                     return! loop { state with SourceFileWatcher = sourceFileWatcher; CrackerFsprojFileBundleCache = newCache }
+                | FcsWatcherMsg.GetEmitterAgent replyChannel ->
+                    replyChannel.Reply(compilerTmpEmitterAgent)
+                    return! loop state                
             }
             let sourceFileWatcher = newSourceFileWatcher cache
             loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojFileBundleCache = cache }

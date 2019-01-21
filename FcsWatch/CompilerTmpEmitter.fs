@@ -23,14 +23,16 @@ type CompilerTmpEmitterMsg =
     | Emit of replyChannel: AsyncReplyChannel<HttpHandler>
     | AddTask of CompilerTask
     | UpdateCache of CrackerFsprojFileBundleCache
+    | GetCompilerTmp of AsyncReplyChannel<Set<string>>
 
 type CompilerTmpEmitterState =
     {
         CompilingNumber: int
         CompilerTmp: Set<string>
         EmitReplyChannels: AsyncReplyChannel<HttpHandler> list
+        GetTmpReplyChannels: AsyncReplyChannel<Set<string>> list
         CompilerTasks: CompilerTask list
-        CrackerFsprojFileBundleCache: CrackerFsprojFileBundleCache
+        CrackerFsprojFileBundleCache: CrackerFsprojFileBundleCache // global cache
     }
     
 [<RequireQualifiedAccess>]
@@ -42,23 +44,28 @@ module CompilerTmpEmiiterState =
                 EmitReplyChannels = []
                 CompilerTasks = []
                 CrackerFsprojFileBundleCache = cache
+                GetTmpReplyChannels = []
             }
-    let tryEmit (config: Config) logger cache compilerTmpEmiiterState =
-        match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
-        | 0, h::t ->
 
-                
-            t |> List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.GONE "request is cancelled"))
-            
-            let replySuccess() = 
-                config.AfterEmitTmp()
-                h.Reply (Successful.OK "fcswatch: Ready to debug")
+    let tryGetCompilerTmp compilerTmpEmiiterState =
+        match compilerTmpEmiiterState.CompilingNumber with 
+        | 0 -> 
+            match compilerTmpEmiiterState.GetTmpReplyChannels.Length with 
+            | i when i > 0 -> 
+                compilerTmpEmiiterState.GetTmpReplyChannels |> List.iter (fun replyChannel ->
+                    replyChannel.Reply compilerTmpEmiiterState.CompilerTmp
+                )
+                { compilerTmpEmiiterState with GetTmpReplyChannels = [] }
+            | _ -> compilerTmpEmiiterState
+        | _ -> compilerTmpEmiiterState
 
+    let tryEmitAction (config: Config) logger cache compilerTmpEmiiterState =
+        let emitCommon unLoad replyFailure replySuccess =
             match compilerTmpEmiiterState.CompilerTasks with
-            | [] -> 
+            | [] ->
                 replySuccess()
                 compilerTmpEmiiterState
-            | _ ->
+            | _ ->            
                 let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
                 let result = lastTask.Task.Result
                 if result.ExitCode <> 0 then 
@@ -66,11 +73,12 @@ module CompilerTmpEmiiterState =
                         result.Errors 
                         |> Seq.map (fun error -> error.ToString())
                         |> String.concat "\n"
-                    h.Reply (RequestErrors.BAD_REQUEST errorText)
+                    replyFailure errorText
                     { compilerTmpEmiiterState with EmitReplyChannels = [] } 
                 else            
                     let projectMaps = cache.ProjectMaps
                     let fileTreeMaps = cache.FileTreesMaps
+                    unLoad()
                     compilerTmpEmiiterState.CompilerTmp |> Seq.iter (fun projectFile ->
                         let originFileTree = CrackerFsprojFileTree.ofCrackedFsproj projectMaps.[projectFile]
                         let fsprojFileTrees = fileTreeMaps.[projectFile]
@@ -79,15 +87,40 @@ module CompilerTmpEmiiterState =
                         )
                     )
                     replySuccess()
-                    createEmpty cache
-        | _ -> compilerTmpEmiiterState    
+                    { createEmpty cache with GetTmpReplyChannels = compilerTmpEmiiterState.GetTmpReplyChannels }
 
+        match config.DevelopmentTarget with 
+        | DevelopmentTarget.Program ->
+            match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
+            | 0, h::t ->
+                t |> List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.GONE "request is cancelled"))
+                
+                let replySuccess() = 
+                    h.Reply (Successful.OK "fcswatch: Ready to debug")
+
+                let replyFailure errorText = h.Reply (RequestErrors.BAD_REQUEST errorText)    
+                emitCommon ignore replyFailure replySuccess
+            | _ -> compilerTmpEmiiterState
+
+        | DevelopmentTarget.Plugin (load,unLoad) ->
+            compilerTmpEmiiterState.EmitReplyChannels |> 
+                List.iter (fun replyChannel -> replyChannel.Reply(RequestErrors.BAD_REQUEST "invalid request"))
+
+            match compilerTmpEmiiterState.CompilingNumber with 
+            | 0 -> emitCommon unLoad ignore load 
+            | _ -> compilerTmpEmiiterState 
+
+
+    let tryEmit (config: Config) logger cache compilerTmpEmiiterState =
+        compilerTmpEmiiterState
+        |> tryEmitAction config logger cache
+        |> tryGetCompilerTmp
 
 let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxProcessor<CompilerTmpEmitterMsg>.Start(fun inbox ->
     let logger = config.Logger
     let rec loop state = async {
         let cache = state.CrackerFsprojFileBundleCache        
-        let diagnosticsMessage compilingNumber msg = 
+        let traceMsg compilingNumber msg = 
             Logger.info
                 (sprintf "compilerTmpEmitter agent receive message %s,current compiling number is %d" msg compilingNumber)
                 logger
@@ -96,7 +129,7 @@ let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxPro
         match msg with 
         | CompilerTmpEmitterMsg.DecrCompilingNum -> 
             let compilingNumber = state.CompilingNumber - 1
-            diagnosticsMessage compilingNumber "Decr"
+            traceMsg compilingNumber "Decr"
             assert (state.CompilingNumber > 0)
             let newState = 
                 {state with CompilingNumber = compilingNumber}
@@ -105,24 +138,29 @@ let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxPro
             return! loop newState      
         | CompilerTmpEmitterMsg.IncrCompilingNum -> 
             let compilingNumber = state.CompilingNumber + 1
-
-            diagnosticsMessage compilingNumber "Incr"
+            traceMsg compilingNumber "Incr"
             
             return! loop {state with CompilingNumber = compilingNumber } 
         | CompilerTmpEmitterMsg.AddTmp projectFile -> return! loop {state with CompilerTmp = state.CompilerTmp.Add projectFile}        
         | CompilerTmpEmitterMsg.Emit replyChannel ->
-            diagnosticsMessage state.CompilingNumber "Emit"
-            config.BeforeEmitTmp()
+            traceMsg state.CompilingNumber "Emit"
             let newState =
                 {state with EmitReplyChannels = replyChannel :: state.EmitReplyChannels}
                 |> CompilerTmpEmiiterState.tryEmit config logger cache
             return! loop newState
         | CompilerTmpEmitterMsg.AddTask task -> 
-            diagnosticsMessage state.CompilingNumber "AddTask"
+            traceMsg state.CompilingNumber "AddTask"
             return! loop {state with CompilerTasks = task:: state.CompilerTasks}   
         | CompilerTmpEmitterMsg.UpdateCache cache ->
-            diagnosticsMessage state.CompilingNumber "Update cache"
-            return! loop {state with CrackerFsprojFileBundleCache = cache}   
+            traceMsg state.CompilingNumber "Update cache"
+            return! loop {state with CrackerFsprojFileBundleCache = cache} 
+        | CompilerTmpEmitterMsg.GetCompilerTmp replyChannel ->
+            traceMsg state.CompilingNumber "GetCompilerTmp"
+            let newState = 
+                {state with GetTmpReplyChannels = replyChannel :: state.GetTmpReplyChannels }
+                |> CompilerTmpEmiiterState.tryEmit config logger cache
+            return! loop newState
+
     }
-    loop {CompilingNumber = 0;CompilerTmp = Set.empty;EmitReplyChannels = []; CompilerTasks = []; CrackerFsprojFileBundleCache = cache}
+    loop (CompilerTmpEmiiterState.createEmpty cache) 
 )

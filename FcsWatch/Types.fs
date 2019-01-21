@@ -10,13 +10,16 @@ open System.Collections.Generic
 open System.Xml
 open System.Collections.Generic
 
+[<RequireQualifiedAccess>]
+type DevelopmentTarget =
+    | Program
+    | Plugin of load: (unit -> unit) * unLoad: (unit -> unit)
+
 type Config =
     {
         Logger: Logger
         WorkingDir: string
-        BeforeEmitTmp: unit -> unit 
-        AfterEmitTmp: unit -> unit
-        EnableDebugging: bool 
+        DevelopmentTarget: DevelopmentTarget
     }
     
 module Logger =
