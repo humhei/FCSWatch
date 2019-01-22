@@ -79,13 +79,15 @@ You can add fs file to project without interrupting watcher
 ### Plugin mode
 e.g.: excelDna sample
 ```fsharp
-    /// trigger when file changed was detected
-    /// and (re)load debugger 
+    /// trigger when file changed was detected 
+    /// and (re)load debugger (after emit cache) 
     let installPlugin() =
         dotnet projectDir "msbuild" ["/t:ExcelDnaBuild;ExcelDnaPack"]
         addIn.Installed <- true
         Trace.trace "installed plugin"
 
+    /// trigger when file changed was detected 
+    /// and (re)load debugger (before emit cache) 
     let unInstall() =
         addIn.Installed <- false
         Trace.trace "unInstalled plugin"
@@ -103,6 +105,14 @@ e.g.: excelDna sample
           /// Trigger when file changed was not detected 
           /// and reload debugger 
           DebuggerAttachTimeDelay = 1000 }
+
+    runFcsWatcherWith (fun config ->
+        { config with 
+            Logger = Logger.Normal
+            DevelopmentTarget = DevelopmentTarget.Plugin plugin
+        }
+    ) checker projectFile
+    
 ```
 
 ### Why?
