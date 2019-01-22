@@ -78,6 +78,18 @@ You can add fs file to project without interrupting watcher
 
 ### Plugin mode
 e.g.: excelDna sample
+vscode launch.json setting
+```
+    {
+      "name": "Attach Excel",
+      "type": "clr",
+      "request": "attach",
+      "preLaunchTask": "emitCompilerTmp",
+      "processId": 14876
+    },
+```
+
+build.fsx setting
 ```fsharp
     /// trigger when file changed was detected 
     /// and (re)load debugger (after emit cache) 
