@@ -20,6 +20,8 @@ type FcsWatcherMsg =
     | DetectSourceFileChange of fileChange: FileChange * AsyncReplyChannel<int>
     | DetectProjectFileChange of fileChange: FileChange
     | GetEmitterAgent of AsyncReplyChannel<MailboxProcessor<CompilerTmpEmitterMsg>>
+    | GetDebuggingServerAgent of AsyncReplyChannel<MailboxProcessor<DebuggingServerMsg>>
+
 let inline (<!>) msg content  = 
     fun replyChannel ->
         msg (content, replyChannel)
@@ -117,7 +119,10 @@ let fcsWatcher
                     return! loop { state with SourceFileWatcher = sourceFileWatcher; CrackerFsprojFileBundleCache = newCache }
                 | FcsWatcherMsg.GetEmitterAgent replyChannel ->
                     replyChannel.Reply(compilerTmpEmitterAgent)
-                    return! loop state                
+                    return! loop state          
+                | FcsWatcherMsg.GetDebuggingServerAgent replyChannel ->
+                    replyChannel.Reply(debuggingServerAgent)
+                    return! loop state          
             }
             let sourceFileWatcher = newSourceFileWatcher cache
             loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojFileBundleCache = cache }

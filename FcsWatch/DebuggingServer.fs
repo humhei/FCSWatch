@@ -14,6 +14,8 @@ open System
 open Microsoft.Extensions.Logging
 open Giraffe.HttpStatusCodeHandlers
 open System.Text
+open Microsoft.AspNetCore.Hosting
+
 let freePort() =
     let l = Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
     l.Start()
@@ -36,6 +38,7 @@ let generateCurlCache freePort config =
 type DebuggingServerMsg =
     | EmitCompilerTmp of replyChannel: AsyncReplyChannel<HttpHandler>
     | StartServer
+    | GetApp of AsyncReplyChannel<IWebHostBuilder>
 
 let debuggingServer (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) config = MailboxProcessor<DebuggingServerMsg>.Start(fun inbox ->
     
@@ -72,6 +75,9 @@ let debuggingServer (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitte
             return! loop state  
         | DebuggingServerMsg.StartServer -> 
             async {run app} |> Async.Start
+            return! loop state
+        | DebuggingServerMsg.GetApp replyChannel ->
+            replyChannel.Reply app
             return! loop state
     }
     loop ()

@@ -62,6 +62,7 @@ module CompilerTmpEmiiterState =
 
     let tryEmitAction (config: Config) logger cache compilerTmpEmiiterState =
         let emitCommon (timeDelay: int) calculate load unLoad replyFailure replySuccess =
+            Logger.infoGreen (sprintf "Current valid compier task is %d" compilerTmpEmiiterState.CompilerTasks)  
             match compilerTmpEmiiterState.CompilerTasks with
             | [] ->
                 replySuccess()
