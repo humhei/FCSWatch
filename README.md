@@ -29,6 +29,7 @@ Target.create "FcsWatch" (fun _ ->
     let projectFile = Path.getFullName "YourProject/YourProject.fsproj"
     dotnet root "build" [projectFile]
     let checker = FSharpChecker.Create()
+    /// or runFcsWatcherWith for more customizations
     runFcsWatcher checker projectFile
 )
 
@@ -74,6 +75,35 @@ It is supported if you pass the entry project argument to it
 ### Add fs file in fsproject
 After version 0.2.0
 You can add fs file to project without interrupting watcher
+
+### Plugin mode
+e.g.: excelDna sample
+```fsharp
+    /// trigger when file changed was detected
+    /// and (re)load debugger 
+    let installPlugin() =
+        dotnet projectDir "msbuild" ["/t:ExcelDnaBuild;ExcelDnaPack"]
+        addIn.Installed <- true
+        Trace.trace "installed plugin"
+
+    let unInstall() =
+        addIn.Installed <- false
+        Trace.trace "unInstalled plugin"
+
+    /// trigger when (re)load debugger 
+    let calculate() =
+        Trace.trace "calculate worksheet"
+        worksheet.Calculate()
+
+    let plugin = 
+        { Load = installPlugin 
+          Unload = unInstall 
+          Calculate = calculate
+          /// Thread sleed to wait debugger attached.
+          /// Trigger when file changed was not detected 
+          /// and reload debugger 
+          DebuggerAttachTimeDelay = 1000 }
+```
 
 ### Why?
 why not use dotnet watch:

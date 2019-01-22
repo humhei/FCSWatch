@@ -1,8 +1,8 @@
 ﻿# Release Notes
  
 ## 0.2.1-alpha - tbd
-* Custom behaivour (load,unload)
 * Added At once watch mode
+* Added Plugin mode
 
 ## 0.2.0 - 2019-01-17
 * Add fs file to project without interrupting watcher
