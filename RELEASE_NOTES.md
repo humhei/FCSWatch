@@ -1,6 +1,8 @@
 ﻿# Release Notes
  
-## 0.3.0 - tbd
+## 0.3.1-alpha - tbd
+
+## 0.3.0 - 2019-01-22
 * Added At once watch mode
 * Added Plugin mode
 
