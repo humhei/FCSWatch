@@ -1,6 +1,6 @@
 ﻿# Release Notes
  
-## 0.2.1-alpha - tbd
+## 0.2.1 - tbd
 * Added At once watch mode
 * Added Plugin mode
 
