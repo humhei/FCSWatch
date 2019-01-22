@@ -1,4 +1,4 @@
-﻿# Release Notes
+# Release Notes
  
 ## 0.3.1-alpha - tbd
 
