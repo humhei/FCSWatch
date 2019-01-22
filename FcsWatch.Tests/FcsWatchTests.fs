@@ -35,7 +35,6 @@ type TestModel =
       GetCompilerTmp: unit -> string list }
 
 let inTest buildingConfig f =
-    let manualSet = new ManualResetEventSlim(false)
     let testProject = root </> @"TestLib2/TestLib2.fsproj"
 
     let testFile = root </> @"TestLib2/Library.fs"
@@ -48,7 +47,6 @@ let inTest buildingConfig f =
 
         let checker = FSharpChecker.Create()
         fcsWatcher buildConfig checker projectFile
-    manualSet.Wait()
     let fileChange = makeFileChange testFile 
     let tmpEmitterAgent = watcher.PostAndReply FcsWatcherMsg.GetEmitterAgent
     let getCompilerTmp () = 

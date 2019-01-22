@@ -62,7 +62,7 @@ module CompilerTmpEmiiterState =
 
     let tryEmitAction (config: Config) logger cache compilerTmpEmiiterState =
         let emitCommon (timeDelay: int) calculate load unLoad replyFailure replySuccess =
-            Logger.infoGreen (sprintf "Current valid compier task is %d" compilerTmpEmiiterState.CompilerTasks)  
+            Logger.infoGreen (sprintf "Current valid compier task is %d" compilerTmpEmiiterState.CompilerTasks.Length) logger
             match compilerTmpEmiiterState.CompilerTasks with
             | [] ->
                 replySuccess()
@@ -95,7 +95,7 @@ module CompilerTmpEmiiterState =
                     calculate()
                     
                     { createEmpty cache with GetTmpReplyChannels = compilerTmpEmiiterState.GetTmpReplyChannels }
-
+        Logger.infoGreen (sprintf "tryEmitAction: current emitReplyChannels number is %d" compilerTmpEmiiterState.EmitReplyChannels.Length) logger 
         match config.DevelopmentTarget with 
         | DevelopmentTarget.Program  ->
             match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
