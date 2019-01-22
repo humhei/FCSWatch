@@ -66,8 +66,8 @@ module CompilerTmpEmiiterState =
             match compilerTmpEmiiterState.CompilerTasks with
             | [] ->
                 replySuccess()
-                calculate()
                 Thread.Sleep(timeDelay)
+                calculate()
                 compilerTmpEmiiterState
             | _ ->            
                 let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
