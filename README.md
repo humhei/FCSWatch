@@ -92,7 +92,7 @@ e.g.: excelDna sample
         addIn.Installed <- false
         Trace.trace "unInstalled plugin"
 
-    /// trigger when (re)load debugger 
+    /// trigger when (re)load debugger (after installPlugin()) 
     let calculate() =
         Trace.trace "calculate worksheet"
         worksheet.Calculate()
