@@ -10,10 +10,19 @@ open System.Collections.Generic
 open System.Xml
 open System.Collections.Generic
 
+
+type Plugin =
+    { Load: unit -> unit 
+      Unload: unit -> unit 
+      Calculate: unit -> unit 
+      DebuggerAttachTimeDelay: int }
+
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
-    | Program of load: (unit -> unit) * unLoad: (unit -> unit) * calculate: (unit -> unit)
+    | Program 
     | AtOnce of load: (unit -> unit) * unLoad: (unit -> unit)
+    | Plugin of Plugin
+
 
 type Config =
     {

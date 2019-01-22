@@ -87,13 +87,13 @@ let tests =
         testCase "in at once mode emit cache everytime when file change is deteched" <| fun _ ->
             let installPlugin() = printfn "install plugin" 
             let unInstallPlugin() = printfn "uninstall plugin" 
-            let pluginMode config = { config with DevelopmentTarget = DevelopmentTarget.AtOnce(installPlugin,unInstallPlugin) } 
-            inTest pluginMode (fun model ->
+            let atOnceMode config = { config with DevelopmentTarget = DevelopmentTarget.AtOnce(installPlugin,unInstallPlugin) } 
+            inTest atOnceMode (fun model ->
                 let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> model.FileChange)
                 let tmps = model.GetCompilerTmp()
                 match allCompilerTaskNumber, tmps with 
                 /// warmCompile + TestLib2/Library.fs
-                /// all compiler tmp is emitted as plugin mode
+                /// all compiler tmp is emitted as atOnceMode
                 | 2, [] -> pass()
                 | _ -> fail()    
             )
