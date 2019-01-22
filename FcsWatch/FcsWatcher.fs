@@ -39,7 +39,8 @@ let fcsWatcher
                 WorkingDir = Path.getFullName "./"
                 DevelopmentTarget = DevelopmentTarget.Program
             }
-
+        let config = { config with WorkingDir = Path.getFullName config.WorkingDir }        
+ 
         let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->
         
             let newSourceFileWatcher cache = 

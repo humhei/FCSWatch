@@ -35,6 +35,7 @@ type TestModel =
       GetCompilerTmp: unit -> string list }
 
 let inTest buildingConfig f =
+    let manualSet = new ManualResetEventSlim(false)
     let testProject = root </> @"TestLib2/TestLib2.fsproj"
 
     let testFile = root </> @"TestLib2/Library.fs"
@@ -47,7 +48,7 @@ let inTest buildingConfig f =
 
         let checker = FSharpChecker.Create()
         fcsWatcher buildConfig checker projectFile
-        
+    manualSet.Wait()
     let fileChange = makeFileChange testFile 
     let tmpEmitterAgent = watcher.PostAndReply FcsWatcherMsg.GetEmitterAgent
     let getCompilerTmp () = 
@@ -89,6 +90,24 @@ let tests =
             let unInstallPlugin() = printfn "uninstall plugin" 
             let atOnceMode config = { config with DevelopmentTarget = DevelopmentTarget.AtOnce(installPlugin,unInstallPlugin) } 
             inTest atOnceMode (fun model ->
+                let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> model.FileChange)
+                let tmps = model.GetCompilerTmp()
+                match allCompilerTaskNumber, tmps with 
+                /// warmCompile + TestLib2/Library.fs
+                /// all compiler tmp is emitted as atOnceMode
+                | 2, [] -> pass()
+                | _ -> fail()    
+            )
+        ftestCase "in plugin mode " <| fun _ ->
+            let installPlugin() = printfn "install plugin" 
+            let unInstallPlugin() = printfn "uninstall plugin" 
+            let plugin = 
+                { Load = installPlugin 
+                  Unload = unInstallPlugin
+                  Calculate = (fun _ -> Thread.Sleep(100))
+                  DebuggerAttachTimeDelay = 1000 }
+            let pluginMode config = { config with DevelopmentTarget = DevelopmentTarget.Plugin plugin } 
+            inTest pluginMode (fun model ->
                 let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> model.FileChange)
                 let tmps = model.GetCompilerTmp()
                 match allCompilerTaskNumber, tmps with 

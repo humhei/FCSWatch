@@ -16,7 +16,12 @@
             //     "ASPNETCORE_ENVIRONMENT": "Development"
             // },
             "preLaunchTask": "Build FcsWatch"
-
+        },
+        {
+            "name": "Attach FcsWatch",
+            "type": "coreclr",
+            "request": "attach",
+            "processId":"${command:pickProcess}"
         },
         {
             "name": "launch TestProject",
