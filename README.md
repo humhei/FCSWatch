@@ -69,12 +69,14 @@ You can also launch debugging when running in watch mode
 
 When you are debugging files,watch mode still take effect
 
+
+
+
 ### Multiple reference projects
 It is supported if you pass the entry project argument to it
 
-### Add fs file in fsproject
-After version 0.2.0
-You can add fs file to project without interrupting watcher
+### Release Notes 
+more features: Please open Release_Notes detail
 
 ### Plugin mode
 e.g.: excelDna sample

@@ -1,7 +1,6 @@
 ﻿namespace TestLib
 
 module Say =
-    let hello name =
-        printfn "Hello %s" name
+    let hello11 name =
+        printfn "Hel %s" name
                            
-                                                         

@@ -7,7 +7,7 @@ open Giraffe.Core
 open Giraffe.HttpStatusCodeHandlers
 open System.Threading
 
-type CompilerTask = CompilerTask of startTime: DateTime * task: Task<CompilerResult>
+type CompilerTask = CompilerTask of startTime: DateTime * task: Task<CompilerResult list>
 with 
     member x.StartTime = 
         match x with 
@@ -16,9 +16,14 @@ with
         match x with 
         | CompilerTask(task = m) -> m
 
+
+
+
 [<RequireQualifiedAccess>]
 type CompilerTmpEmitterMsg =
     | IncrCompilingNum 
+    | IncrCompilingNumWith of int 
+    | DecrCompilingNumWith of int 
     | DecrCompilingNum 
     | AddTmp of string
     | Emit of replyChannel: AsyncReplyChannel<HttpHandler>
@@ -71,19 +76,24 @@ module CompilerTmpEmiiterState =
                 compilerTmpEmiiterState
             | _ ->            
                 let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
-                let result = lastTask.Task.Result
-                if result.ExitCode <> 0 then 
+                let results = lastTask.Task.Result
+                match List.tryFind (fun result -> result.ExitCode <> 0) results with 
+                | Some result ->
                     let errorText =  
                         result.Errors 
                         |> Seq.map (fun error -> error.ToString())
                         |> String.concat "\n"
                     replyFailure errorText
                     { compilerTmpEmiiterState with EmitReplyChannels = [] } 
-                else            
-                    let projectMaps = cache.ProjectMaps
-                    let fileTreeMaps = cache.FileTreesMaps
+
+                | None ->                
+                    let projectMaps = cache.ProjectMap
+                    let fileTreeMaps = cache.FileTreesMap
                     unLoad()
-                    compilerTmpEmiiterState.CompilerTmp |> Seq.iter (fun projectFile ->
+                    
+                    compilerTmpEmiiterState.CompilerTmp
+                    |> fun tmp -> CrackerFsprojFileBundleCache.sortDescendingProjects tmp cache  
+                    |> Seq.iter (fun projectFile ->
                         let originFileTree = CrackerFsprojFileTree.ofCrackedFsproj projectMaps.[projectFile]
                         let fsprojFileTrees = fileTreeMaps.[projectFile]
                         fsprojFileTrees |> Seq.iter (fun fsprojFileTree ->
@@ -153,12 +163,28 @@ let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxPro
                 {state with CompilingNumber = compilingNumber}
                 |> CompilerTmpEmiiterState.tryEmit config logger cache
 
-            return! loop newState      
+            return! loop newState    
+        | CompilerTmpEmitterMsg.DecrCompilingNumWith number ->
+            let compilingNumber = state.CompilingNumber - number
+            traceMsg compilingNumber "DecrWith"
+            assert (state.CompilingNumber > 0)
+            let newState = 
+                {state with CompilingNumber = compilingNumber}
+                |> CompilerTmpEmiiterState.tryEmit config logger cache
+
+            return! loop newState            
         | CompilerTmpEmitterMsg.IncrCompilingNum -> 
             let compilingNumber = state.CompilingNumber + 1
             traceMsg compilingNumber "Incr"
             
             return! loop {state with CompilingNumber = compilingNumber } 
+
+        | CompilerTmpEmitterMsg.IncrCompilingNumWith number -> 
+            let compilingNumber = state.CompilingNumber + number
+            traceMsg compilingNumber "IncrWith"
+            
+            return! loop {state with CompilingNumber = compilingNumber } 
+
         | CompilerTmpEmitterMsg.AddTmp projectFile -> return! loop {state with CompilerTmp = state.CompilerTmp.Add projectFile}        
         | CompilerTmpEmitterMsg.Emit replyChannel ->
             traceMsg state.CompilingNumber "Emit"
@@ -168,10 +194,12 @@ let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxPro
             return! loop newState
         | CompilerTmpEmitterMsg.AddTask task -> 
             traceMsg state.CompilingNumber "AddTask"
-            return! loop {state with CompilerTasks = task:: state.CompilerTasks}   
+            return! loop {state with CompilerTasks = task:: state.CompilerTasks} 
+
         | CompilerTmpEmitterMsg.UpdateCache cache ->
             traceMsg state.CompilingNumber "Update cache"
             return! loop {state with CrackerFsprojFileBundleCache = cache} 
+            
         | CompilerTmpEmitterMsg.GetCompilerTmp replyChannel ->
             traceMsg state.CompilingNumber "GetCompilerTmp"
             let newState = 

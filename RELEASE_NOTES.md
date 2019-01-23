@@ -1,6 +1,9 @@
-# Release Notes
+﻿# Release Notes
  
-## 0.3.1-alpha - tbd
+## 0.4.1-alpha - tbd
+
+## 0.4.0 - 2019-01-23
+* Compile multiple files at some time(multiple projects)
 
 ## 0.3.0 - 2019-01-22
 * Added At once watch mode

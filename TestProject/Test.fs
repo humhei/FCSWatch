@@ -3,16 +3,12 @@
 open System
 open System.Collections.Concurrent
 open System.Threading
-type Hello = {Name: string}
-with 
-    member x.Say = 
-        printfn "Hello"
-        "Hello"  
-
+open TestLib
 [<EntryPoint>]
 let main _ =
     printfn "HWhatisello " 
     printfn "%sHsdsdaasasdasadadsadassssasello " FS.ss
+    Say.hello11  "g  ogo"
     let a = ""
     Console.Read()
     0 // return an integer exit code

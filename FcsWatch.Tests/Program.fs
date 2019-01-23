@@ -10,7 +10,8 @@ let testConfig =
 
 let tests = 
     testList "All tests" [ 
-        FcsWatchTests.tests             
+        FcsWatchTests.interactionTests             
+        FcsWatchTests.functionTests           
     ] 
 // Create an interactive checker instance 
 [<EntryPoint>]
