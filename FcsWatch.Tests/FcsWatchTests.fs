@@ -66,6 +66,38 @@ let tests =
                 | _ -> fail()    
             ) 
 
+        testCase "change multiple file in TestLib2 will trigger compiling" <| fun _ ->
+            // Modify fs files in TestLib2
+            inTest id (fun model ->
+                let fileChange2 = makeFileChange (root </> "TestLib2" </> "Library2.fs") 
+                let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChanges <!> [fileChange2;model.FileChange])
+                match allCompilerTaskNumber,model.GetCompilerTmp() with 
+                /// warmCompile + TestLib2/*.fs
+                | 2,[a] -> pass()
+                | _ -> fail()    
+            ) 
+
+        testCase "change file in TestLib and TestLib2 will trigger compiling" <| fun _ ->
+            // Modify fs files in TestLib2
+            inTest id (fun model ->
+                let fileChange2 = makeFileChange (root </> "TestLib1" </> "Library.fs") 
+                let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChanges <!> [fileChange2;model.FileChange])
+                match allCompilerTaskNumber,model.GetCompilerTmp() with 
+                /// warmCompile + TestLib2/*.fs + TestLib1/*.fs
+                | 3,[a;b] -> pass()
+                | _ -> fail()    
+            )     
+
+        testCase "change mulltiple file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
+            // Modify fs files in TestLib2
+            inTest id (fun model ->
+                let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> model.FileChange)
+                match allCompilerTaskNumber,model.GetCompilerTmp() with 
+                /// warmCompile + TestLib2/Library.fs
+                | 2,[a] -> pass()
+                | _ -> fail()    
+            )     
+
         testCase "add fs file in fsproj will update watcher" <| fun _ ->
             inTest id (fun model ->
                 try 
@@ -96,7 +128,7 @@ let tests =
                 | 2, [] -> pass()
                 | _ -> fail()    
             )
-        ftestCase "in plugin mode " <| fun _ ->
+        testCase "in plugin mode " <| fun _ ->
             let installPlugin() = printfn "install plugin" 
             let unInstallPlugin() = printfn "uninstall plugin" 
             let plugin = 
@@ -110,8 +142,7 @@ let tests =
                 let tmps = model.GetCompilerTmp()
                 match allCompilerTaskNumber, tmps with 
                 /// warmCompile + TestLib2/Library.fs
-                /// all compiler tmp is emitted as atOnceMode
-                | 2, [] -> pass()
+                | 2, [a] -> pass()
                 | _ -> fail()    
             )
             

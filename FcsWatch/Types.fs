@@ -194,8 +194,8 @@ module Fsproj =
         |> Async.Parallel
         |> Async.RunSynchronously
 
-    let create (cache: Map<string,CrackedFsprojInfo>) projectFile = 
-        let cacheMutable = Dictionary<string,CrackedFsprojInfo>(cache)
+    let create (projectMaps: Map<string,CrackedFsprojInfo>) projectFile = 
+        let cacheMutable = Dictionary<string,CrackedFsprojInfo>(projectMaps)
         let allProjectInfos = getAllFsprojInfos projectFile
         allProjectInfos |> Seq.iter (fun projectInfo -> cacheMutable.Add (projectInfo.Path,projectInfo))
 
@@ -208,11 +208,11 @@ module Fsproj =
     
         let project = loop projectFile
 
-        let newCache = 
+        let newProjectMaps = 
             cacheMutable 
             |> Dictionary.toMap
 
-        project,newCache,sourceFileMaps newCache    
+        project,newProjectMaps,sourceFileMaps newProjectMaps    
 
     let scan (fsproj: Fsproj) =
         let cacheMutable = new Dictionary<string,CrackerFsprojFileTree list>()
@@ -227,31 +227,52 @@ module Fsproj =
         loop [] fsproj
         cacheMutable 
         |> Dictionary.toMap
+
+    let getLevel proj (entryFsproj: Fsproj) =
+        let rec loop level (fsproj: Fsproj) = 
+            [
+                if fsproj.Value.Path = proj 
+                then yield! [level]
+                yield! fsproj.Refs |> List.collect (loop (level + 1)) 
+            ]
+
+        loop 0 entryFsproj   
+        |> List.max
+
             
 
 type CrackerFsprojFileBundleCache =
     {
         /// projectFile, project refers
-        FileTreesMaps: Map<string,CrackerFsprojFileTree list>
+        FileTreesMap: Map<string,CrackerFsprojFileTree list>
         
 
-        ProjectMaps: Map<string,CrackedFsprojInfo>
+        ProjectMap: Map<string,CrackedFsprojInfo>
 
         /// sourceFile,projectFile
-        SourceFileMaps: Map<string,string>
+        SourceFileMap: Map<string,string>
+
+        /// from bottom to top
+        DescendedProjectLevelMap: Map<string,int>
     }
 with 
-    member x.AllProjectFiles = x.ProjectMaps |> Seq.map (fun pair -> pair.Key)
+    member x.AllProjectFiles = x.ProjectMap |> Seq.map (fun pair -> pair.Key)
 
 [<RequireQualifiedAccess>]
 module CrackerFsprojFileBundleCache =
     let update projectFile (cache:CrackerFsprojFileBundleCache) =
         let info = CrackedFsprojInfo.create projectFile
-        let newProjectMaps = Map.add projectFile info cache.ProjectMaps
-        let newSourceFileMaps = Fsproj.sourceFileMaps newProjectMaps
+        let newProjectMap = Map.add projectFile info cache.ProjectMap
+        let newSourceFileMap = Fsproj.sourceFileMaps newProjectMap
         { cache with 
-            ProjectMaps = newProjectMaps 
-            SourceFileMaps = newSourceFileMaps }
+            ProjectMap = newProjectMap 
+            SourceFileMap = newSourceFileMap }
+
+
+    let sortDescendingProjects (projectFiles: Set<string>) (cache:CrackerFsprojFileBundleCache) =
+        projectFiles 
+        |> Seq.sortByDescending (fun projectFile -> cache.DescendedProjectLevelMap.[projectFile])
+        |> Set.ofSeq
 
 [<RequireQualifiedAccess>]
 type CrackedFsprojBundleMsg =
@@ -271,14 +292,21 @@ let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBun
             replyChannel.Reply newCache
             return! loop entry newCache
     }
-    let (project,searchCache,sourceFileMap) = Fsproj.create Map.empty projectFile
+    let (project,projectMap,sourceFileMap) = Fsproj.create Map.empty projectFile
     let scanCache = Fsproj.scan project
+    let descendedProjectLevelMap = 
+        let projects = projectMap |> Seq.map (fun pair -> pair.Key)
+        projects |> Seq.map (fun proj -> 
+            proj,Fsproj.getLevel proj project
+        )
+        |> Map.ofSeq
+
     let cache =
         {
-            FileTreesMaps = scanCache
-            ProjectMaps = searchCache
-            SourceFileMaps = sourceFileMap 
-    /// warm start    
+            FileTreesMap = scanCache
+            ProjectMap = projectMap
+            SourceFileMap = sourceFileMap 
+            DescendedProjectLevelMap = descendedProjectLevelMap
         }
     loop project cache
 )

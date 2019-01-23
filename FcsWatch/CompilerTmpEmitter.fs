@@ -80,10 +80,13 @@ module CompilerTmpEmiiterState =
                     replyFailure errorText
                     { compilerTmpEmiiterState with EmitReplyChannels = [] } 
                 else            
-                    let projectMaps = cache.ProjectMaps
-                    let fileTreeMaps = cache.FileTreesMaps
+                    let projectMaps = cache.ProjectMap
+                    let fileTreeMaps = cache.FileTreesMap
                     unLoad()
-                    compilerTmpEmiiterState.CompilerTmp |> Seq.iter (fun projectFile ->
+                    
+                    compilerTmpEmiiterState.CompilerTmp
+                    |> fun tmp -> CrackerFsprojFileBundleCache.sortDescendingProjects tmp cache  
+                    |> Seq.iter (fun projectFile ->
                         let originFileTree = CrackerFsprojFileTree.ofCrackedFsproj projectMaps.[projectFile]
                         let fsprojFileTrees = fileTreeMaps.[projectFile]
                         fsprojFileTrees |> Seq.iter (fun fsprojFileTree ->

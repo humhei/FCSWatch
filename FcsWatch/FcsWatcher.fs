@@ -18,6 +18,7 @@ type ReplyData =
 [<RequireQualifiedAccess>]
 type FcsWatcherMsg =
     | DetectSourceFileChange of fileChange: FileChange * AsyncReplyChannel<int>
+    | DetectSourceFileChanges of fileChange: FileChange list * AsyncReplyChannel<int>
     | DetectProjectFileChange of fileChange: FileChange
     | GetEmitterAgent of AsyncReplyChannel<MailboxProcessor<CompilerTmpEmitterMsg>>
     | GetDebuggingServerAgent of AsyncReplyChannel<MailboxProcessor<DebuggingServerMsg>>
@@ -35,7 +36,7 @@ type FcsWatcherModel =
 let fcsWatcher 
     (buildingConfig: Config -> Config) 
     (checker: FSharpChecker) 
-    (projectFile: string) = 
+    (entryProjectFile: string) = 
         let config = buildingConfig {
                 Logger = Logger.Minimal
                 WorkingDir = Path.getFullName "./"
@@ -47,31 +48,26 @@ let fcsWatcher
         
             let newSourceFileWatcher cache = 
                 let pattern = 
-                    let files = cache.SourceFileMaps |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
+                    let files = cache.SourceFileMap |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
                     { BaseDirectory = config.WorkingDir
                       Includes = files
                       Excludes = [] }
 
                 pattern |> ChangeWatcher.run (fun changes ->
-                    match List.ofSeq changes with 
-                    | [change] -> 
-                        inbox.PostAndAsyncReply (fun reply ->
-                            FcsWatcherMsg.DetectSourceFileChange (change,reply)
-                        ) 
-                        |> Async.StartAsTask
-                        |> ignore
-
-                    | _ ->
-                        failwith "multiple files changed at some time" 
-                    )     
+                    inbox.PostAndAsyncReply (fun reply ->
+                        FcsWatcherMsg.DetectSourceFileChanges (List.ofSeq changes,reply)
+                    ) 
+                    |> Async.StartAsTask
+                    |> ignore
+                )
 
             Logger.info (sprintf "fcs watcher is running in logger level %A" config.Logger) config.Logger
             Logger.info (sprintf "fcs watcher's working directory is %s" config.WorkingDir) config.Logger
 
-            let projectBundleAgent = crackedFsprojBundle projectFile
+            let projectBundleAgent = crackedFsprojBundle entryProjectFile
             let cache = projectBundleAgent.PostAndReply CrackedFsprojBundleMsg.Cache
-            let projectMaps = cache.ProjectMaps
-            let entry = projectMaps.[projectFile]
+            let projectMap = cache.ProjectMap
+            let entry = projectMap.[entryProjectFile]
 
             let projectFilesWatcher =
                 let pattern =
@@ -95,8 +91,8 @@ let fcsWatcher
             
             let rec loop state = async {
                 let cache = state.CrackerFsprojFileBundleCache
-                let sourceFileMaps = cache.SourceFileMaps
-                let projectMaps = cache.ProjectMaps
+                let sourceFileMaps = cache.SourceFileMap
+                let projectMaps = cache.ProjectMap
                 let! msg = inbox.Receive()
                 match msg with 
                 | FcsWatcherMsg.DetectSourceFileChange (fileChange,replyChannel) ->
@@ -107,6 +103,31 @@ let fcsWatcher
                         compilerAgent.PostAndReply CompilerMsg.AllCompilerTaskNumber
                     replyChannel.Reply allCompilerTaskNumber                    
                     return! loop state
+                | FcsWatcherMsg.DetectSourceFileChanges (fileChanges,replyChannel) ->
+                    let projFiles = 
+                        fileChanges |> List.map (fun fileChange ->
+                            Logger.important (sprintf "file %s is changed" fileChange.FullPath) config.Logger
+                            sourceFileMaps.[fileChange.FullPath]
+                        )
+                        |> List.distinct
+                    match projFiles.Length with 
+                    | 1 ->
+                        let projFile = projFiles |> List.exactlyOne
+                        compilerAgent.Post(CompilerMsg.CompilerProject projectMaps.[projFile])
+                        let allCompilerTaskNumber = 
+                            compilerAgent.PostAndReply CompilerMsg.AllCompilerTaskNumber
+                        replyChannel.Reply allCompilerTaskNumber                    
+                        return! loop state            
+                    | i when i > 1 ->
+                        projFiles |> List.iter (fun projFile ->
+                            compilerAgent.Post(CompilerMsg.CompilerProject projectMaps.[projFile])
+                        )                 
+                        let allCompilerTaskNumber = 
+                            compilerAgent.PostAndReply CompilerMsg.AllCompilerTaskNumber
+                        replyChannel.Reply allCompilerTaskNumber   
+                        return! loop state   
+                    | 0 -> failwith "Invalid token"   
+                    | _ -> failwith "Invalid token"                    
 
                 | FcsWatcherMsg.DetectProjectFileChange fileChange ->
                     Logger.important (sprintf "project file %s is changed" fileChange.FullPath) config.Logger
