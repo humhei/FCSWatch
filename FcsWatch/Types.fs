@@ -54,6 +54,13 @@ module internal CompilerResult =
     let processCompileResult logger compilerResult =
         Logger.processCompileResult logger (compilerResult.Errors,compilerResult.ExitCode)
         
+[<RequireQualifiedAccess>]    
+module FSharpProjectOptions =
+    let mapOtherOptions mapping (fsharpProjectOptions: FSharpProjectOptions) =
+        { fsharpProjectOptions with 
+            OtherOptions = fsharpProjectOptions.OtherOptions |> Array.map mapping
+        }
+
 type CrackedFsprojInfo = 
     {
         ProjOptions: FSharpProjectOptions
@@ -194,9 +201,30 @@ module Fsproj =
         |> Async.Parallel
         |> Async.RunSynchronously
 
+    /// "bin ref may be locked by program"
+    let getAllFsprojInfosObjRefOnly projectFile =
+        let allInfos = getAllFsprojInfos projectFile 
+        allInfos
+        |> Array.map (fun info ->
+            let projRefs = info.ProjRefs |> List.map (fun ref ->
+                let refInfo = 
+                    allInfos 
+                    |> Array.find (fun otherInfo -> otherInfo.Path = ref)
+                refInfo
+            )
+            {info with 
+                ProjOptions = FSharpProjectOptions.mapOtherOptions (fun line ->
+                    projRefs 
+                    |> List.tryFind (fun ref -> "-r:" + ref.TargetPath = line)
+                    |> function 
+                        | Some ref -> "-r:" + ref.ObjTargetFile
+                        | None -> line                
+                ) info.ProjOptions }
+        )
+
     let create (projectMaps: Map<string,CrackedFsprojInfo>) projectFile = 
         let cacheMutable = Dictionary<string,CrackedFsprojInfo>(projectMaps)
-        let allProjectInfos = getAllFsprojInfos projectFile
+        let allProjectInfos = getAllFsprojInfosObjRefOnly projectFile
         allProjectInfos |> Seq.iter (fun projectInfo -> cacheMutable.Add (projectInfo.Path,projectInfo))
 
         let rec loop projectFile = 

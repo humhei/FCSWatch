@@ -54,8 +54,13 @@ let inTest buildingConfig f =
         |> List.ofSeq
     f { Watcher = watcher; ProjectFile = testProject; FileChange = fileChange; GetCompilerTmp = getCompilerTmp }
 
-let tests =
-    testList "watch mode" [
+let interactionTests =
+    testList "" [
+        ftestCase "base interaction test" <| fun _ ->
+            let manualSet = new ManualResetEventSlim()
+            inTest id ignore
+            manualSet.Wait()
+
         testCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
             // Modify fs files in TestLib2
             inTest id (fun model ->
@@ -88,15 +93,6 @@ let tests =
                 | _ -> fail()    
             )     
 
-        testCase "change mulltiple file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
-            inTest id (fun model ->
-                let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChange <!> model.FileChange)
-                match allCompilerTaskNumber,model.GetCompilerTmp() with 
-                /// warmCompile + TestLib2/Library.fs
-                | 2,[a] -> pass()
-                | _ -> fail()    
-            )     
 
         testCase "add fs file in fsproj will update watcher" <| fun _ ->
             inTest id (fun model ->
@@ -147,3 +143,27 @@ let tests =
             )
             
     ]
+
+open FcsWatch.Tests
+let functionTests = 
+
+    testList "functionTests"
+        [
+            /// "bin ref may be locked by program
+            testCase "obj ref only" <| fun _ ->
+                let infos = Fsproj.getAllFsprojInfosObjRefOnly projectFile
+                let otherOptions = infos.[2].ProjOptions.OtherOptions
+                let p1 = 
+                    otherOptions
+                    |> Array.exists (fun option ->
+                        option.Contains @"\bin\Debug\"
+                    )
+                    |> not
+                let p2 =
+                    otherOptions 
+                    |> Array.exists (fun option ->
+                        option.Contains @"\obj\Debug\"
+                    )                 
+                if p1 && p2 then pass()
+                else fail()                
+        ]

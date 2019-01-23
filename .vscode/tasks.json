@@ -17,6 +17,7 @@
         {
             "label": "emitCompilerTmp",
             "command": "curl",
+            "group": "build",
             "args": [
                 "--config",
                 ".fake/fcswatch/port.cache"
@@ -24,6 +25,7 @@
             "presentation": {
                 "reveal": "never"
             },
+            "problemMatcher": []
         },
         {
             "label": "FcsWatch",

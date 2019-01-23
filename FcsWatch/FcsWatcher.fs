@@ -118,14 +118,16 @@ let fcsWatcher
                             compilerAgent.PostAndReply CompilerMsg.AllCompilerTaskNumber
                         replyChannel.Reply allCompilerTaskNumber                    
                         return! loop state            
-                    | i when i > 1 ->
-                        projFiles |> List.iter (fun projFile ->
-                            compilerAgent.Post(CompilerMsg.CompilerProject projectMaps.[projFile])
-                        )                 
+                    | i when i > 1 && i < 5 ->
+                        let infos = projFiles |> List.map (fun projFile -> projectMaps.[projFile] ) 
+                        compilerAgent.Post(CompilerMsg.CompilerProjects infos)
                         let allCompilerTaskNumber = 
                             compilerAgent.PostAndReply CompilerMsg.AllCompilerTaskNumber
                         replyChannel.Reply allCompilerTaskNumber   
-                        return! loop state   
+                        return! loop state  
+
+                    | i when i >= 5 ->
+                        failwith "more than 5 projects have to be recompiled at some time"                     
                     | 0 -> failwith "Invalid token"   
                     | _ -> failwith "Invalid token"                    
 
