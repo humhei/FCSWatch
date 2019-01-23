@@ -88,8 +88,8 @@ let interactionTests =
                 let fileChange2 = makeFileChange (root </> "TestLib1" </> "Library.fs") 
                 let allCompilerTaskNumber = model.Watcher.PostAndReply (FcsWatcherMsg.DetectSourceFileChanges <!> [fileChange2;model.FileChange])
                 match allCompilerTaskNumber,model.GetCompilerTmp() with 
-                /// warmCompile + TestLib2/*.fs + TestLib1/*.fs
-                | 3,[a;b] -> pass()
+                /// warmCompile + (TestLib2/*.fs + TestLib1/*.fs)
+                | 2,[a;b] -> pass()
                 | _ -> fail()    
             )     
 
