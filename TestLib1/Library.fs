@@ -2,5 +2,5 @@
 
 module Say =
     let hello11 name =
-        printfn "Hel %s" name
+        printfn "He l %s" name
                            

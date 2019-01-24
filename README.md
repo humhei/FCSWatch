@@ -1,10 +1,27 @@
 # FCSWatch [![](https://img.shields.io/nuget/v/fcswatch.svg)](https://www.nuget.org/packages/FcsWatch)
 Run standard fsharp codes in watch mode
 
-## MiniSample 
+## Play around
+
+
+
+### MiniSample 
 For a quick play around 
 Try https://github.com/humhei/FcsWatchMiniSample 
-    
+
+### From source code interation test
+
+* git clone https://github.com/humhei/FCSWatch.git
+* cd FcsWatch.Tests
+* tag single test `ftestCase "base interaction test"`
+* dotnet run 
+* modify fs files in any of TestProject,TestLib2,TestLib1
+* Set breakpoint in any of TestProject,TestLib2,TestLib1
+* F5 Debug `Launch TestProject`
+* modify fs files in any of TestProject,TestLib2,TestLib1
+* add new fs file in any of TestProject,TestLib2,TestLib1
+* Relaunch Debugger
+
 ## Get started
 
 1. Install [fake5](https://fake.build/fake-gettingstarted.html)

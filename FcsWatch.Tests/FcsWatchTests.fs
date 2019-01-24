@@ -19,8 +19,8 @@ let root = Path.getDirectory(__SOURCE_DIRECTORY__)
 
 
 
-let projectDir = root </> "TestProject"
-let projectFile  =  projectDir </> "TestProject.fsproj"
+let entryProjectDir = root </> "TestProject"
+let entryProjectFile  =  entryProjectDir </> "TestProject.fsproj"
 
 let makeFileChange fullPath : FileChange =
     let fullPath = Path.getFullName fullPath
@@ -35,10 +35,13 @@ type TestModel =
       GetCompilerTmp: unit -> string list }
 
 let inTest buildingConfig f =
+
+    dotnet root "build" [entryProjectFile]
+
+
     let testProject = root </> @"TestLib2/TestLib2.fsproj"
 
     let testFile = root </> @"TestLib2/Library.fs"
-    dotnet root "build" []
     let watcher = 
         let buildConfig = 
             fun config -> 
@@ -46,7 +49,7 @@ let inTest buildingConfig f =
                 |> buildingConfig
 
         let checker = FSharpChecker.Create()
-        fcsWatcher buildConfig checker projectFile
+        fcsWatcher buildConfig checker entryProjectFile
     let fileChange = makeFileChange testFile 
     let tmpEmitterAgent = watcher.PostAndReply FcsWatcherMsg.GetEmitterAgent
     let getCompilerTmp () = 
@@ -151,7 +154,7 @@ let functionTests =
         [
             /// "bin ref may be locked by program
             testCase "obj ref only" <| fun _ ->
-                let infos = Fsproj.getAllFsprojInfosObjRefOnly projectFile
+                let infos = Fsproj.getAllFsprojInfosObjRefOnly entryProjectFile
                 let otherOptions = infos.[2].ProjOptions.OtherOptions
                 let p1 = 
                     otherOptions
