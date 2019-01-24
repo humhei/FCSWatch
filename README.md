@@ -2,8 +2,7 @@
 Run standard fsharp codes in watch mode
 
 ## Play around
-
-
+vscode only
 
 ### MiniSample 
 For a quick play around 
@@ -19,7 +18,7 @@ Try https://github.com/humhei/FcsWatchMiniSample
 * Set breakpoint in any of TestProject,TestLib2,TestLib1
 * F5 Debug `Launch TestProject`
 * modify fs files in any of TestProject,TestLib2,TestLib1
-* add new fs file in any of TestProject,TestLib2,TestLib1
+* (Optional) add new fs file in any of TestProject,TestLib2,TestLib1
 * Relaunch Debugger
 
 ## Get started
