@@ -13,7 +13,7 @@ Try https://github.com/humhei/FcsWatchMiniSample
 
 * git clone https://github.com/humhei/FCSWatch.git
 * cd FcsWatch.Tests
-* tag single test `ftestCase "base interaction test"`
+* tag single test in `FcsWatchTests.fs` `ftestCase "base interaction test"`
 * dotnet run 
 * modify fs files in any of TestProject,TestLib2,TestLib1
 * Set breakpoint in any of TestProject,TestLib2,TestLib1
