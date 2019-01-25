@@ -5,10 +5,8 @@ open FcsWatch
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open Atrous.Core
-open Atrous.Core.Utils
 open System.Collections.Generic
 open System.Xml
-open System.Collections.Generic
 
 
 type Plugin =
@@ -34,7 +32,7 @@ type Config =
 module Logger =
     let copyFile src dest logger =
         File.Copy(src,dest,true)
-        let msg = sprintf "copy file %s to %s" src dest
+        let msg = sprintf "%s ->\n%s" src dest
         Logger.info msg logger
 
     let internal processCompileResult logger (errors,exitCode) =
@@ -58,65 +56,165 @@ module internal CompilerResult =
 module FSharpProjectOptions =
     let mapOtherOptions mapping (fsharpProjectOptions: FSharpProjectOptions) =
         { fsharpProjectOptions with 
-            OtherOptions = fsharpProjectOptions.OtherOptions |> Array.map mapping
-        }
+            OtherOptions = fsharpProjectOptions.OtherOptions |> Array.map mapping }
 
-type CrackedFsprojInfo = 
-    {
-        ProjOptions: FSharpProjectOptions
-        ProjRefs: string list
-        Props: Map<string,string>
-        Path: string
-    }
+        
+
+
+type CrackedFsprojInfo =
+    { FSharpProjectOptions: FSharpProjectOptions 
+      ProjRefs: string list
+      Props: Map<string,string>
+      ProjPath: string }
+
 with 
     member x.TargetPath = x.Props.["TargetPath"]
+    member x.TargetFramework = x.Props.["TargetFramework"]
     member x.TargetPdbPath = Path.changeExtension ".pdb" x.TargetPath
-
     member x.TargetFileName = Path.GetFileName(x.TargetPath)
     member x.TargetPdbName = Path.changeExtension ".pdb" x.TargetFileName
-    member x.Dir =
-        Path.getDirectory x.Path
     member x.ObjTargetFile = 
-        
-        let relative = Path.toRelativeFrom x.Dir x.TargetPath
+        let projDir = Path.getDirectory x.ProjPath
+        let relative = Path.toRelativeFrom projDir x.TargetPath
         let objRelative = 
             if relative.StartsWith ".\\bin" then  "obj" + relative.Substring 5
             else failwithf "is not a valid bin relativePath %s" relative
-        x.Dir </> objRelative
+        projDir </> objRelative
+
     member x.ObjTargetPdb = Path.changeExtension ".pdb" x.ObjTargetFile
 
-    member x.SourceFiles = 
-        x.ProjOptions.OtherOptions
-        |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
-         
-         
+[<RequireQualifiedAccess>]
+module CrackedFsprojInfo =
+    let compile (checker: FSharpChecker) (crackedProjectOptions: CrackedFsprojInfo) = async {
+        let tmpDll = crackedProjectOptions.ObjTargetFile
+
+        let baseOptions = 
+            crackedProjectOptions.FSharpProjectOptions.OtherOptions 
+            |> Array.map (fun op -> if op.StartsWith "-o:" then "-o:" + tmpDll else op)
         
-
-module internal CrackedFsprojInfo = 
-    let create projectFile =
-        let projOptions,projRefs,props = ProjectCoreCracker.getProjectOptionsFromProjectFile projectFile 
-        {
-            ProjOptions = projOptions
-            ProjRefs = projRefs
-            Props = props 
-            Path = projectFile
-        }
-
-    let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsprojInfo) = async {
-        let tmpDll = crackedFsProj.ObjTargetFile
-        let baseOptions = crackedFsProj.ProjOptions.OtherOptions |> Array.mapi (fun i op -> if i = 0 then "-o:" + tmpDll else op)
         let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]] 
         let! errors,exitCode = checker.Compile(fscArgs)
-        return 
-            {
-                Errors = errors
-                ExitCode = exitCode
-                Dll = tmpDll
-            }
+        return
+            { Errors = errors
+              ExitCode = exitCode
+              Dll = tmpDll }
     }
 
-type CrackerFsprojFileTree =
+    let mapProjOptions mapping (crackedProjectOptions: CrackedFsprojInfo) =
+        { crackedProjectOptions with FSharpProjectOptions = mapping crackedProjectOptions.FSharpProjectOptions }
+
+                
+[<RequireQualifiedAccess>]
+type CrackedFsprojInfoTarget =
+    | Single of CrackedFsprojInfo
+    | Multiple of CrackedFsprojInfo list
+
+with    
+    static member asList = function 
+            | CrackedFsprojInfoTarget.Single projOption -> [projOption]
+            | CrackedFsprojInfoTarget.Multiple projOptions -> projOptions
+    static member getCrackedFsprojInfo projOptionsKind =
+        let list = CrackedFsprojInfoTarget.asList projOptionsKind
+        list.[0]
+
+    member x.ProjRefs =
+        let crackedFsprojInfo = CrackedFsprojInfoTarget.getCrackedFsprojInfo x
+        crackedFsprojInfo.ProjRefs
+
+    member x.ProjPath =
+        let crackedFsprojInfo = CrackedFsprojInfoTarget.getCrackedFsprojInfo x
+        crackedFsprojInfo.ProjPath
+
+    member x.SourceFiles =
+        CrackedFsprojInfoTarget.getCrackedFsprojInfo x
+        |> fun crackedFsprojInfo -> crackedFsprojInfo.FSharpProjectOptions.OtherOptions
+        |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
+
+    
+
+[<RequireQualifiedAccess>]
+module CrackedFsprojInfoTarget =
+    let create projectFile =
+        match ProjectCoreCracker.getProjectOptionsFromProjectFile projectFile with 
+        | [|projOptions,projRefs,props|] ->
+                CrackedFsprojInfoTarget.Single 
+                    { FSharpProjectOptions = projOptions
+                      Props = props; ProjPath = projectFile
+                      ProjRefs = projRefs }
+
+        | [||] -> failwith "empty array"
+        | results -> 
+            results 
+            |> Array.map (fun (projOptions, projRefs ,props) -> { FSharpProjectOptions = projOptions; Props = props; ProjPath = projectFile; ProjRefs = projRefs }) 
+            |> List.ofSeq
+            |> CrackedFsprojInfoTarget.Multiple
+                    
+
+    let mapProjOptions mapping  = function 
+        | CrackedFsprojInfoTarget.Single projOptions -> 
+            CrackedFsprojInfo.mapProjOptions mapping projOptions
+            |> CrackedFsprojInfoTarget.Single 
+
+        | CrackedFsprojInfoTarget.Multiple projOptionsList -> 
+            projOptionsList 
+            |> List.map (CrackedFsprojInfo.mapProjOptions mapping) 
+            |> CrackedFsprojInfoTarget.Multiple
+
+    let mapPropOtherOptions mapping = 
+        mapProjOptions (fun projOptions ->
+            { projOptions with 
+                OtherOptions = projOptions.OtherOptions |> Array.map mapping  }
+        )
+
+
+    let compile (checker: FSharpChecker) (crackedFsProjInfoTarget: CrackedFsprojInfoTarget) = async {
+        match crackedFsProjInfoTarget with 
+        | CrackedFsprojInfoTarget.Single projOptions -> 
+            let! result = CrackedFsprojInfo.compile checker projOptions
+            return [result]
+
+        | CrackedFsprojInfoTarget.Multiple projOptionsList ->
+            let results = 
+                projOptionsList           
+                |> List.map (CrackedFsprojInfo.compile checker)
+                |> Async.Parallel
+                |> Async.RunSynchronously
+                |> List.ofArray
+
+            return results
+    }
+
+    let objRefOnlyForAll (crackedFsProjInfoTargets: seq<CrackedFsprojInfoTarget>) =
+        crackedFsProjInfoTargets
+        |> Seq.map (fun info ->
+            let projRefs = info.ProjRefs |> List.map (fun ref ->
+                let refInfo = 
+                    crackedFsProjInfoTargets
+                    |> Seq.find (fun otherInfo -> otherInfo.ProjPath = ref)
+                refInfo
+            )
+
+            let allRefProjInfos = 
+                projRefs
+                |> List.collect CrackedFsprojInfoTarget.asList
+
+
+            mapPropOtherOptions (fun line ->
+                allRefProjInfos
+                |> List.tryFind (fun ref -> 
+                    "-r:" + ref.TargetPath = line)
+                |> function 
+                    | Some ref -> "-r:" + ref.ObjTargetFile
+                    | None -> line 
+            ) info
+        )
+
+
+
+
+type CrackedFsprojFileTree =
     {
+        ProjOtherOptions: string []
         ObjTargetFile: string
         TargetPath: string
         ProjPath: string
@@ -124,32 +222,88 @@ type CrackerFsprojFileTree =
         ObjTargetPdb: string
         TargetPdbName: string
         TargetPdbPath: string
+        TargetFramework: string
+        ProjRefs: string list
     }
-with member x.TargetDir = Path.getDirectory x.TargetPath
+with 
+    member x.TargetDir = Path.getDirectory x.TargetPath
+    member x.RefDlls = x.ProjOtherOptions |> Array.filter(fun op ->
+        op.StartsWith "-r:" && x.ProjRefs |> List.exists (fun ref -> Path.GetFileName op = Path.GetFileName ref + ".dll")
+    )
 
 
-module CrackerFsprojFileTree =
-    let ofCrackedFsproj (crackedFsProj: CrackedFsprojInfo) =
+[<RequireQualifiedAccess>]
+module CrackedFsprojFileTree =
+    let ofCrackedProjectOptions (crackedProjectOptions: CrackedFsprojInfo) =
         {
-            ObjTargetFile = crackedFsProj.ObjTargetFile
-            TargetPath = crackedFsProj.TargetPath
-            ProjPath = crackedFsProj.Path
-            TargetFileName = crackedFsProj.TargetFileName
-            ObjTargetPdb = crackedFsProj.ObjTargetPdb
-            TargetPdbName = crackedFsProj.TargetPdbName
-            TargetPdbPath = crackedFsProj.TargetPdbPath
+            ProjOtherOptions = crackedProjectOptions.FSharpProjectOptions.OtherOptions
+            ObjTargetFile = crackedProjectOptions.ObjTargetFile
+            TargetPath = crackedProjectOptions.TargetPath
+            ProjPath = crackedProjectOptions.ProjPath
+            TargetFileName = crackedProjectOptions.TargetFileName
+            ObjTargetPdb = crackedProjectOptions.ObjTargetPdb
+            TargetPdbName = crackedProjectOptions.TargetPdbName
+            TargetPdbPath = crackedProjectOptions.TargetPdbPath
+            TargetFramework = crackedProjectOptions.TargetFramework
+            ProjRefs = crackedProjectOptions.ProjRefs
         }
 
-    let copyFile  (logger: Logger) (crackerFsprojFileTree1: CrackerFsprojFileTree) (crackerFsprojFileTree2: CrackerFsprojFileTree)=                
-        let targetFileName = crackerFsprojFileTree1.TargetFileName
-        let targetPdbName = crackerFsprojFileTree1.TargetPdbName
-        let originFile = crackerFsprojFileTree1.ObjTargetFile  
-        let originDll = crackerFsprojFileTree1.ObjTargetPdb
-        let targetPath =  crackerFsprojFileTree2.TargetDir </> targetFileName
-        Logger.copyFile originFile targetPath logger
-        let targetPdb = crackerFsprojFileTree2.TargetDir </> targetPdbName
-        Logger.copyFile originDll targetPdb logger
+    /// from ref projs to bin
+    let copyFileFromRefs projectFile logger (destCrackedFsprojFileTree: CrackedFsprojFileTree) =
+        let originDllName = Path.GetFileNameWithoutExtension projectFile
+        let targetDir = destCrackedFsprojFileTree.TargetDir
+        destCrackedFsprojFileTree.RefDlls
+        |> Array.filter(fun refDll -> Path.GetFileNameWithoutExtension refDll = originDllName)
+        |> Array.iter (fun originDll ->
+            let fileName = Path.GetFileName originDll
+            let destDll = targetDir </> fileName
+            Logger.copyFile originDll destDll logger
+            let originPdb = originDll |> Path.changeExtension ".pdb"
+            let destPdb = targetDir </> (Path.changeExtension ".pdb" fileName)
+            Logger.copyFile originPdb destPdb logger
+        )
 
+[<RequireQualifiedAccess>]
+type CrackedFsprojFileTreeTarget =
+    | Single of CrackedFsprojFileTree
+    | Multiple of CrackedFsprojFileTree list
+    
+with 
+    member x.ProjPath = 
+        match x with 
+        | CrackedFsprojFileTreeTarget.Single crackedFsprojFileTree -> crackedFsprojFileTree.ProjPath
+        | CrackedFsprojFileTreeTarget.Multiple crackedFsprojFileTrees -> 
+            crackedFsprojFileTrees 
+            |> List.map (fun crackedFsprojFileTree -> crackedFsprojFileTree.ProjPath)
+            |> List.distinct
+            |> List.exactlyOne
+
+
+[<RequireQualifiedAccess>]
+module CrackedFsprojFileTreeTarget =
+
+    let asList = function 
+        | CrackedFsprojFileTreeTarget.Single fileTree -> [fileTree]
+        | CrackedFsprojFileTreeTarget.Multiple fileTrees -> fileTrees
+
+    let ofCrackedFsprojInfoTarget (crackedFsprojInfoTarget: CrackedFsprojInfoTarget) =
+        match crackedFsprojInfoTarget with 
+        | CrackedFsprojInfoTarget.Single crackedFsprojInfo -> 
+            CrackedFsprojFileTree.ofCrackedProjectOptions crackedFsprojInfo
+            |> CrackedFsprojFileTreeTarget.Single
+        | CrackedFsprojInfoTarget.Multiple crackedFsprojInfos ->
+            crackedFsprojInfos
+            |> List.map CrackedFsprojFileTree.ofCrackedProjectOptions
+            |> CrackedFsprojFileTreeTarget.Multiple
+
+
+
+    let copyFileFromRefs projectFile logger (destCrackedFsprojFileTreeTarget: CrackedFsprojFileTreeTarget) =
+        asList destCrackedFsprojFileTreeTarget
+        |> List.iter (CrackedFsprojFileTree.copyFileFromRefs projectFile logger)
+
+
+[<RequireQualifiedAccess>]
 module Dictionary =
 
     let toMap dictionary = 
@@ -159,10 +313,9 @@ module Dictionary =
 
 type Fsproj =
     {
-        Value: CrackedFsprojInfo
+        Value: CrackedFsprojInfoTarget
         Refs: Fsproj list
     }
-
 
 [<RequireQualifiedAccess>]
 module Fsproj =
@@ -183,7 +336,7 @@ module Fsproj =
         loop projectFile 
         Set.ofSeq values       
 
-    let sourceFileMaps (cache: Map<string,CrackedFsprojInfo>) = 
+    let sourceFileMap (cache: Map<string,CrackedFsprojInfoTarget>) = 
         let dict = new Dictionary<string, string>()
         cache |> Seq.iter (fun pair -> 
             pair.Value.SourceFiles |> Seq.iter (fun sourceFile ->
@@ -192,43 +345,29 @@ module Fsproj =
         )
         Dictionary.toMap dict
 
-    let getAllFsprojInfos projectFile =
+    let private getAllFsprojInfos projectFile =
         let allProjects = easyGetAllProjects projectFile
         allProjects
         |> Seq.map (fun projectFile -> async {
-            return CrackedFsprojInfo.create projectFile
+            return CrackedFsprojInfoTarget.create projectFile
         })
         |> Async.Parallel
         |> Async.RunSynchronously
+                
 
     /// "bin ref may be locked by program"
     let getAllFsprojInfosObjRefOnly projectFile =
         let allInfos = getAllFsprojInfos projectFile 
-        allInfos
-        |> Array.map (fun info ->
-            let projRefs = info.ProjRefs |> List.map (fun ref ->
-                let refInfo = 
-                    allInfos 
-                    |> Array.find (fun otherInfo -> otherInfo.Path = ref)
-                refInfo
-            )
-            {info with 
-                ProjOptions = FSharpProjectOptions.mapOtherOptions (fun line ->
-                    projRefs 
-                    |> List.tryFind (fun ref -> "-r:" + ref.TargetPath = line)
-                    |> function 
-                        | Some ref -> "-r:" + ref.ObjTargetFile
-                        | None -> line                
-                ) info.ProjOptions }
-        )
+        CrackedFsprojInfoTarget.objRefOnlyForAll allInfos
 
-    let create (projectMaps: Map<string,CrackedFsprojInfo>) projectFile = 
-        let cacheMutable = Dictionary<string,CrackedFsprojInfo>(projectMaps)
+
+    let create (projectMaps: Map<string,CrackedFsprojInfoTarget>) projectFile = 
+        let projectMapsMutable = Dictionary<string,CrackedFsprojInfoTarget>(projectMaps)
         let allProjectInfos = getAllFsprojInfosObjRefOnly projectFile
-        allProjectInfos |> Seq.iter (fun projectInfo -> cacheMutable.Add (projectInfo.Path,projectInfo))
+        allProjectInfos |> Seq.iter (fun projectInfo -> projectMapsMutable.Add (projectInfo.ProjPath,projectInfo))
 
         let rec loop projectFile = 
-            let projectInfo = cacheMutable.[projectFile]         
+            let projectInfo = projectMapsMutable.[projectFile]         
             {
                 Value = projectInfo
                 Refs = projectInfo.ProjRefs |> List.map loop
@@ -237,29 +376,35 @@ module Fsproj =
         let project = loop projectFile
 
         let newProjectMaps = 
-            cacheMutable 
+            projectMapsMutable 
             |> Dictionary.toMap
 
-        project,newProjectMaps,sourceFileMaps newProjectMaps    
+        project,newProjectMaps,sourceFileMap newProjectMaps    
 
     let scan (fsproj: Fsproj) =
-        let cacheMutable = new Dictionary<string,CrackerFsprojFileTree list>()
-        let rec loop (stack: CrackerFsprojFileTree list) (fsproj: Fsproj) = 
-            match cacheMutable.TryGetValue fsproj.Value.Path with 
-            | true,_ -> ()
+        let cacheMutable = new Dictionary<string,CrackedFsprojFileTreeTarget list>()
+        let rec loop (stack: CrackedFsprojFileTreeTarget list) (fsproj: Fsproj) = 
+            match cacheMutable.TryGetValue fsproj.Value.ProjPath with 
+            | true,stack2 -> 
+                let newStack = stack @ stack2 
+                cacheMutable.[fsproj.Value.ProjPath] <- newStack
             | false,_ ->
-                let newStack = (CrackerFsprojFileTree.ofCrackedFsproj fsproj.Value) :: stack
-                cacheMutable.Add(fsproj.Value.Path,newStack)
+                let newStack = (CrackedFsprojFileTreeTarget.ofCrackedFsprojInfoTarget fsproj.Value) :: stack
+                cacheMutable.Add(fsproj.Value.ProjPath,newStack)
                 fsproj.Refs |> List.iter (loop newStack)
 
         loop [] fsproj
         cacheMutable 
         |> Dictionary.toMap
+        |> Map.map (fun key fileTrees ->
+            fileTrees
+            |> List.distinctBy (fun fileTree -> fileTree.ProjPath)
+        )
 
-    let getLevel proj (entryFsproj: Fsproj) =
+    let getLevel projectFile (entryFsproj: Fsproj) =
         let rec loop level (fsproj: Fsproj) = 
             [
-                if fsproj.Value.Path = proj 
+                if fsproj.Value.ProjPath = projectFile 
                 then yield! [level]
                 yield! fsproj.Refs |> List.collect (loop (level + 1)) 
             ]
@@ -267,45 +412,51 @@ module Fsproj =
         loop 0 entryFsproj   
         |> List.max
 
-            
 
-type CrackerFsprojFileBundleCache =
+type CrackedFsprojFileBundleCache =
     {
         /// projectFile, project refers
-        FileTreesMap: Map<string,CrackerFsprojFileTree list>
+        FileTreeTargetsMap: Map<string,CrackedFsprojFileTreeTarget list>
         
 
-        ProjectMap: Map<string,CrackedFsprojInfo>
+        ProjectMap: Map<string,CrackedFsprojInfoTarget>
 
         /// sourceFile,projectFile
         SourceFileMap: Map<string,string>
 
-        /// from bottom to top
+        /// from top to bottom
         DescendedProjectLevelMap: Map<string,int>
     }
 with 
     member x.AllProjectFiles = x.ProjectMap |> Seq.map (fun pair -> pair.Key)
 
 [<RequireQualifiedAccess>]
-module CrackerFsprojFileBundleCache =
-    let update projectFile (cache:CrackerFsprojFileBundleCache) =
-        let info = CrackedFsprojInfo.create projectFile
-        let newProjectMap = Map.add projectFile info cache.ProjectMap
-        let newSourceFileMap = Fsproj.sourceFileMaps newProjectMap
+module CrackedFsprojFileBundleCache =
+    let update projectFile (cache: CrackedFsprojFileBundleCache) =
+        let infoTarget = CrackedFsprojInfoTarget.create projectFile
+        let newProjectMap = Map.add projectFile infoTarget cache.ProjectMap
+
+        let objRefOnly =
+            let keys = newProjectMap |> Seq.map (fun pair -> pair.Key)
+            let values = newProjectMap |> Seq.map (fun pair -> pair.Value)
+            Seq.zip keys (CrackedFsprojInfoTarget.objRefOnlyForAll values)
+            |> Map.ofSeq
+
+        let newSourceFileMap = Fsproj.sourceFileMap newProjectMap
         { cache with 
-            ProjectMap = newProjectMap 
+            ProjectMap = objRefOnly
             SourceFileMap = newSourceFileMap }
 
 
-    let sortDescendingProjects (projectFiles: Set<string>) (cache:CrackerFsprojFileBundleCache) =
+    let sortDescendingProjects (projectFiles: seq<string>) (cache:CrackedFsprojFileBundleCache) =
         projectFiles 
         |> Seq.sortByDescending (fun projectFile -> cache.DescendedProjectLevelMap.[projectFile])
-        |> Set.ofSeq
+    
 
 [<RequireQualifiedAccess>]
 type CrackedFsprojBundleMsg =
-    | Cache of replyChannel: AsyncReplyChannel<CrackerFsprojFileBundleCache>
-    | DetectProjectFileChange of FileChange * AsyncReplyChannel<CrackerFsprojFileBundleCache>
+    | Cache of replyChannel: AsyncReplyChannel<CrackedFsprojFileBundleCache>
+    | DetectProjectFileChange of FileChange * AsyncReplyChannel<CrackedFsprojFileBundleCache>
 
 let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
     let rec loop (entry: Fsproj) cache = async {
@@ -316,7 +467,7 @@ let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBun
             return! loop entry cache
         | CrackedFsprojBundleMsg.DetectProjectFileChange (fileChange,replyChannel) ->
             let projectFile = fileChange.FullPath
-            let newCache = CrackerFsprojFileBundleCache.update projectFile cache
+            let newCache = CrackedFsprojFileBundleCache.update projectFile cache
             replyChannel.Reply newCache
             return! loop entry newCache
     }
@@ -331,7 +482,7 @@ let crackedFsprojBundle(projectFile: string) = MailboxProcessor<CrackedFsprojBun
 
     let cache =
         {
-            FileTreesMap = scanCache
+            FileTreeTargetsMap = scanCache
             ProjectMap = projectMap
             SourceFileMap = sourceFileMap 
             DescendedProjectLevelMap = descendedProjectLevelMap

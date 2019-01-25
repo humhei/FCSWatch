@@ -3,11 +3,8 @@
 open System
 open System.Collections.Concurrent
 open System.Threading
-open TestLib
 [<EntryPoint>]
 let main _ =
-    printfn "HWhatisello " 
-    printfn "%sHsdsdaasasdasadadsadassssasello " FS.ss
-    Say.hello11  "g  ogo"
+    printfn "play h game" 
     0 // return an integer exit code
  

@@ -28,7 +28,7 @@ type CompilerTmpEmitterMsg =
     | AddTmp of string
     | Emit of replyChannel: AsyncReplyChannel<HttpHandler>
     | AddTask of CompilerTask
-    | UpdateCache of CrackerFsprojFileBundleCache
+    | UpdateCache of CrackedFsprojFileBundleCache
     | GetCompilerTmp of AsyncReplyChannel<Set<string>>
 
 type CompilerTmpEmitterState =
@@ -38,7 +38,7 @@ type CompilerTmpEmitterState =
         EmitReplyChannels: AsyncReplyChannel<HttpHandler> list
         GetTmpReplyChannels: AsyncReplyChannel<Set<string>> list
         CompilerTasks: CompilerTask list
-        CrackerFsprojFileBundleCache: CrackerFsprojFileBundleCache // global cache
+        CrackerFsprojFileBundleCache: CrackedFsprojFileBundleCache // global cache
     }
     
 [<RequireQualifiedAccess>]
@@ -87,18 +87,24 @@ module CompilerTmpEmiiterState =
                     { compilerTmpEmiiterState with EmitReplyChannels = [] } 
 
                 | None ->                
-                    let projectMaps = cache.ProjectMap
-                    let fileTreeMaps = cache.FileTreesMap
+                    let fileTreeTargetsMap = cache.FileTreeTargetsMap
+                    
                     unLoad()
                     
                     compilerTmpEmiiterState.CompilerTmp
-                    |> fun tmp -> CrackerFsprojFileBundleCache.sortDescendingProjects tmp cache  
                     |> Seq.iter (fun projectFile ->
-                        let originFileTree = CrackerFsprojFileTree.ofCrackedFsproj projectMaps.[projectFile]
-                        let fsprojFileTrees = fileTreeMaps.[projectFile]
-                        fsprojFileTrees |> Seq.iter (fun fsprojFileTree ->
-                            CrackerFsprojFileTree.copyFile logger originFileTree fsprojFileTree
+                        let destFileTreeTargets = fileTreeTargetsMap.[projectFile]
+                        let originFileTreeTarget = CrackedFsprojFileTreeTarget.ofCrackedFsprojInfoTarget cache.ProjectMap.[projectFile]
+                        CrackedFsprojFileTreeTarget.asList originFileTreeTarget
+                        |> List.iter (fun fileTree ->
+                            Logger.copyFile fileTree.ObjTargetFile fileTree.TargetPath logger 
+                            Logger.copyFile fileTree.ObjTargetPdb fileTree.TargetPdbPath logger
                         )
+
+                        destFileTreeTargets |> Seq.sortByDescending (fun fileTreeTarget ->
+                            cache.DescendedProjectLevelMap.[fileTreeTarget.ProjPath]
+                        )
+                        |> Seq.iter (CrackedFsprojFileTreeTarget.copyFileFromRefs projectFile logger)
                     )
                     replySuccess()
                     load()
@@ -144,7 +150,7 @@ module CompilerTmpEmiiterState =
         |> tryEmitAction config logger cache
         |> tryGetCompilerTmp
 
-let compilerTmpEmitter config (cache: CrackerFsprojFileBundleCache) = MailboxProcessor<CompilerTmpEmitterMsg>.Start(fun inbox ->
+let compilerTmpEmitter config (cache: CrackedFsprojFileBundleCache) = MailboxProcessor<CompilerTmpEmitterMsg>.Start(fun inbox ->
     let logger = config.Logger
     let rec loop state = async {
         let cache = state.CrackerFsprojFileBundleCache        

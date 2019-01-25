@@ -22,6 +22,8 @@ module internal Result =
 #endif
 
 open Microsoft.FSharp.Compiler.SourceCodeServices
+open System.Xml
+
 
 module MSBuildPrj = Dotnet.ProjInfo.Inspect
 
@@ -85,7 +87,6 @@ let rec private projInfo additionalMSBuildProps (file: string) =
 
       let msbuildExec = Dotnet.ProjInfo.Inspect.dotnetMsbuild runCmd
       let log = ignore
-
       let additionalArgs = additionalMSBuildProps |> List.map (Dotnet.ProjInfo.Inspect.MSBuild.MSbuildCli.Property)
 
       file
@@ -169,5 +170,35 @@ let rec private projInfo additionalMSBuildProps (file: string) =
       let projRefs = p2ps |> List.map (fun p2p -> p2p.ProjectReferenceFullPath)
       projOptions, projRefs, props
 
+[<RequireQualifiedAccess>]
+type private FrameWork = 
+    | MultipleTarget of string []
+    | SingleTarget of string
+
+let private getFrameWork (projectFile: string) =
+
+    let doc = new XmlDocument()
+    doc.Load(projectFile)
+    match doc.GetElementsByTagName "TargetFramework" with 
+    | frameWorkNodes when frameWorkNodes.Count = 0 -> 
+        let frameWorksNodes = doc.GetElementsByTagName "TargetFrameworks" 
+        let frameWorksNode = [ for node in frameWorksNodes do yield node ] |> List.exactlyOne
+        frameWorksNode.InnerText.Split(';')
+        |> Array.map (fun text -> text.Trim())
+        |> FrameWork.MultipleTarget
+
+    | frameWorkNodes ->
+        let frameWorkNode = [ for node in frameWorkNodes do yield node ] |> List.exactlyOne
+        FrameWork.SingleTarget frameWorkNode.InnerText
+
 let getProjectOptionsFromProjectFile (file : string) =
-  projInfo [] file
+    match getFrameWork file with 
+    | FrameWork.SingleTarget target ->  
+        projInfo ["TargetFramework",target] file |> Array.singleton
+    | FrameWork.MultipleTarget targets -> 
+        targets |> Array.map (fun target -> async {
+            return projInfo ["TargetFramework",target] file
+        })
+        |> Async.Parallel
+        |> Async.RunSynchronously
+    

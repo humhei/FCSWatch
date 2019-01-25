@@ -30,13 +30,14 @@ let inline (<!>) msg content  =
 
 type FcsWatcherModel = 
     { SourceFileWatcher: IDisposable
-      CrackerFsprojFileBundleCache: CrackerFsprojFileBundleCache }
+      CrackerFsprojFileBundleCache: CrackedFsprojFileBundleCache }
 
 
 let fcsWatcher 
     (buildingConfig: Config -> Config) 
     (checker: FSharpChecker) 
     (entryProjectFile: string) = 
+        let entryProjectFile = Path.getFullName entryProjectFile
         let config = buildingConfig {
                 Logger = Logger.Minimal
                 WorkingDir = Path.getFullName "./"
@@ -118,7 +119,7 @@ let fcsWatcher
                             compilerAgent.PostAndReply CompilerMsg.AllCompilerTaskNumber
                         replyChannel.Reply allCompilerTaskNumber                    
                         return! loop state            
-                    | i when i > 1 && i < 5 ->
+                    | i when i > 1 ->
                         let infos = projFiles |> List.map (fun projFile -> projectMaps.[projFile] ) 
                         compilerAgent.Post(CompilerMsg.CompilerProjects infos)
                         let allCompilerTaskNumber = 
@@ -126,10 +127,7 @@ let fcsWatcher
                         replyChannel.Reply allCompilerTaskNumber   
                         return! loop state  
 
-                    | i when i >= 5 ->
-                        failwith "more than 5 projects have to be recompiled at some time"                     
-                    | 0 -> failwith "Invalid token"   
-                    | _ -> failwith "Invalid token"                    
+                    | _ -> failwith "length is zero"                    
 
                 | FcsWatcherMsg.DetectProjectFileChange fileChange ->
                     Logger.important (sprintf "project file %s is changed" fileChange.FullPath) config.Logger

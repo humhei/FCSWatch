@@ -59,7 +59,7 @@ let inTest buildingConfig f =
 
 let interactionTests =
     testList "" [
-        ftestCase "base interaction test" <| fun _ ->
+        ptestCase "base interaction test" <| fun _ ->
             let manualSet = new ManualResetEventSlim()
             inTest id ignore
             manualSet.Wait()
@@ -154,17 +154,20 @@ let functionTests =
         [
             /// "bin ref may be locked by program
             testCase "obj ref only" <| fun _ ->
-                let infos = Fsproj.getAllFsprojInfosObjRefOnly entryProjectFile
-                let otherOptions = infos.[2].ProjOptions.OtherOptions
+                let otherOptions = 
+                    Fsproj.getAllFsprojInfosObjRefOnly entryProjectFile
+                    |> Seq.collect CrackedFsprojInfoTarget.asList
+                    |> Seq.collect (fun info -> info.FSharpProjectOptions.OtherOptions)
+                // let otherOptions = infos.[2]
                 let p1 = 
                     otherOptions
-                    |> Array.exists (fun option ->
+                    |> Seq.exists (fun option ->
                         option.Contains @"\bin\Debug\"
                     )
                     |> not
                 let p2 =
                     otherOptions 
-                    |> Array.exists (fun option ->
+                    |> Seq.exists (fun option ->
                         option.Contains @"\obj\Debug\"
                     )                 
                 if p1 && p2 then pass()

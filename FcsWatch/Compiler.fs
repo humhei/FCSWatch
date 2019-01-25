@@ -10,15 +10,15 @@ open FSharp.Control.Tasks.V2.ContextInsensitive
 
 [<RequireQualifiedAccess>]
 type CompilerMsg =
-    | CompilerProject of project: CrackedFsprojInfo
-    | WarmCompile of project: CrackedFsprojInfo
+    | CompilerProject of project: CrackedFsprojInfoTarget
+    | WarmCompile of project: CrackedFsprojInfoTarget
     | AllCompilerTaskNumber of replyChannel: AsyncReplyChannel<int>
-    | UpdateCache of CrackerFsprojFileBundleCache
-    | CompilerProjects of project: CrackedFsprojInfo list
+    | UpdateCache of CrackedFsprojFileBundleCache
+    | CompilerProjects of project: CrackedFsprojInfoTarget list
 
 type CompilerModel = 
     { AllTaskNumber: int 
-      CrackerFsprojFileBundleCache: CrackerFsprojFileBundleCache }
+      CrackerFsprojFileBundleCache: CrackedFsprojFileBundleCache }
 
 let private summary projectPath dll elapsed =
     sprintf "Summary:
@@ -29,22 +29,27 @@ let private summary projectPath dll elapsed =
 
 
 
-let compiler (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) (initialCache: CrackerFsprojFileBundleCache) config checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
+let compiler (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) (initialCache: CrackedFsprojFileBundleCache) config checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
     
     let logger = config.Logger
 
-    let createCompileTask projects =
-        projects 
-        |> List.map (fun project ->
+    let createCompileTask (crackedFsprojInfoTargets: CrackedFsprojInfoTarget list) =
+        crackedFsprojInfoTargets 
+        |> List.map (fun crackedFsprojInfoTarget ->
             async {
                 let stopWatch = Stopwatch.StartNew()            
-                let! compilerResult = CrackedFsprojInfo.compile checker project
-                CompilerResult.processCompileResult logger compilerResult
-                
-                if compilerResult.ExitCode = 0 then 
-                    Logger.important (summary project.Path compilerResult.Dll stopWatch.ElapsedMilliseconds) logger
-                    compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.AddTmp project.Path)
-                return compilerResult
+                let! compilerResults = CrackedFsprojInfoTarget.compile checker crackedFsprojInfoTarget
+                match List.tryFind (fun compilerResult -> compilerResult.ExitCode <> 0) compilerResults with 
+                | None ->
+                    let compilerResult = compilerResults.[0]
+                    CompilerResult.processCompileResult logger compilerResult
+                    Logger.important (summary crackedFsprojInfoTarget.ProjPath compilerResult.Dll stopWatch.ElapsedMilliseconds) logger
+                    compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.AddTmp crackedFsprojInfoTarget.ProjPath)
+                    return compilerResult
+
+                | Some erroCompilerResult ->
+                    CompilerResult.processCompileResult logger erroCompilerResult 
+                    return erroCompilerResult
             }        
         )
         |> Async.Parallel
@@ -84,7 +89,7 @@ let compiler (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) 
                         |> Map.filter (fun projFile level -> level = topLevel)        
 
                     let projects = inProcess |> Seq.map (fun proj -> projectMap.[proj.Key]) |> List.ofSeq
-                    let projectFiles = projects |> List.map (fun project -> project.Path)
+                    let projectFiles = projects |> List.map (fun project -> project.ProjPath)
 
                     let! results = createCompileTask projects
                     let results = 
@@ -104,7 +109,7 @@ let compiler (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) 
                     return results
                 | true -> return accResults     
             }
-            let projectFiles = projects |> List.map (fun project -> project.Path)
+            let projectFiles = projects |> List.map (fun project -> project.ProjPath)
 
             let map = model.CrackerFsprojFileBundleCache.DescendedProjectLevelMap |> Map.filter (fun key value ->
                 List.contains key projectFiles
@@ -125,9 +130,9 @@ let compiler (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) 
             let task = 
                 async {
                     compilerTmpEmitterAgent.Post CompilerTmpEmitterMsg.IncrCompilingNum
-                    let! compilerResult = CrackedFsprojInfo.compile checker project
+                    let! compilerResult = CrackedFsprojInfoTarget.compile checker project
                     compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.DecrCompilingNum)
-                    return [compilerResult]
+                    return compilerResult
                 }
                 |> Async.StartAsTask
             compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.AddTask (CompilerTask (startTime,task)))
