@@ -1,7 +1,7 @@
 ﻿# Release Notes
  
 ## 0.4.1-alpha - tbd
-* Multiple target framework
+* Multiple target frameworks
 
 ## 0.4.0 - 2019-01-23
 * Compile multiple files at some time(multiple projects)

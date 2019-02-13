@@ -7,7 +7,7 @@ open Fake.IO.FileSystemOperators
 open Atrous.Core
 open System.Collections.Generic
 open System.Xml
-
+open Microsoft.FSharp.Compiler.SourceCodeServices
 
 type Plugin =
     { Load: unit -> unit 

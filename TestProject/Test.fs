@@ -5,6 +5,6 @@ open System.Collections.Concurrent
 open System.Threading
 [<EntryPoint>]
 let main _ =
-    printfn "play h game" 
+    printfn "s" 
     0 // return an integer exit code
  
