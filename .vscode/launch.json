@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "emitCompilerTmp",
-            "program": "${workspaceFolder}/tests/datas/TestProject/bin/Debug/netcoreapp3.0/TestProject.exe",
+            "program": "${workspaceFolder}/tests/datas/TestProject/bin/Debug/netcoreapp2.1/TestProject.exe",
         },
         {
             "name": "Debug My Build Script",

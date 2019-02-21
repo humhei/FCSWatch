@@ -1,6 +1,4 @@
 source https://api.nuget.org/v3/index.json
-redirects: force
-framework: auto-detect
 storage: none
 nuget FSharp.Compiler.Service
 nuget Expecto
