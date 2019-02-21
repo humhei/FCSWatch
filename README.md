@@ -1,5 +1,17 @@
-# FCSWatch [![](https://img.shields.io/nuget/v/fcswatch.svg)](https://www.nuget.org/packages/FcsWatch)
-Run standard fsharp codes in watch mode
+#Run standard fsharp codes in watch mode
+
+Stable | Prerelease
+--- | ---
+[![NuGet Badge](https://buildstats.info/nuget/FcsWatch)](https://www.nuget.org/packages/FcsWatch/) | [![NuGet Badge](https://buildstats.info/nuget/FcsWatch?includePreReleases=true)](https://www.nuget.org/packages/FcsWatch/)
+
+
+MacOS/Linux | Windows
+--- | ---
+[![CircleCI](https://circleci.com/gh/humhei/FcsWatch.svg?style=svg)](https://circleci.com/gh/humhei/FcsWatch) | [![Build status](https://ci.appveyor.com/api/projects/status/0qnls95ohaytucsi?svg=true)](https://ci.appveyor.com/project/ts2fable-imports/FcsWatch)
+[![Build History](https://buildstats.info/circleci/chart/humhei/FcsWatch)](https://circleci.com/gh/humhei/FcsWatch) | [![Build History](https://buildstats.info/appveyor/chart/ts2fable-imports/FcsWatch)](https://ci.appveyor.com/project/ts2fable-imports/FcsWatch)
+
+
+---
 
 ## Play around
 vscode only

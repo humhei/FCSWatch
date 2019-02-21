@@ -1,5 +1,5 @@
 #if FAKE
-#r "paket: groupref Main //"
+#r "paket: groupref build //"
 #endif
 #if !FAKE
 #r "Facades/netstandard"
