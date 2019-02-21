@@ -13,6 +13,6 @@ jobs:
       - run:
           name: run-tests
           command: |
-            - chmod 755 ./*.sh
+            chmod 755 ./*.sh
             export TERM=xterm-256color
             ./fake.sh build -t RunCI
