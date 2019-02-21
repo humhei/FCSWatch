@@ -63,11 +63,18 @@ module CrackedFsprojSingleTarget =
 
         logger.CopyFile originPdb destPdb
 
+    let copyObjToBin (crackedFsprojSingleTarget: CrackedFsprojSingleTarget) =
+        logger.CopyFile crackedFsprojSingleTarget.ObjTargetFile crackedFsprojSingleTarget.TargetPath
+        logger.CopyFile crackedFsprojSingleTarget.ObjTargetPdb crackedFsprojSingleTarget.TargetPdbPath
+
 [<RequireQualifiedAccess>]
 module CrackedFsproj =
     let copyFileFromRefDllToBin projectFile (destCrackedFsproj: CrackedFsproj) =
         destCrackedFsproj.AsList
         |> List.iter (CrackedFsprojSingleTarget.copyFileFromRefDllToBin projectFile)
+
+    let copyObjToBin (crackedFsproj: CrackedFsproj) =
+        crackedFsproj.AsList |> List.iter CrackedFsprojSingleTarget.copyObjToBin
 
 type Plugin =
     { Load: unit -> unit 
@@ -114,12 +121,34 @@ module FullCrackedFsproj =
         loop entryProjectFile 
         Set.ofSeq values       
 
-    let private getAllCrackedFsprojs projectFile =
+    let private getAllCrackedFsprojs projectFile = async {
         let allProjects = easyGetAllProjPaths projectFile
-        allProjects
-        |> Seq.map CrackedFsproj.create
-        |> Async.Parallel
+        let rec retry retryCount accum projects =
+            logger.Info "try fetch projOptions at %d time" retryCount 
 
+            if retryCount > 3 then failwith "when fetch projOptions, exceed max retry times"
+
+            if Set.isEmpty projects then accum 
+            else
+                let allCrackedFsprojs = 
+                    allProjects
+                    |> Seq.map CrackedFsproj.create
+                    |> Async.Parallel
+                    |> Async.RunSynchronously
+
+            
+                let unsuccess,success = allCrackedFsprojs |> Array.partition (fun crackedFsproj ->
+                    crackedFsproj.AsList |> List.exists (fun crackedFsprojSingleTarget ->
+                        crackedFsprojSingleTarget.FSharpProjectOptions.OtherOptions.Length = 0
+                    )
+                )
+
+                let unsuccessProjects = unsuccess |> Array.map (fun crackedFsproj -> crackedFsproj.ProjPath)
+
+                retry (retryCount + 1) success (Set.ofArray unsuccessProjects)
+
+        return retry 0 [||] allProjects
+    }
     /// entry level is 0
     let internal getLevel projectFile (entryFsproj: FullCrackedFsproj) =
         let rec loop level (fsproj: FullCrackedFsproj) = 
@@ -141,8 +170,10 @@ module FullCrackedFsproj =
                 let newStack = stack @ stack2 
                 cacheMutable.[fsproj.Value.ProjPath] <- newStack
             | false,_ ->
+                cacheMutable.Add(fsproj.Value.ProjPath, stack)
+
                 let newStack = fsproj.Value :: stack
-                cacheMutable.Add(fsproj.Value.ProjPath,newStack)
+
                 fsproj.Refs |> List.iter (loop newStack)
 
         loop [] fsproj

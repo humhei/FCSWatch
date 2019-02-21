@@ -1,0 +1,17 @@
+version: 2
+general:
+  branches:
+    ignore:
+      - gh-pages # list of branches to ignore
+
+jobs:
+  build:
+    docker:
+      - image: andrewlock/dotnet-mono
+    steps:
+      - checkout
+      - run:
+          name: run-tests
+          command: |
+            export TERM=xterm-256color
+            ./fake.sh build -t RunCI

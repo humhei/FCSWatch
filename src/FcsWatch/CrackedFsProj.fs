@@ -19,7 +19,8 @@ module CrackedFsproj =
     type CompilerResult =
         { Dll: string
           Errors: FSharpErrorInfo []
-          ExitCode: int }
+          ExitCode: int
+          ProjPath: string }
     with 
         member x.Pdb = Path.changeExtension ".pdb" x.Dll  
 
@@ -61,9 +62,11 @@ module CrackedFsproj =
 
         member x.ObjTargetPdb = Path.changeExtension ".pdb" x.ObjTargetFile
 
-        member x.RefDlls = x.FSharpProjectOptions.OtherOptions |> Array.filter(fun op ->
-            op.StartsWith "-r:" && x.ProjRefs |> List.exists (fun ref -> Path.GetFileName op = Path.GetFileName ref + ".dll")
-        )
+        member x.RefDlls = 
+            x.FSharpProjectOptions.OtherOptions 
+            |> Array.filter(fun op ->
+                op.StartsWith "-r:" && x.ProjRefs |> List.exists (fun ref -> Path.GetFileName op = Path.GetFileNameWithoutExtension ref + ".dll")
+            ) |> Array.map (fun op -> op.Remove(0,3))
 
 
     [<RequireQualifiedAccess>]
@@ -81,7 +84,8 @@ module CrackedFsproj =
             return
                 { Errors = errors
                   ExitCode = exitCode
-                  Dll = tmpDll }
+                  Dll = tmpDll
+                  ProjPath = crackedProjectSingleTarget.ProjPath }
         }
 
         let mapProjOptions mapping (crackedFsprojSingleTarget: CrackedFsprojSingleTarget) =

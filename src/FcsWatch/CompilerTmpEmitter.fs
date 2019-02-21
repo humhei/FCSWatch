@@ -77,16 +77,24 @@ module CompilerTmpEmiiterState =
                 match config.DevelopmentTarget with 
                 | DevelopmentTarget.Plugin plugin ->
                     Thread.Sleep(plugin.DebuggerAttachTimeDelay)
+
                     plugin.Calculate()
                 | _ -> ()
 
                 compilerTmpEmiiterState
             | _ ->
-                let lastTask = compilerTmpEmiiterState.CompilerTasks |> List.maxBy(fun task -> task.StartTime)
+                let lastTasks = 
+                    compilerTmpEmiiterState.CompilerTasks 
+                    |> List.groupBy (fun compilerTask ->
+                        compilerTask.Task.Result.[0].ProjPath
+                    )
+                    |> List.map (fun (projPath, compilerTasks) ->
+                        compilerTasks |> List.maxBy (fun compilerTask -> compilerTask.StartTime)
+                    )
 
-                let results = lastTask.Task.Result
+                let allResults = lastTasks |> List.collect (fun task -> task.Task.Result)
 
-                match List.tryFind (fun result -> result.ExitCode <> 0) results with 
+                match List.tryFind (fun result -> result.ExitCode <> 0) allResults with 
                 | Some result ->
                     let errorText =  
                         result.Errors 
@@ -100,28 +108,28 @@ module CompilerTmpEmiiterState =
 
                     let projRefersMap = cache.ProjRefersMap
 
+                    let projLevelMap = cache.ProjLevelMap
+
                     match config.DevelopmentTarget with 
                     | DevelopmentTarget.Plugin plugin ->
                         plugin.Unload()
                     | _ -> ()
-                    
-                    compilerTmpEmiiterState.CompilerTmp
-                    |> Seq.iter (fun projectFile ->
-                        let refCrackedFsprojs = projRefersMap.[projectFile]
 
-                        refCrackedFsprojs
-                        |> List.collect (fun refCrackedFsproj ->
-                            refCrackedFsproj.AsList
-                        )
-                        |> List.iter (fun refCrackedFsproj ->
-                            logger.CopyFile refCrackedFsproj.ObjTargetFile refCrackedFsproj.TargetPath
-                            logger.CopyFile refCrackedFsproj.ObjTargetPdb refCrackedFsproj.TargetPdbPath
-                        )
+                    compilerTmpEmiiterState.CompilerTmp
+                    |> Seq.sortByDescending (fun projPath ->
+                        projLevelMap.[projPath]
+                    )
+                    |> Seq.iter (fun projPath ->
+                        let currentCrackedFsproj = cache.ProjectMap.[projPath]
+
+                        CrackedFsproj.copyObjToBin currentCrackedFsproj
+
+                        let refCrackedFsprojs = projRefersMap.[projPath]
 
                         refCrackedFsprojs |> Seq.sortByDescending (fun refCrackedFsproj ->
-                            cache.ProjLevelMap.[refCrackedFsproj.ProjPath]
+                            projLevelMap.[refCrackedFsproj.ProjPath]
                         )
-                        |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin projectFile)
+                        |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin projPath)
                     )
 
                     replySuccess()

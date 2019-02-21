@@ -2,6 +2,7 @@
 
 open Expecto.Logging
 open Expecto.Tests
+open FcsWatch.InteractionTests.InteractionTests
 
 let testConfig =  
     { Expecto.Tests.defaultConfig with 
@@ -10,8 +11,7 @@ let testConfig =
 
 let tests = 
     testList "All tests" [ 
-        FcsWatchTests.interactionTests             
-        FcsWatchTests.functionTests           
+        interactionTests 
     ] 
 // Create an interactive checker instance 
 [<EntryPoint>]

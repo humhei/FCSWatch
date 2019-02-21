@@ -2,19 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build FcsWatch",
-            "command": "dotnet",
-            "group": "build",
-            "args": [
-                "build",
-                "FcsWatch.Tests/FcsWatch.Tests.fsproj"
-            ],
-            "presentation": {
-                "reveal": "silent"
-            },
-            "problemMatcher": "$msCompile"
-        },
-        {
             "label": "emitCompilerTmp",
             "command": "curl",
             "group": "build",
@@ -28,49 +15,60 @@
             "problemMatcher": []
         },
         {
-            "label": "FcsWatch",
-            "command": "fake",
+            "command": "./fake.sh",
+            "args": ["build", "-t", "Workspace.CreateDefaultSln"],
+            "type": "shell",
+            "label": "Workspace.CreateDefaultSln",
             "group": "build",
-            "args": [
-                "build",
-                "-t",
-                "FcsWatch"
-            ],
-            "problemMatcher": []
+            "windows": {
+              "command": "./fake.cmd"
+            },
+            "problemMatcher":[]
+        },
+        {
+            "command": "./fake.sh",
+            "args": ["build", "-t", "NonGit.Build"],
+            "type": "shell",
+            "label": "NonGit.Build",
+            "group": "build",
+            "windows": {
+              "command": "./fake.cmd"
+            },
+            "problemMatcher":[]
+        },
+        {
+            "command": "./fake.sh",
+            "args": ["build", "-t", "NonGit.Test"],
+            "type": "shell",
+            "label": "NonGit.Test",
+            "group": "build",
+            "windows": {
+              "command": "./fake.cmd"
+            },
+            "problemMatcher":[]
+        },
+        {
+            "command": "./fake.sh",
+            "args": ["build", "-t", "Forker.PublishToLocalNugetServer"],
+            "type": "shell",
+            "label": "Forker.PublishToLocalNugetServer",
+            "group": "build",
+            "windows": {
+              "command": "./fake.cmd"
+            },
+            "problemMatcher":[]
+        },
+        {
+            "command": "./fake.sh",
+            "args": ["build", "-t", "Collaborator.NextRelease"],
+            "type": "shell",
+            "label": "Collaborator.NextRelease",
+            "group": "build",
+            "windows": {
+              "command": "./fake.cmd"
+            },
+            "problemMatcher":[]
         },
 
-        {
-            "label": "MyPublisher.NextRelease",
-            "command": "fake",
-            "group": "build",
-            "args": [
-                "build",
-                "-t",
-                "MyPublisher.NextRelease"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "MyPublisher.UpdateDependencies",
-            "command": "fake",
-            "group": "build",
-            "args": [
-                "build",
-                "-t",
-                "MyPublisher.UpdateDependencies"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "MyPublisher.NextBuild",
-            "command": "fake",
-            "group": "build",
-            "args": [
-                "build",
-                "-t",
-                "MyPublisher.NextBuild"
-            ],
-            "problemMatcher": []
-        },
     ]
 }

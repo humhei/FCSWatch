@@ -175,12 +175,6 @@ let private getFrameWork (projectFile: string) =
         FrameWork.SingleTarget frameWorkNode.InnerText
 
 let getProjectOptionsFromProjectFile (file : string) = async {
-    let config = 
-        let msbuildLocator = MSBuildLocator()
-        LoaderConfig.Default(msbuildLocator)
-
-    let loader = Loader.Create(config)
-
     match getFrameWork file with
     | FrameWork.SingleTarget target ->
         return projInfo ["TargetFramework",target] file |> Array.singleton
@@ -192,3 +186,12 @@ let getProjectOptionsFromProjectFile (file : string) = async {
             |> Async.Parallel
         return result
 }
+
+let getProjectOptionsFromProjectFiles (projPaths : string list) = 
+    let config = 
+        let msbuildLocator = MSBuildLocator()
+        LoaderConfig.Default(msbuildLocator)
+
+    let loader = Loader.Create(config)
+
+    loader.LoadSln "D:\VsCode\Github\FCSWatch\All.sln"

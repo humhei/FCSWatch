@@ -5,30 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "launch FcsWatch",
-            "type": "coreclr",
-            "request": "launch",
-            "program": "${workspaceFolder}/FcsWatch.Tests/bin/Debug/netcoreapp3.0/FcsWatch.Tests.exe",
-            "cwd": "${workspaceFolder}/FcsWatch.Tests",
-            "args": [
-            ],
-            // "env": {
-            //     "ASPNETCORE_ENVIRONMENT": "Development"
-            // },
-            "preLaunchTask": "Build FcsWatch"
-        },
-        {
-            "name": "Attach FcsWatch",
-            "type": "coreclr",
-            "request": "attach",
-            "processId":"${command:pickProcess}"
-        },
-        {
             "name": "launch TestProject",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "emitCompilerTmp",
-            "program": "${workspaceFolder}/TestProject/bin/Debug/netcoreapp3.0/TestProject.exe",
+            "program": "${workspaceFolder}/tests/datas/TestProject/bin/Debug/netcoreapp3.0/TestProject.exe",
         },
         {
             "name": "Debug My Build Script",
