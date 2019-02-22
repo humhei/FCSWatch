@@ -11,7 +11,12 @@ open FPublisher.Roles
 open FPublisher
 open FPublisher.Nuget
 open FPublisher.Git
-open Fake.IO
+open Fake.DotNet
+
+DotNet.install (fun ops ->
+    { ops with
+        Version = DotNet.CliVersion.Version "2.2.104"
+    })
 
 let buildServer =
     BuildServer.create
