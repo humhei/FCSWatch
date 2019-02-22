@@ -7,7 +7,7 @@ general:
 jobs:
   build:
     docker:
-      - image: humhei/docker-dotnet-mono
+      - image: mono
     steps:
       - checkout
       - run:
