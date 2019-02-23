@@ -96,7 +96,7 @@ let programTests =
             try
                 Fsproj.addFileToProject "Added.fs" testProjPath
 
-                watcher.Value.PostAndReply (makeProjectFileChanges [testProjPath])
+                Thread.Sleep(1000)
 
                 watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFileAdded])
                 /// TestLib2/Added.fs
