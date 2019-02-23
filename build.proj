@@ -3,6 +3,6 @@
         <TargetFramework>netstandard2.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
-        <DotNetCliToolReference Include="dotnet-fake" Version="5.1.2" />
+        <DotNetCliToolReference Include="dotnet-fake" Version="5.2.0" />
     </ItemGroup>
 </Project>
