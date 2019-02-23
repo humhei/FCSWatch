@@ -144,7 +144,9 @@ module FullCrackedFsproj =
 
                 let success,unsuccess = allTaskResults |> Array.partition prediate
 
-                loop (retryCount + 1) success (unsuccess |> Array.map taskResultToTaskArgMapping)
+                let newAccum = Array.append accum success
+
+                loop (retryCount + 1) newAccum (unsuccess |> Array.map taskResultToTaskArgMapping)
 
         return loop 1 [||] allTaskArgs
     }

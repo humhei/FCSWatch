@@ -45,18 +45,21 @@ let makeFileChanges fullPaths =
 
 
 let createWatcher buildingConfig = 
-    lazy 
 
-        let checker = FSharpChecker.Create()
+    let buildingConfig config =
+        {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
+        |> buildingConfig
 
-        let fcsWatcher =
-            fcsWatcher buildingConfig checker entryProjPath
+    let checker = FSharpChecker.Create()
 
-        let testData = createTestData()
-        /// consume warm compile testData
-        testData.SourceFileManualSet.Wait()
+    let fcsWatcher =
+        fcsWatcher buildingConfig checker entryProjPath
 
-        fcsWatcher
+    let testData = createTestData()
+    /// consume warm compile testData
+    testData.SourceFileManualSet.Wait()
+
+    fcsWatcher
 
 
 DotNet.build (fun ops ->
@@ -64,16 +67,25 @@ DotNet.build (fun ops ->
         Configuration = DotNet.BuildConfiguration.Debug }
 ) entryProjDir
 
+
 let programTests =
-    let watcher = createWatcher (fun config -> {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal } )
+    let watcher = 
+        lazy createWatcher id
+
+    let testAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
+        testCase name (fun _ -> 
+            let watcher = watcher.Force() 
+
+            let testData = createTestData()
+    
+            test watcher testData)
 
     testList "program tests" [
 
-        testCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
+        testAfterWarmCompile "change file in TestLib2/Library.fs will trigger compiling" <| fun watcher testData ->
             // Modify fs files in TestLib2
-            let testData = createTestData()
 
-            watcher.Value.Post (makeFileChanges [testSourceFile1])
+            watcher.Post (makeFileChanges [testSourceFile1])
             testData.SourceFileManualSet.Wait()
 
             match testData.AllCompilerNumber with
@@ -81,11 +93,10 @@ let programTests =
             | 1 -> pass()
             | _ -> fail()
 
-        testCase "change multiple file in TestLib2 will trigger compiling" <| fun _ ->
+        testAfterWarmCompile "change multiple file in TestLib2 will trigger compiling" <| fun watcher testData ->
             // Modify fs files in TestLib2
-            let testData = createTestData()
 
-            watcher.Value.Post (makeFileChanges [testSourceFile1; testSourceFile2])
+            watcher.Post (makeFileChanges [testSourceFile1; testSourceFile2])
 
             testData.SourceFileManualSet.Wait()
 
@@ -95,11 +106,10 @@ let programTests =
             | _ -> fail()
 
 
-        testCase "change file in TestLib1 and TestLib2 will trigger compiling" <| fun _ ->
+        testAfterWarmCompile "change file in TestLib1 and TestLib2 will trigger compiling" <| fun watcher testData ->
             // Modify fs files in TestLib2
-            let testData = createTestData()
 
-            watcher.Value.Post (makeFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
+            watcher.Post (makeFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
 
             testData.SourceFileManualSet.Wait()
 
@@ -108,15 +118,14 @@ let programTests =
             | 2 -> pass()
             | _ -> fail()
 
-        testCase "add fs file in fsproj will update watcher" <| fun _ ->
+        testAfterWarmCompile "add fs file in fsproj will update watcher" <| fun watcher testData ->
             try
-                let testData = createTestData()
 
                 Fsproj.addFileToProject "Added.fs" testProjPath
 
                 testData.ProjectFileManualSet.Wait()
 
-                watcher.Value.Post (makeFileChanges [testSourceFileAdded])
+                watcher.Post (makeFileChanges [testSourceFileAdded])
 
                 testData.SourceFileManualSet.Wait()
 
@@ -149,14 +158,22 @@ let pluginTests =
 
                 {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal; DevelopmentTarget = DevelopmentTarget.Plugin plugin }
 
-        createWatcher buildConfig
+        lazy createWatcher buildConfig
+
+
+    let testAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
+        testCase name (fun _ -> 
+            let watcher = watcher.Force() 
+
+            let testData = createTestData()
+            
+            test watcher testData)
 
     testList "plugin Tests" [
-        testCase "in plugin mode " <| fun _ ->
+        testAfterWarmCompile "in plugin mode " <| fun watcher testData ->
             // Modify fs files in TestLib2
-            let testData = createTestData()
 
-            watcher.Value.Post (makeFileChanges [testSourceFile1])
+            watcher.Post (makeFileChanges [testSourceFile1])
 
             testData.SourceFileManualSet.Wait()
 
