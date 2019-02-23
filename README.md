@@ -1,4 +1,4 @@
-#Run standard fsharp codes in watch mode
+# Run standard fsharp codes in watch mode
 
 Stable | Prerelease
 --- | ---
@@ -23,7 +23,8 @@ Try https://github.com/humhei/FcsWatchMiniSample
 ### From source code interaction test
 
 * git clone https://github.com/humhei/FCSWatch.git
-`cd tests/FcsWatch.InteractionTests/`
+* fake build
+* cd tests/FcsWatch.InteractionTests/`
 * dotnet run
 * modify fs files in any of TestProject,TestLib2,TestLib1
 * Set breakpoint in any of TestProject,TestLib2,TestLib1
