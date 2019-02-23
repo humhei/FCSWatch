@@ -167,12 +167,12 @@ let compilerTmpEmitter config (initialCache: CrackedFsprojBundleCache) = Mailbox
         | CompilerTmpEmitterMsg.IncrCompilingNum number -> 
             let compilingNumber = state.CompilingNumber + number
 
+            traceMsg compilingNumber "IncrCompilingNum"
+
             for testData in testDatas do
                 testData.AllCompilerNumber <- number + testData.AllCompilerNumber
                 testData.SourceFileManualSet.Set()
 
-            traceMsg compilingNumber "IncrCompilingNum"
-            
             return! loop {state with CompilingNumber = compilingNumber } 
 
         | CompilerTmpEmitterMsg.AddTmp projectFile -> 
