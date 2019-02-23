@@ -67,8 +67,6 @@ let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatche
 
         let testData = createTestData()
 
-        testData.SourceFileManualSet.Wait()
-
         test watcher testData)
 
 
@@ -173,7 +171,7 @@ let pluginTests =
         _testAfterWarmCompile ftestCase watcher name test
 
     testList "plugin Tests" [
-        ftestAfterWarmCompile "in plugin mode " <| fun watcher testData ->
+        testAfterWarmCompile "in plugin mode " <| fun watcher testData ->
             // Modify fs files in TestLib2
 
             watcher.Post (makeFileChanges [testSourceFile1])
