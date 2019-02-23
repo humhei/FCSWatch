@@ -188,7 +188,6 @@ let getProjectOptionsFromProjectFile (file : string) = async {
 }
 
 let getProjectOptionsFromProjectFiles (projPaths : string list) = 
-    printf "%O" DateTime.Now
     let config = 
         let msbuildLocator = MSBuildLocator()
         LoaderConfig.Default(msbuildLocator)
@@ -196,4 +195,3 @@ let getProjectOptionsFromProjectFiles (projPaths : string list) =
     let loader = Loader.Create(config)
 
     loader.LoadProjects projPaths
-    printf "%O" DateTime.Now
