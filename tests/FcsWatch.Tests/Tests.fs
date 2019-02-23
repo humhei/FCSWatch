@@ -171,7 +171,7 @@ let pluginTests =
         _testAfterWarmCompile ftestCase watcher name test
 
     testList "plugin Tests" [
-        testAfterWarmCompile "in plugin mode " <| fun watcher testData ->
+        ftestAfterWarmCompile "in plugin mode " <| fun watcher testData ->
             // Modify fs files in TestLib2
 
             watcher.Post (makeFileChanges [testSourceFile1])
