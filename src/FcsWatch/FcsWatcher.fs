@@ -12,12 +12,14 @@ type ReplyData =
     { AllCompilerTaskNumber: int 
       CompilerTmp: Set<string> }
 
+type CompilerNumber = CompilerNumber of int
+
 [<RequireQualifiedAccess>]
 type FcsWatcherMsg =
-    | DetectSourceFileChanges of fileChanges: FileChange list
-    | DetectProjectFileChanges of fileChanges: FileChange list
+    | DetectSourceFileChanges of fileChanges: FileChange list * AsyncReplyChannel<CompilerNumber>
+    | DetectProjectFileChanges of fileChanges: FileChange list * AsyncReplyChannel<unit>
 
-let inline private (<!>) msg content = 
+let inline (<!>) msg content = 
     fun replyChannel ->
         msg (content, replyChannel)
 
@@ -52,7 +54,9 @@ let fcsWatcher
                       Excludes = [] }
 
                 pattern |> ChangeWatcher.run (fun changes ->
-                    inbox.Post (FcsWatcherMsg.DetectSourceFileChanges (List.ofSeq changes))
+                    inbox.PostAndReply (FcsWatcherMsg.DetectSourceFileChanges <!> (List.ofSeq changes))
+                    |> ignore
+                    ()
                 )
 
             logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
@@ -76,7 +80,7 @@ let fcsWatcher
                       Excludes = [] }
                   
                 pattern |> ChangeWatcher.run (fun changes ->
-                    inbox.Post(FcsWatcherMsg.DetectProjectFileChanges (List.ofSeq changes))
+                    inbox.PostAndReply(FcsWatcherMsg.DetectProjectFileChanges <!> (List.ofSeq changes))
                 )        
             
             let compilerTmpEmitterAgent = compilerTmpEmitter config initialCache
@@ -95,7 +99,7 @@ let fcsWatcher
                 let! msg = inbox.Receive()
 
                 match msg with 
-                | FcsWatcherMsg.DetectSourceFileChanges (fileChanges) ->
+                | FcsWatcherMsg.DetectSourceFileChanges (fileChanges, replyChannel) ->
 
                     let projFiles = 
                         fileChanges |> List.map (fun fileChange ->
@@ -106,12 +110,14 @@ let fcsWatcher
 
                     let crackedFsprojs = projFiles |> List.map (fun projPath -> projectMap.[projPath] ) 
 
+                    replyChannel.Reply (CompilerNumber crackedFsprojs.Length)
+
                     compilerAgent.Post(CompilerMsg.CompilerProjects crackedFsprojs)
 
                     return! loop state  
 
 
-                | FcsWatcherMsg.DetectProjectFileChanges fileChanges ->
+                | FcsWatcherMsg.DetectProjectFileChanges (fileChanges,replyChannel) ->
                     fileChanges |> List.iter (fun fileChange ->
                         logger.ImportantGreen "detect project file %s changed" fileChange.FullPath
                     )
@@ -125,6 +131,8 @@ let fcsWatcher
                     compilerAgent.Post(CompilerMsg.UpdateCache newCache)
 
                     compilerTmpEmitterAgent.Post(CompilerTmpEmitterMsg.UpdateCache newCache)
+
+                    replyChannel.Reply()
 
                     return! loop { state with SourceFileWatcher = newSourceFileWatcher; CrackerFsprojBundleCache = newCache }
         

@@ -6,29 +6,6 @@ open System.Threading
 open FcsWatch.CrackedFsproj
 open Suave
 
-
-type TestData internal () =
-    member val AllCompilerNumber = 0 with set,get
-    member val CompilerTmp = Set.ofList [] with set,get
-    member val SourceFileManualSet = new ManualResetEventSlim(false) 
-    member val ProjectFileManualSet = new ManualResetEventSlim(false) 
-
-let private testDatas : ResizeArray<TestData> = ResizeArray []
-
-let private createTestData() = 
-    let testData = new TestData()
-    testDatas.Add testData
-    testData
-
-let useTestData f =
-    let testData = createTestData()
-
-    let result = f testData
-
-    testDatas.Remove testData
-
-    result
-
 type CompilerTask = CompilerTask of startTime: DateTime * task: Task<CompilerResult list>
 with 
     member x.StartTime = 
@@ -178,17 +155,10 @@ let compilerTmpEmitter config (initialCache: CrackedFsprojBundleCache) = Mailbox
 
             traceMsg compilingNumber "IncrCompilingNum"
 
-            for testData in testDatas do
-                testData.AllCompilerNumber <- number + testData.AllCompilerNumber
-                testData.SourceFileManualSet.Set()
-
             return! loop {state with CompilingNumber = compilingNumber } 
 
         | CompilerTmpEmitterMsg.AddTmp projectFile -> 
             let newCompilerTmp = state.CompilerTmp.Add projectFile
-
-            for testData in testDatas do
-                testData.CompilerTmp <- newCompilerTmp
 
             return! loop {state with CompilerTmp = newCompilerTmp }        
         | CompilerTmpEmitterMsg.Emit replyChannel ->
@@ -205,9 +175,6 @@ let compilerTmpEmitter config (initialCache: CrackedFsprojBundleCache) = Mailbox
 
         | CompilerTmpEmitterMsg.UpdateCache cache ->
             traceMsg state.CompilingNumber "Update cache"
-
-            for testData in testDatas do
-                testData.ProjectFileManualSet.Set()
 
             return! loop {state with CrackerFsprojFileBundleCache = cache} 
             

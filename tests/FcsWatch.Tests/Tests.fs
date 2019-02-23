@@ -33,6 +33,9 @@ let testSourceFileAdded = datas </> @"TestLib2/Added.fs"
 
 let testSourceFile1InTestLib = datas </> @"TestLib1/Library.fs"
 
+let expectCompilerNumber excepted (CompilerNumber compilerNumber) =
+    Expect.equal excepted compilerNumber (sprintf "expected compiler number %d,while current compiler number is %d" excepted compilerNumber)
+
 let makeFileChange fullPath : FileChange =
     let fullPath = Path.getFullName fullPath
 
@@ -40,43 +43,22 @@ let makeFileChange fullPath : FileChange =
       Name = Path.GetFileName fullPath
       Status = FileStatus.Changed }
 
-let makeFileChanges fullPaths =
-    fullPaths |> List.map makeFileChange |> FcsWatcherMsg.DetectSourceFileChanges
+let makeSourceFileChanges fullPaths =
+    FcsWatcherMsg.DetectSourceFileChanges <!> List.map makeFileChange fullPaths
+
+let makeProjectFileChanges fullPaths =
+    FcsWatcherMsg.DetectProjectFileChanges <!> List.map makeFileChange fullPaths
 
 
 let createWatcher buildingConfig = 
+    lazy 
+        let buildingConfig config =
+            {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
+            |> buildingConfig
 
-    let buildingConfig config =
-        {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
-        |> buildingConfig
+        let checker = FSharpChecker.Create()
 
-    let checker = FSharpChecker.Create()
-
-    let fcsWatcher =
         fcsWatcher buildingConfig checker entryProjPath
-
-    useTestData (fun testData ->
-        printfn "Begin wait warm compile" 
-        /// consume warm compile testData
-        testData.SourceFileManualSet.Wait()
-
-        printfn "After consume warm compile number" 
-
-        fcsWatcher
-    )
-
-
-
-let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
-    testCase name (fun _ -> 
-        printfn "Begin test %s" name
-
-        let watcher = lazyWatcher.Force() 
-
-        useTestData (test watcher)
-
-        )
-
 
 DotNet.build (fun ops ->
     { ops with 
@@ -85,65 +67,40 @@ DotNet.build (fun ops ->
 
 
 let programTests =
-    let watcher = 
-        lazy createWatcher id
+    let watcher = createWatcher id
 
-    let testAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
-        _testAfterWarmCompile testCase watcher name test
 
     testList "program tests" [
 
-        testAfterWarmCompile "change file in TestLib2/Library.fs will trigger compiling" <| fun watcher testData ->
+        testCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
             // Modify fs files in TestLib2
 
-            watcher.Post (makeFileChanges [testSourceFile1])
-            testData.SourceFileManualSet.Wait()
+            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1])
+           /// (TestLib2/Library.fs)
+            |> expectCompilerNumber 1
 
-            match testData.AllCompilerNumber with
-            /// TestLib2/Library.fs
-            | 1 -> pass()
-            | _ -> fail()
-
-        testAfterWarmCompile "change multiple file in TestLib2 will trigger compiling" <| fun watcher testData ->
+        testCase "change multiple file in TestLib2 will trigger compiling" <| fun _ ->
             // Modify fs files in TestLib2
 
-            watcher.Post (makeFileChanges [testSourceFile1; testSourceFile2])
-
-            testData.SourceFileManualSet.Wait()
-
-            match testData.AllCompilerNumber with
+            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1; testSourceFile2])
             /// (TestLib2/Library.fs + TestLib2/Library2.fs)
-            | 1 -> pass()
-            | _ -> fail()
+            |> expectCompilerNumber 1
 
-
-        testAfterWarmCompile "change file in TestLib1 and TestLib2 will trigger compiling" <| fun watcher testData ->
+        testCase "change file in TestLib1 and TestLib2 will trigger compiling" <| fun _ ->
             // Modify fs files in TestLib2
-
-            watcher.Post (makeFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
-
-            testData.SourceFileManualSet.Wait()
-
-            match testData.AllCompilerNumber with
+            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
             /// (TestLib2/*.fs) + (TestLib1/*.fs)
-            | 2 -> pass()
-            | _ -> fail()
+            |> expectCompilerNumber 2
 
-        testAfterWarmCompile "add fs file in fsproj will update watcher" <| fun watcher testData ->
+        testCase "add fs file in fsproj will update watcher" <| fun _ ->
             try
-
                 Fsproj.addFileToProject "Added.fs" testProjPath
 
-                testData.ProjectFileManualSet.Wait()
+                watcher.Value.PostAndReply (makeProjectFileChanges [testProjPath])
 
-                watcher.Post (makeFileChanges [testSourceFileAdded])
-
-                testData.SourceFileManualSet.Wait()
-
-                match testData.AllCompilerNumber with
+                watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFileAdded])
                 /// TestLib2/Added.fs
-                | 1 -> pass()
-                | _ -> fail()
+                |> expectCompilerNumber 1
 
             finally
                 Fsproj.removeFileFromProject "Added.fs" testProjPath
@@ -169,27 +126,15 @@ let pluginTests =
 
                 {config with DevelopmentTarget = DevelopmentTarget.Plugin plugin }
 
-        lazy createWatcher buildConfig
+        createWatcher buildConfig
 
-
-    let testAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
-        _testAfterWarmCompile testCase watcher name test
-
-    let ftestAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
-        _testAfterWarmCompile ftestCase watcher name test
 
     testList "plugin Tests" [
-        testAfterWarmCompile "in plugin mode " <| fun watcher testData ->
+        testCase "in plugin mode " <| fun _ ->
             // Modify fs files in TestLib2
-
-            watcher.Post (makeFileChanges [testSourceFile1])
-
-            testData.SourceFileManualSet.Wait()
-
-            match testData.AllCompilerNumber with
+            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1])
             /// TestLib2/Library.fs
-            | 1 -> pass()
-            | _ -> fail()
+            |> expectCompilerNumber 1
     ]
 
 open FcsWatch.Tests
