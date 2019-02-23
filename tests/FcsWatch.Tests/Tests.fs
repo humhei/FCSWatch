@@ -58,7 +58,11 @@ let createWatcher buildingConfig =
 
         fcsWatcher
 
-DotNet.build id entryProjDir
+
+DotNet.build (fun ops ->
+    { ops with 
+        Configuration = DotNet.BuildConfiguration.Debug }
+) entryProjDir
 
 let programTests =
     let watcher = createWatcher (fun config -> {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal } )
