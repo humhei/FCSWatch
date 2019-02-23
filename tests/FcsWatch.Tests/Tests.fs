@@ -61,6 +61,8 @@ let createWatcher buildingConfig =
     /// consume warm compile testData
     testData.SourceFileManualSet.Wait()
 
+    printfn "After consume warm compile number" 
+
     fcsWatcher
 
 let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
@@ -69,7 +71,6 @@ let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatche
 
         let watcher = lazyWatcher.Force() 
 
-        printfn "After consume warm compile number" 
 
         let testData = createTestData()
 
