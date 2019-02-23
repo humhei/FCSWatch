@@ -202,7 +202,7 @@ module FullCrackedFsproj =
 
 
     let create projectFile = async {
-
+        logger.Infots "Begin crack project"
         let projectMapsMutable = Dictionary<string,CrackedFsproj>()
 
         let allCrackedFsprojsObjRefOnly =
@@ -222,6 +222,7 @@ module FullCrackedFsproj =
             projectMapsMutable
             |> Dictionary.toMap
 
+        logger.Infots "End crack project"
 
 
 

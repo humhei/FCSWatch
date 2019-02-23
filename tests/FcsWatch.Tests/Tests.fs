@@ -44,18 +44,19 @@ let makeFileChanges fullPaths =
     fullPaths |> List.map makeFileChange |> FcsWatcherMsg.DetectSourceFileChanges
 
 
-let createWatcher buildingConfig =
+let createWatcher buildingConfig = 
+    lazy 
 
-    let checker = FSharpChecker.Create()
+        let checker = FSharpChecker.Create()
 
-    let fcsWatcher =
-        fcsWatcher buildingConfig checker entryProjPath
+        let fcsWatcher =
+            fcsWatcher buildingConfig checker entryProjPath
 
-    let testData = createTestData()
-    /// consume warm compile testData
-    testData.SourceFileManualSet.Wait()
+        let testData = createTestData()
+        /// consume warm compile testData
+        testData.SourceFileManualSet.Wait()
 
-    fcsWatcher
+        fcsWatcher
 
 DotNet.build id entryProjDir
 
@@ -68,7 +69,7 @@ let programTests =
             // Modify fs files in TestLib2
             let testData = createTestData()
 
-            watcher.Post (makeFileChanges [testSourceFile1])
+            watcher.Value.Post (makeFileChanges [testSourceFile1])
             testData.SourceFileManualSet.Wait()
 
             match testData.AllCompilerNumber with
@@ -80,7 +81,7 @@ let programTests =
             // Modify fs files in TestLib2
             let testData = createTestData()
 
-            watcher.Post (makeFileChanges [testSourceFile1; testSourceFile2])
+            watcher.Value.Post (makeFileChanges [testSourceFile1; testSourceFile2])
 
             testData.SourceFileManualSet.Wait()
 
@@ -94,7 +95,7 @@ let programTests =
             // Modify fs files in TestLib2
             let testData = createTestData()
 
-            watcher.Post (makeFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
+            watcher.Value.Post (makeFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
 
             testData.SourceFileManualSet.Wait()
 
@@ -111,7 +112,7 @@ let programTests =
 
                 testData.ProjectFileManualSet.Wait()
 
-                watcher.Post (makeFileChanges [testSourceFileAdded])
+                watcher.Value.Post (makeFileChanges [testSourceFileAdded])
 
                 testData.SourceFileManualSet.Wait()
 
@@ -151,7 +152,7 @@ let pluginTests =
             // Modify fs files in TestLib2
             let testData = createTestData()
 
-            watcher.Post (makeFileChanges [testSourceFile1])
+            watcher.Value.Post (makeFileChanges [testSourceFile1])
 
             testData.SourceFileManualSet.Wait()
 

@@ -188,10 +188,12 @@ let getProjectOptionsFromProjectFile (file : string) = async {
 }
 
 let getProjectOptionsFromProjectFiles (projPaths : string list) = 
+    printf "%O" DateTime.Now
     let config = 
         let msbuildLocator = MSBuildLocator()
         LoaderConfig.Default(msbuildLocator)
 
     let loader = Loader.Create(config)
 
-    loader.LoadSln "D:\VsCode\Github\FCSWatch\All.sln"
+    loader.LoadProjects projPaths
+    printf "%O" DateTime.Now

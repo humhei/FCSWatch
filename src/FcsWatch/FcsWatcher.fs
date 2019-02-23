@@ -99,7 +99,7 @@ let fcsWatcher
 
                     let projFiles = 
                         fileChanges |> List.map (fun fileChange ->
-                            logger.Important "detect file %s changed" fileChange.FullPath
+                            logger.ImportantGreen "detect file %s changed" fileChange.FullPath
                             sourceFileMap.[fileChange.FullPath]
                         )
                         |> List.distinct
@@ -113,7 +113,7 @@ let fcsWatcher
 
                 | FcsWatcherMsg.DetectProjectFileChanges fileChanges ->
                     fileChanges |> List.iter (fun fileChange ->
-                        logger.Important "detect project file %s changed" fileChange.FullPath
+                        logger.ImportantGreen "detect project file %s changed" fileChange.FullPath
                     )
 
                     let newCache = crackedProjectBundleAgent.PostAndReply (CrackedFsprojBundleMsg.DetectProjectFileChanges <!> fileChanges)

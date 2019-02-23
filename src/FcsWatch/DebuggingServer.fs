@@ -8,21 +8,15 @@ open Types
 open Suave.Filters
 open Suave.Operators
 open Suave
-open System.Net.NetworkInformation
+open System.Net.Sockets
 
-let mutable allPorts = 
-    let ipProperties = IPGlobalProperties.GetIPGlobalProperties()
-    ipProperties.GetActiveTcpListeners() 
-        |> List.ofArray 
-        |> List.map (fun endpoint -> endpoint.Port)
 
 let rec freePort() =
-    let newPort = System.Random().Next(65535)
-    match List.contains newPort allPorts with 
-    | true  -> freePort()
-    | false ->
-        allPorts <- newPort :: allPorts
-        newPort
+    let listener = new TcpListener(IPAddress.Any, 0);
+    listener.Start()
+    let port = (listener.LocalEndpoint :?> IPEndPoint).Port
+    listener.Stop()
+    port
 
 let generateCurlCache freePort (config: Config) =         
     let cacheDir = config.WorkingDir </> ".fake" </> "fcswatch"
