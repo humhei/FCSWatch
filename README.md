@@ -53,7 +53,10 @@ open FcsWatch.FakeHelper
 let root = Path.getDirectory "./"
 Target.create "FcsWatch" (fun _ ->
     let projectFile = Path.getFullName "YourProject/YourProject.fsproj"
-    DotNet.build id projectFile
+    DotNet.build (fun ops ->
+      { ops with
+        Configuration = DotNet.BuildConfiguration.Debug }
+    ) entryProjDir
     let checker = FSharpChecker.Create()
     /// or runFcsWatcherWith for more customizations
     runFcsWatcher checker projectFile
@@ -135,22 +138,4 @@ build.fsx setting
           /// Thread sleed to wait debugger attached.
           /// Trigger when file changed was not detected
           /// and reload debugger
-          DebuggerAttachTimeDelay = 1000 }
-
-    runFcsWatcherWith (fun config ->
-        { config with
-            Logger = Logger.Normal
-            DevelopmentTarget = DevelopmentTarget.Plugin plugin
-        }
-    ) checker projectFile
-
-```
-
-
-### Why?
-why not use dotnet watch:
-1. dotnet watch reference all dlls every time (which will take at least 3000ms?) (while fcs hold dlls in runtime cache)
-2. not easy to debug when you are using dotnet watch
-
-
-![](https://github.com/humhei/Resources/blob/Resources/TestfsFCSWatchVisualStud.gif)
+          DebuggerAttachTimeDelay = 1000 }debug build 
