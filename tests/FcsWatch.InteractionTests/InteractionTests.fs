@@ -42,9 +42,13 @@ let createWatcher buildingConfig =
 
     fcsWatcher buildingConfig checker entryProjPath
 
+DotNet.build (fun ops ->
 
-// DotNet.build id entryProjDir
+    { ops with
 
+        Configuration = DotNet.BuildConfiguration.Debug }
+
+) entryProjDir
 
 let interactionTests =
     testCase "base interaction test" <| fun _ ->
