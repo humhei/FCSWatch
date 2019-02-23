@@ -2,13 +2,13 @@
 
 Stable | Prerelease
 --- | ---
-[![NuGet Badge](https://buildstats.info/nuget/FcsWatch)](https://www.nuget.org/packages/FcsWatch/) | [![NuGet Badge](https://buildstats.info/nuget/FcsWatch?includePreReleases=true)](https://www.nuget.org/packages/FcsWatch/)
+[![NuGet Badge](https://buildstats.info/nuget/FCSWatch)](https://www.nuget.org/packages/FCSWatch/) | [![NuGet Badge](https://buildstats.info/nuget/FCSWatch?includePreReleases=true)](https://www.nuget.org/packages/FCSWatch/)
 
 
 MacOS/Linux | Windows
 --- | ---
-[![CircleCI](https://circleci.com/gh/humhei/FcsWatch.svg?style=svg)](https://circleci.com/gh/humhei/FcsWatch) | [![Build status](https://ci.appveyor.com/api/projects/status/0qnls95ohaytucsi?svg=true)](https://ci.appveyor.com/project/ts2fable-imports/FcsWatch)
-[![Build History](https://buildstats.info/circleci/chart/humhei/FcsWatch)](https://circleci.com/gh/humhei/FcsWatch) | [![Build History](https://buildstats.info/appveyor/chart/ts2fable-imports/FcsWatch)](https://ci.appveyor.com/project/ts2fable-imports/FcsWatch)
+[![CircleCI](https://circleci.com/gh/humhei/FCSWatch.svg?style=svg)](https://circleci.com/gh/humhei/FCSWatch) | [![Build status](https://ci.appveyor.com/api/projects/status/0qnls95ohaytucsi?svg=true)](https://ci.appveyor.com/project/ts2fable-imports/FCSWatch)
+[![Build History](https://buildstats.info/circleci/chart/humhei/FCSWatch)](https://circleci.com/gh/humhei/FCSWatch) | [![Build History](https://buildstats.info/appveyor/chart/ts2fable-imports/FCSWatch)](https://ci.appveyor.com/project/ts2fable-imports/FCSWatch)
 
 
 ---
