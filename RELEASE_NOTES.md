@@ -1,13 +1,14 @@
 ﻿# Release Notes
 
-## 0.5.0 - tbd
+## 0.5.1-alpha - tbd
+
+## 0.5.0 - 2019-02-23
 * Multiple target frameworks
 * Refator to more readable codes
 * Deep copy dlls from obj to bin
 * Remove Unnessary dependecies
 * Using lightweight server --- Suave
 * FPublisher support
-* Add contribute guides
 
 ## 0.4.0 - 2019-01-23
 * Compile multiple files at some time(multiple projects)
