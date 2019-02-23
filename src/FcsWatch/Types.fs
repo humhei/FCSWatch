@@ -1,4 +1,4 @@
-module FcsWatch.Types 
+module FcsWatch.Types
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open System.IO
 open FcsWatch
@@ -11,7 +11,7 @@ open FcsWatch.CrackedFsproj
 [<RequireQualifiedAccess>]
 module Dictionary =
 
-    let toMap dictionary = 
+    let toMap dictionary =
         (dictionary :> seq<_>)
         |> Seq.map (|KeyValue|)
         |> Map.ofSeq
@@ -21,14 +21,14 @@ module Dictionary =
 module internal Global =
     let mutable logger = Logger.create (Logger.Level.Minimal)
 
-type Logger.Logger with 
+type Logger.Logger with
     member x.CopyFile src dest =
         File.Copy(src,dest,true)
         logger.Info "%s ->\n%s" src dest
 
     member x.ProcessCompileResult (errors,exitCode) =
-        if exitCode = 0 then 
-            if not <| Array.isEmpty errors then 
+        if exitCode = 0 then
+            if not <| Array.isEmpty errors then
                 logger.Warn "WARNINGS:\n%A" errors
 
         else logger.Error "ERRORS:\n%A" errors
@@ -42,9 +42,9 @@ module internal CompilerResult =
 module CrackedFsprojSingleTarget =
 
     let copyFileFromRefDllToBin originProjectFile (destCrackedFsprojSingleTarget: CrackedFsprojSingleTarget) =
-        
+
         let targetDir = destCrackedFsprojSingleTarget.TargetDir
-        
+
         let originDll =
             let projName = Path.GetFileNameWithoutExtension originProjectFile
 
@@ -77,21 +77,21 @@ module CrackedFsproj =
         crackedFsproj.AsList |> List.iter CrackedFsprojSingleTarget.copyObjToBin
 
 type Plugin =
-    { Load: unit -> unit 
-      Unload: unit -> unit 
-      Calculate: unit -> unit 
+    { Load: unit -> unit
+      Unload: unit -> unit
+      Calculate: unit -> unit
       DebuggerAttachTimeDelay: int }
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
-    | Program 
+    | Program
     | Plugin of Plugin
 
 type Config =
     { LoggerLevel: Logger.Level
       WorkingDir: string
       DevelopmentTarget: DevelopmentTarget }
-    
+
 
 
 
@@ -105,7 +105,7 @@ module FullCrackedFsproj =
     let private easyGetAllProjPaths (entryProjectFile: string) =
         let values = new HashSet<string>()
         let add projectFile = values.Add projectFile |> ignore
-        let rec loop (projectFile: string) = 
+        let rec loop (projectFile: string) =
             add projectFile
 
             let dir = Path.getDirectory projectFile
@@ -118,56 +118,72 @@ module FullCrackedFsproj =
                 let path = Path.getFullName (dir </> includeValue)
                 loop path
 
-        loop entryProjectFile 
-        Set.ofSeq values       
+        loop entryProjectFile
+        Set.ofSeq values
 
-    let private getAllCrackedFsprojs projectFile = async {
-        let allProjects = easyGetAllProjPaths projectFile
-        let rec retry retryCount accum projects =
-            logger.Info "try fetch projOptions at %d time" retryCount 
+   ///async works may fail due to fetch proj options is not thread safe
+   /// retry many times will solve it
+    let private fetchUnsafeDataAsync maxRetryCount taskInterval task prediate taskResultToTaskArgMapping allTaskArgs = async {
+        let rec loop retryCount accum allTaskArgs =
+            logger.Info "try fetch unsafe thread datas at %d time" retryCount
 
-            if retryCount > 3 then failwith "when fetch projOptions, exceed max retry times"
+            if retryCount > maxRetryCount then failwith "exceed max retry times"
 
-            if Set.isEmpty projects then accum 
+            if Seq.isEmpty allTaskArgs then accum
             else
-                let allCrackedFsprojs = 
-                    allProjects
-                    |> Seq.map CrackedFsproj.create
+                let allTaskResults =
+                    allTaskArgs
+                    |> Seq.mapi (fun i project -> async {
+                        /// Set time delay to reduce the mistake times
+                        do! Async.Sleep (taskInterval * i)
+                        return! task project
+                    }
+                    )
                     |> Async.Parallel
                     |> Async.RunSynchronously
 
-            
-                let unsuccess,success = allCrackedFsprojs |> Array.partition (fun crackedFsproj ->
-                    crackedFsproj.AsList |> List.exists (fun crackedFsprojSingleTarget ->
-                        crackedFsprojSingleTarget.FSharpProjectOptions.OtherOptions.Length = 0
-                    )
-                )
+                let success,unsuccess = allTaskResults |> Array.partition prediate
 
-                let unsuccessProjects = unsuccess |> Array.map (fun crackedFsproj -> crackedFsproj.ProjPath)
+                loop (retryCount + 1) success (unsuccess |> Array.map taskResultToTaskArgMapping)
 
-                retry (retryCount + 1) success (Set.ofArray unsuccessProjects)
-
-        return retry 0 [||] allProjects
+        return loop 1 [||] allTaskArgs
     }
+
+    let private getAllCrackedFsprojs projectFile =
+        let prediate (crackedFsproj: CrackedFsproj) =
+            crackedFsproj.AsList
+            |> List.exists (fun crackedFsprojSingleTarget ->
+                crackedFsprojSingleTarget.FSharpProjectOptions.OtherOptions.Length <> 0
+            )
+        let allProjects = easyGetAllProjPaths projectFile
+
+        fetchUnsafeDataAsync
+            100
+            50
+            CrackedFsproj.create
+            prediate
+            (fun crackedFsproj -> crackedFsproj.ProjPath) (Array.ofSeq allProjects)
+
+
     /// entry level is 0
     let internal getLevel projectFile (entryFsproj: FullCrackedFsproj) =
-        let rec loop level (fsproj: FullCrackedFsproj) = 
+        let rec loop level (fsproj: FullCrackedFsproj) =
             [
-                if fsproj.Value.ProjPath = projectFile 
+                if fsproj.Value.ProjPath = projectFile
                 then yield! [level]
-                yield! fsproj.Refs |> List.collect (loop (level + 1)) 
+                yield! fsproj.Refs |> List.collect (loop (level + 1))
             ]
 
-        loop 0 entryFsproj   
+        loop 0 entryFsproj
         |> List.max
 
 
     let internal getProjectRefersMap (fsproj: FullCrackedFsproj) =
         let cacheMutable = new Dictionary<string, CrackedFsproj list>()
-        let rec loop (stack: CrackedFsproj list) (fsproj: FullCrackedFsproj) = 
-            match cacheMutable.TryGetValue fsproj.Value.ProjPath with 
-            | true,stack2 -> 
-                let newStack = stack @ stack2 
+        let rec loop (stack: CrackedFsproj list) (fsproj: FullCrackedFsproj) =
+            match cacheMutable.TryGetValue fsproj.Value.ProjPath with
+            | true,stack2 ->
+                let newStack = stack @ stack2
                 cacheMutable.[fsproj.Value.ProjPath] <- newStack
             | false,_ ->
                 cacheMutable.Add(fsproj.Value.ProjPath, stack)
@@ -177,7 +193,7 @@ module FullCrackedFsproj =
                 fsproj.Refs |> List.iter (loop newStack)
 
         loop [] fsproj
-        cacheMutable 
+        cacheMutable
         |> Dictionary.toMap
         |> Map.map (fun proj crackedFsprojs ->
             crackedFsprojs
@@ -189,35 +205,35 @@ module FullCrackedFsproj =
 
         let projectMapsMutable = Dictionary<string,CrackedFsproj>()
 
-        let allCrackedFsprojsObjRefOnly = 
+        let allCrackedFsprojsObjRefOnly =
             let allCrackedFsprojs = getAllCrackedFsprojs projectFile |> Async.RunSynchronously
             CrackedFsproj.mapProjOtherOptionsObjRefOnly allCrackedFsprojs
 
         allCrackedFsprojsObjRefOnly |> Seq.iter (fun crakedFsproj -> projectMapsMutable.Add (crakedFsproj.ProjPath,crakedFsproj))
 
-        let rec loop projectFile = 
-            let projectInfo = projectMapsMutable.[projectFile]         
+        let rec loop projectFile =
+            let projectInfo = projectMapsMutable.[projectFile]
             { Value = projectInfo
               Refs = projectInfo.ProjRefs |> List.map loop }
-    
+
         let project = loop projectFile
 
-        let projectMap = 
-            projectMapsMutable 
-            |> Dictionary.toMap 
+        let projectMap =
+            projectMapsMutable
+            |> Dictionary.toMap
 
 
 
 
         return (project, projectMap)
     }
-    
+
 
 [<RequireQualifiedAccess>]
 module private ProjectMap =
-    let sourceFileMap (projectMap: Map<string,CrackedFsproj>) = 
+    let sourceFileMap (projectMap: Map<string,CrackedFsproj>) =
         let dict = new Dictionary<string, string>()
-        projectMap |> Seq.iter (fun pair -> 
+        projectMap |> Seq.iter (fun pair ->
             pair.Value.SourceFiles |> Seq.iter (fun sourceFile ->
                 dict.Add(sourceFile,pair.Key)
             )
@@ -226,7 +242,7 @@ module private ProjectMap =
 
     let getProjectLevelMap (projectMap: Map<string,CrackedFsproj>) (entryFsproj: FullCrackedFsproj) =
         let projects = projectMap |> Seq.map (fun pair -> pair.Key)
-        projects |> Seq.map (fun proj -> 
+        projects |> Seq.map (fun proj ->
             (proj, FullCrackedFsproj.getLevel proj entryFsproj)
         )
         |> Map.ofSeq
@@ -236,7 +252,7 @@ type CrackedFsprojBundleCache =
     {
         /// projectFile, project refers
         ProjRefersMap: Map<string, CrackedFsproj list>
-        
+
         ProjectMap: Map<string ,CrackedFsproj>
 
         /// sourceFile,projectFile
@@ -245,7 +261,7 @@ type CrackedFsprojBundleCache =
         /// entry project file level is 0
         ProjLevelMap: Map<string, int>
     }
-with 
+with
     member x.AllProjectFiles = x.ProjectMap |> Seq.map (fun pair -> pair.Key)
 
 
@@ -258,9 +274,9 @@ module CrackedFsprojBundleCache =
           ProjLevelMap = ProjectMap.getProjectLevelMap projectMap fsproj }
 
     let update projPaths (cache: CrackedFsprojBundleCache) = async {
-        
-        let addOrUpdate (projectMap: Map<string, CrackedFsproj>) = 
-            projPaths 
+
+        let addOrUpdate (projectMap: Map<string, CrackedFsproj>) =
+            projPaths
             |> List.map CrackedFsproj.create
             |> Async.Parallel
             |> Async.RunSynchronously
@@ -279,14 +295,14 @@ module CrackedFsprojBundleCache =
 
         let newSourceFileMap = ProjectMap.sourceFileMap newProjectMap
 
-        return 
-            { cache with 
+        return
+            { cache with
                 ProjectMap = newProjectMap
                 SourceFileMap = newSourceFileMap }
     }
 
     let sortProjPathsDescendByLevel (projPaths: seq<string>) (cache: CrackedFsprojBundleCache) =
-        projPaths 
+        projPaths
         |> Seq.sortByDescending (fun projectFile -> cache.ProjLevelMap.[projectFile])
 
 [<RequireQualifiedAccess>]
@@ -297,7 +313,7 @@ type CrackedFsprojBundleMsg =
 let crackedFsprojBundle (projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
     let rec loop (entry: FullCrackedFsproj) cache = async {
         let! msg = inbox.Receive()
-        match msg with 
+        match msg with
         | CrackedFsprojBundleMsg.GetCache replyChannel ->
             replyChannel.Reply cache
             return! loop entry cache
