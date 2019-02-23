@@ -4,4 +4,4 @@ module Say =
     let hello2 name =
         printfn "He%s " name
 
-    let fromLib2 = "frssss"
+    let fromLib2 = "abc2"

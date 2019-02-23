@@ -32,37 +32,22 @@ let testSourceFileAdded = datas </> @"TestLib2/Added.fs"
 
 let testSourceFile1InTestLib = datas </> @"TestLib1/Library.fs"
 
-let makeFileChange fullPath : FileChange =
-    let fullPath = Path.getFullName fullPath
-
-    { FullPath = fullPath
-      Name = Path.GetFileName fullPath
-      Status = FileStatus.Changed }
-
-let makeFileChanges fullPaths =
-    fullPaths |> List.map makeFileChange |> FcsWatcherMsg.DetectSourceFileChanges
-
 
 let createWatcher buildingConfig =
+    let buildingConfig config =
+        {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
+        |> buildingConfig
 
     let checker = FSharpChecker.Create()
 
-    let fcsWatcher =
-        fcsWatcher buildingConfig checker entryProjPath
-
-    let testData = createTestData()
-    /// consume warm compile testData
-    testData.SourceFileManualSet.Wait()
-
-    fcsWatcher
+    fcsWatcher buildingConfig checker entryProjPath
 
 
-DotNet.build id entryProjDir
+// DotNet.build id entryProjDir
 
 
 let interactionTests =
-
     testCase "base interaction test" <| fun _ ->
         let manualSet = new ManualResetEventSlim()
-        let watcher = createWatcher (fun config -> {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal } )
+        let watcher = createWatcher id
         manualSet.Wait()

@@ -5,11 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug FcsWatch.Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/FcsWatch.Tests/bin/Debug/netcoreapp2.2/FcsWatch.Tests.dll",
+        },
+        {
+            "name": "Debug FcsWatch.InteractionTests",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/FcsWatch.InteractionTests/bin/Debug/netcoreapp2.2/FcsWatch.InteractionTests.dll",
+        },
+        {
             "name": "launch TestProject",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "emitCompilerTmp",
-            "program": "${workspaceFolder}/tests/datas/TestProject/bin/Debug/netcoreapp2.2/TestProject.exe",
+            "program": "${workspaceFolder}/tests/datas/TestProject/bin/Debug/netcoreapp2.2/TestProject.dll",
         },
         {
             "name": "Debug My Build Script",

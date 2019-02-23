@@ -7,6 +7,26 @@ open Fake.IO.FileSystemOperators
 open System.Collections.Generic
 open System.Xml
 open FcsWatch.CrackedFsproj
+open System
+
+[<RequireQualifiedAccess>]
+module Path =
+    let nomarlizeToUnixCompitiable path =
+        let path = (Path.getFullName path).Replace('\\','/')
+
+        let dir = Path.getDirectory path
+
+        let segaments =
+            let fileName = Path.GetFileName path
+            fileName.Split([|'\\'; '/'|])
+
+        let folder dir segament =
+            dir </> segament
+            |> Path.getFullName
+
+        segaments
+        |> Array.fold folder dir
+
 
 [<RequireQualifiedAccess>]
 module Dictionary =
@@ -106,16 +126,19 @@ module FullCrackedFsproj =
         let values = new HashSet<string>()
         let add projectFile = values.Add projectFile |> ignore
         let rec loop (projectFile: string) =
-            add projectFile
+            let normarlizedPath = Path.nomarlizeToUnixCompitiable projectFile
+            add normarlizedPath
 
             let dir = Path.getDirectory projectFile
             let doc = new XmlDocument()
-            doc.Load(projectFile)
+            doc.Load(normarlizedPath)
 
             for node in doc.GetElementsByTagName "ProjectReference" do
                 let includeAttr = node.Attributes.GetNamedItem ("Include")
                 let includeValue = includeAttr.Value
-                let path = Path.getFullName (dir </> includeValue)
+
+                let path = dir </> includeValue
+
                 loop path
 
         loop entryProjectFile

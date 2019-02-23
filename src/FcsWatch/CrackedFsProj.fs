@@ -21,8 +21,8 @@ module CrackedFsproj =
           Errors: FSharpErrorInfo []
           ExitCode: int
           ProjPath: string }
-    with 
-        member x.Pdb = Path.changeExtension ".pdb" x.Dll  
+    with
+        member x.Pdb = Path.changeExtension ".pdb" x.Dll
 
     type CrackedFsprojSingleTarget =
         { FSharpProjectOptions: FSharpProjectOptions
@@ -56,14 +56,14 @@ module CrackedFsproj =
             let projDir = Path.getDirectory x.ProjPath
             let relative = Path.toRelativeFrom projDir x.TargetPath
             let objRelative =
-                if relative.StartsWith ".\\bin" then  "obj" + relative.Substring 5
+                if relative.StartsWith ".\\bin" || relative.StartsWith "./bin" then  "obj" + relative.Substring 5
                 else failwithf "is not a valid bin relativePath %s" relative
             projDir </> objRelative
 
         member x.ObjTargetPdb = Path.changeExtension ".pdb" x.ObjTargetFile
 
-        member x.RefDlls = 
-            x.FSharpProjectOptions.OtherOptions 
+        member x.RefDlls =
+            x.FSharpProjectOptions.OtherOptions
             |> Array.filter(fun op ->
                 op.StartsWith "-r:" && x.ProjRefs |> List.exists (fun ref -> Path.GetFileName op = Path.GetFileNameWithoutExtension ref + ".dll")
             ) |> Array.map (fun op -> op.Remove(0,3))
@@ -75,11 +75,11 @@ module CrackedFsproj =
         let compile (checker: FSharpChecker) (crackedProjectSingleTarget: CrackedFsprojSingleTarget) = async {
             let tmpDll = crackedProjectSingleTarget.ObjTargetFile
 
-            let baseOptions = 
-                crackedProjectSingleTarget.FSharpProjectOptions.OtherOptions 
+            let baseOptions =
+                crackedProjectSingleTarget.FSharpProjectOptions.OtherOptions
                 |> Array.map (fun op -> if op.StartsWith "-o:" then "-o:" + tmpDll else op)
-    
-            let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]] 
+
+            let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]]
             let! errors,exitCode = checker.Compile(fscArgs)
             return
                 { Errors = errors
@@ -134,34 +134,34 @@ module CrackedFsproj =
                     |> CrackedFsproj
         }
 
-    let mapProjOptions mapping (crackedFsProj: CrackedFsproj) = 
-        crackedFsProj.AsList 
+    let mapProjOptions mapping (crackedFsProj: CrackedFsproj) =
+        crackedFsProj.AsList
         |> List.map (CrackedFsprojSingleTarget.mapProjOptions mapping)
         |> CrackedFsproj
 
 
-    let mapProjOtherOptions mapping = 
+    let mapProjOtherOptions mapping =
         mapProjOptions (fun projOptions ->
-            { projOptions with 
+            { projOptions with
                 OtherOptions = projOptions.OtherOptions |> Array.map mapping  }
         )
 
     let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsproj) =
-        crackedFsProj.AsList 
+        crackedFsProj.AsList
         |> List.map (CrackedFsprojSingleTarget.compile checker)
         |> Async.Parallel
-    
+
     let mapProjOtherOptionsObjRefOnly (crackedFsprojs: seq<CrackedFsproj>) =
         crackedFsprojs
         |> Seq.map (fun info ->
             let projRefs = info.ProjRefs |> List.map (fun ref ->
-                let refInfo = 
+                let refInfo =
                     crackedFsprojs
                     |> Seq.find (fun otherInfo -> otherInfo.ProjPath = ref)
                 refInfo
             )
 
-            let allRefProjInfos = 
+            let allRefProjInfos =
                 projRefs
                 |> List.collect (fun crackedFsproj ->
                     crackedFsproj.AsList
@@ -169,11 +169,10 @@ module CrackedFsproj =
 
             mapProjOtherOptions (fun line ->
                 allRefProjInfos
-                |> List.tryFind (fun ref -> 
+                |> List.tryFind (fun ref ->
                     "-r:" + ref.TargetPath = line)
-                |> function 
+                |> function
                     | Some ref -> "-r:" + ref.ObjTargetFile
-                    | None -> line 
+                    | None -> line
             ) info
         )
-

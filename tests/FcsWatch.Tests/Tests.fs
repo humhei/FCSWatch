@@ -50,8 +50,8 @@ let makeProjectFileChanges fullPaths =
     FcsWatcherMsg.DetectProjectFileChanges <!> List.map makeFileChange fullPaths
 
 
-let createWatcher buildingConfig = 
-    lazy 
+let createWatcher buildingConfig =
+    lazy
         let buildingConfig config =
             {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
             |> buildingConfig
@@ -61,7 +61,7 @@ let createWatcher buildingConfig =
         fcsWatcher buildingConfig checker entryProjPath
 
 DotNet.build (fun ops ->
-    { ops with 
+    { ops with
         Configuration = DotNet.BuildConfiguration.Debug }
 ) entryProjDir
 
@@ -156,6 +156,7 @@ let functionTests =
                     otherOptions
                     |> Seq.exists (fun option ->
                         option.Contains @"\bin\Debug\"
+                        || option.Contains @"/bin/Debug/"
                     )
                     |> not
 
@@ -163,6 +164,7 @@ let functionTests =
                     otherOptions
                     |> Seq.exists (fun option ->
                         option.Contains @"\obj\Debug\"
+                        || option.Contains @"/obj/Debug/"
                     )
 
                 if p1 && p2 then pass()
