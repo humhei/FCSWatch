@@ -49,6 +49,7 @@ open Fake.Core
 open Fake.IO
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FakeHelper
+open Fake.DotNet
 
 let root = Path.getDirectory "./"
 Target.create "FcsWatch" (fun _ ->
@@ -56,7 +57,7 @@ Target.create "FcsWatch" (fun _ ->
     DotNet.build (fun ops ->
       { ops with
         Configuration = DotNet.BuildConfiguration.Debug }
-    ) entryProjDir
+    ) projectFile
     let checker = FSharpChecker.Create()
     /// or runFcsWatcherWith for more customizations
     runFcsWatcher checker projectFile
