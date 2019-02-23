@@ -57,7 +57,7 @@ let createWatcher buildingConfig =
 
     let testData = createTestData()
 
-    printfn "is set %b" testData.SourceFileManualSet.IsSet 
+    printfn "begin wait warm compile" 
     /// consume warm compile testData
     testData.SourceFileManualSet.Wait()
 
@@ -67,7 +67,7 @@ let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatche
     testCase name (fun _ -> 
         let watcher = lazyWatcher.Force() 
 
-        printfn "after force watcher" 
+        printfn "after consume warm compile number" 
 
         let testData = createTestData()
 
@@ -175,7 +175,7 @@ let pluginTests =
         _testAfterWarmCompile ftestCase watcher name test
 
     testList "plugin Tests" [
-        ftestAfterWarmCompile "in plugin mode " <| fun watcher testData ->
+        testAfterWarmCompile "in plugin mode " <| fun watcher testData ->
             // Modify fs files in TestLib2
 
             watcher.Post (makeFileChanges [testSourceFile1])
