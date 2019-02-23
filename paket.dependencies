@@ -1,19 +1,14 @@
 source https://api.nuget.org/v3/index.json
-git https://github.com/humhei/Paket_NugetServer.git NugetStore Packages: /.nuget/
-redirects: force
-framework: auto-detect
 storage: none
 nuget FSharp.Compiler.Service
 nuget Expecto
 nuget Dotnet.ProjInfo
 nuget Fake.DotNet.Cli
-nuget Atrous.Core.Utils prerelease
-nuget Saturn
+nuget Suave
+nuget Dotnet.ProjInfo.Workspace
 
 group build
     storage: none
     source https://api.nuget.org/v3/index.json
-    git https://github.com/humhei/Paket_NugetServer.git NugetStore Packages: /.nuget/
-    nuget Atrous.Core.Utils prerelease
-    nuget Fake.Core.Target
-    nuget FcsWatch prerelease
+    nuget FPublisher prerelease
+    nuget Fake.Core.Target = 5.12.0

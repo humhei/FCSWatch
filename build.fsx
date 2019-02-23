@@ -2,43 +2,48 @@
 #r "paket: groupref build //"
 #endif
 #if !FAKE
-#r "netstandard" // windows
+#r "Facades/netstandard"
+#r "netstandard"
 #endif
 #load "./.fake/build.fsx/intellisense.fsx"
 open Fake.Core
-open Atrous.Core.Utils.FakeHelper.Build
-open Fake.IO
-open Microsoft.FSharp.Compiler.SourceCodeServices
-open FcsWatch.FakeHelper
-open Fake.IO.FileSystemOperators
-open Microsoft.Build.Evaluation
-open Microsoft.Build.Definition
-open System.Collections.Generic
-open System.Xml
-
-  
-
-let publisher = lazy (MyPublisher.create(id))
+open FPublisher.Roles
+open FPublisher
+open FPublisher.Nuget
+open FPublisher.Git
+open Fake.DotNet
 
 
-Target.create "MyPublisher.NextBuild" (fun _ ->
-    publisher.Value.PublishPackages(VersionStatus.Build)
-)
+let buildServer =
+    BuildServer.create
+        { BuildServer.Config.DefaultValue
+            with
+                LocalNugetServer = Some NugetServer.DefaultBaGetLocal
+                LoggerLevel = Logger.Level.Normal }
 
-Target.create "MyPublisher.NextRelease" (fun _ ->
-    publisher.Value.PublishPackages(VersionStatus.Release)
-)
 
-Target.create "MyPublisher.UpdateDependencies" (fun _ ->
-    publisher.Value.UpdateDependencies()
-)
+Target.create "Workspace.CreateDefaultSln" <| fun _ ->
+    Workspace.createDefaultSln false buildServer.Collaborator.Workspace
 
-Target.create "FcsWatch" (fun _ -> 
-    let projectFile = Path.getFullName "TestProject/TestProject.fsproj"
-    let checker = FSharpChecker.Create()
-    runFcsWatcher checker projectFile
-)
+Target.create "NonGit.Build" <| fun _ ->
+    BuildServer.run (!^ (NonGit.Msg.Build None))  buildServer
+
+Target.create "NonGit.Test" <| fun _ ->
+    BuildServer.run (!^ NonGit.Msg.Test) buildServer
+
+Target.create "Forker.PublishToLocalNugetServer" <| fun _ ->
+    BuildServer.run (!^ (Forker.Msg.PublishToLocalNugetServer)) buildServer
+
+
+Target.create "Collaborator.NextRelease" <| fun _ ->
+    BuildServer.run (!^ Collaborator.Msg.NextRelease) buildServer
+
+Target.create "RunCI" <| fun _ ->
+    BuildServer.run (BuildServer.Msg.RunCI) buildServer
 
 Target.create "Default" ignore
+
+"Default"
+    <= "NonGit.Test"
 
 Target.runOrDefault "Default"

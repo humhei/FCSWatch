@@ -1,0 +1,23 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    // Configure glob patterns for excluding files and folders.
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/.vs": true,
+        "**/bin": true,
+        "**/obj": true,
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/packages": true,
+        "**/paket-files": true,
+        "**/artifacts": true,
+        "**/bundles.js": true,
+        "**/bundles.js.map": true,
+        "**/temp": true
+    },
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true
+}

@@ -1,19 +1,30 @@
-# FCSWatch [![](https://img.shields.io/nuget/v/fcswatch.svg)](https://www.nuget.org/packages/FcsWatch)
-Run standard fsharp codes in watch mode
+#Run standard fsharp codes in watch mode
+
+Stable | Prerelease
+--- | ---
+[![NuGet Badge](https://buildstats.info/nuget/FCSWatch)](https://www.nuget.org/packages/FCSWatch/) | [![NuGet Badge](https://buildstats.info/nuget/FCSWatch?includePreReleases=true)](https://www.nuget.org/packages/FCSWatch/)
+
+
+MacOS/Linux | Windows
+--- | ---
+[![CircleCI](https://circleci.com/gh/humhei/FCSWatch.svg?style=svg)](https://circleci.com/gh/humhei/FCSWatch) | [![Build status](https://ci.appveyor.com/api/projects/status/0qnls95ohaytucsi?svg=true)](https://ci.appveyor.com/project/ts2fable-imports/FCSWatch)
+[![Build History](https://buildstats.info/circleci/chart/humhei/FCSWatch)](https://circleci.com/gh/humhei/FCSWatch) | [![Build History](https://buildstats.info/appveyor/chart/ts2fable-imports/FCSWatch)](https://ci.appveyor.com/project/ts2fable-imports/FCSWatch)
+
+
+---
 
 ## Play around
 vscode only
 
-### MiniSample 
-For a quick play around 
-Try https://github.com/humhei/FcsWatchMiniSample 
+### MiniSample
+For a quick play around
+Try https://github.com/humhei/FcsWatchMiniSample
 
-### From source code interation test
+### From source code interaction test
 
 * git clone https://github.com/humhei/FCSWatch.git
-* cd FcsWatch.Tests
-* tag single test in `FcsWatchTests.fs` `ftestCase "base interaction test"`
-* dotnet run 
+`cd tests/FcsWatch.InteractionTests/`
+* dotnet run
 * modify fs files in any of TestProject,TestLib2,TestLib1
 * Set breakpoint in any of TestProject,TestLib2,TestLib1
 * F5 Debug `Launch TestProject`
@@ -27,9 +38,8 @@ Try https://github.com/humhei/FcsWatchMiniSample
 2. Replace build.fsx with below codes
 ```fsharp
 #r "paket:
-nuget Atrous.Core.Utils
-nuget Fake.Core.Target
-nuget FcsWatch //"
+nuget FcsWatch
+nuget Fake.Core.Target //"
 
 #load "./.fake/build.fsx/intellisense.fsx"
 
@@ -38,12 +48,11 @@ open Fake.Core
 open Fake.IO
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FakeHelper
-open Atrous.Core.Utils.FakeHelper
 
 let root = Path.getDirectory "./"
-Target.create "FcsWatch" (fun _ ->  
+Target.create "FcsWatch" (fun _ ->
     let projectFile = Path.getFullName "YourProject/YourProject.fsproj"
-    dotnet root "build" [projectFile]
+    DotNet.build id projectFile
     let checker = FSharpChecker.Create()
     /// or runFcsWatcherWith for more customizations
     runFcsWatcher checker projectFile
@@ -57,9 +66,8 @@ Target.runOrDefault "Default"
 4. `Change fs files in YourProject` and save it
 
 
-
 ### Launch debugging in vscode
-You can also launch debugging when running in watch mode 
+You can also launch debugging when running in watch mode
 ```
     {
         "name": "launch TestProject",
@@ -86,14 +94,6 @@ You can also launch debugging when running in watch mode
 When you are debugging files,watch mode still take effect
 
 
-
-
-### Multiple reference projects
-It is supported if you pass the entry project argument to it
-
-### Release Notes 
-more features: Please open Release_Notes detail
-
 ### Plugin mode
 e.g.: excelDna sample
 vscode launch.json setting
@@ -109,41 +109,42 @@ vscode launch.json setting
 
 build.fsx setting
 ```fsharp
-    /// trigger when file changed was detected 
-    /// and (re)load debugger (after emit cache) 
+    /// trigger when file changed was detected
+    /// and (re)load debugger (after emit cache)
     let installPlugin() =
         dotnet projectDir "msbuild" ["/t:ExcelDnaBuild;ExcelDnaPack"]
         addIn.Installed <- true
         Trace.trace "installed plugin"
 
-    /// trigger when file changed was detected 
-    /// and (re)load debugger (before emit cache) 
+    /// trigger when file changed was detected
+    /// and (re)load debugger (before emit cache)
     let unInstall() =
         addIn.Installed <- false
         Trace.trace "unInstalled plugin"
 
-    /// trigger when (re)load debugger (after installPlugin()) 
+    /// trigger when (re)load debugger (after installPlugin())
     let calculate() =
         Trace.trace "calculate worksheet"
         worksheet.Calculate()
 
-    let plugin = 
-        { Load = installPlugin 
-          Unload = unInstall 
+    let plugin =
+        { Load = installPlugin
+          Unload = unInstall
           Calculate = calculate
           /// Thread sleed to wait debugger attached.
-          /// Trigger when file changed was not detected 
-          /// and reload debugger 
+          /// Trigger when file changed was not detected
+          /// and reload debugger
           DebuggerAttachTimeDelay = 1000 }
 
     runFcsWatcherWith (fun config ->
-        { config with 
+        { config with
             Logger = Logger.Normal
             DevelopmentTarget = DevelopmentTarget.Plugin plugin
         }
     ) checker projectFile
-    
+
 ```
+
 
 ### Why?
 why not use dotnet watch:
@@ -152,4 +153,3 @@ why not use dotnet watch:
 
 
 ![](https://github.com/humhei/Resources/blob/Resources/TestfsFCSWatchVisualStud.gif)
-

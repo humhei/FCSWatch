@@ -1,0 +1,19 @@
+version: 2
+general:
+  branches:
+    ignore:
+      - gh-pages # list of branches to ignore
+
+jobs:
+  build:
+    docker:
+      - image: humhei/docker-dotnet-mono
+    steps:
+      - checkout
+      - run:
+          name: run-tests
+          command: |
+            chmod 755 ./*.sh
+            export FrameworkPathOverride=$(dirname $(which mono))/../lib/mono/4.6.2-api/
+            export TERM=xterm-256color
+            ./fake.sh build -t RunCI
