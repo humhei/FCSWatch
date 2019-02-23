@@ -66,7 +66,9 @@ let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatche
         let watcher = lazyWatcher.Force() 
 
         let testData = createTestData()
-        
+
+        testData.SourceFileManualSet.Wait()
+
         test watcher testData)
 
 
@@ -159,7 +161,7 @@ let pluginTests =
                         printf "Calculate" )
                       DebuggerAttachTimeDelay = 1000 }
 
-                {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal; DevelopmentTarget = DevelopmentTarget.Plugin plugin }
+                {config with DevelopmentTarget = DevelopmentTarget.Plugin plugin }
 
         lazy createWatcher buildConfig
 
