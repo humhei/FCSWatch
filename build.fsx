@@ -12,7 +12,7 @@ open FPublisher
 open FPublisher.Nuget
 open FPublisher.Git
 open Fake.DotNet
-
+open Fake.Core.TargetOperators
 
 let buildServer =
     BuildServer.create
@@ -43,7 +43,7 @@ Target.create "RunCI" <| fun _ ->
 
 Target.create "Default" ignore
 
-"Default"
-    <= "NonGit.Test"
+"NonGit.Test"
+    ==> "Default"
 
 Target.runOrDefault "Default"
