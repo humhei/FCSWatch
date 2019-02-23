@@ -108,9 +108,17 @@ let fcsWatcher
                         )
                         |> List.distinct
 
+                    logger.InfoGreents "projFiles1"
+
                     let crackedFsprojs = projFiles |> List.map (fun projPath -> projectMap.[projPath] ) 
 
+                    logger.InfoGreents "projFiles2"
+
+
                     replyChannel.Reply (CompilerNumber crackedFsprojs.Length)
+
+                    logger.InfoGreents "projFiles3"
+
 
                     compilerAgent.Post(CompilerMsg.CompilerProjects crackedFsprojs)
 
