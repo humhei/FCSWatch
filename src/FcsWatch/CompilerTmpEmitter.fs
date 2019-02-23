@@ -13,12 +13,21 @@ type TestData internal () =
     member val SourceFileManualSet = new ManualResetEventSlim(false) 
     member val ProjectFileManualSet = new ManualResetEventSlim(false) 
 
-let testDatas : ResizeArray<TestData> = ResizeArray []
+let private testDatas : ResizeArray<TestData> = ResizeArray []
 
-let createTestData() = 
+let private createTestData() = 
     let testData = new TestData()
     testDatas.Add testData
     testData
+
+let useTestData f =
+    let testData = createTestData()
+
+    let result = f testData
+
+    testDatas.Remove testData
+
+    result
 
 type CompilerTask = CompilerTask of startTime: DateTime * task: Task<CompilerResult list>
 with 
@@ -51,12 +60,12 @@ type CompilerTmpEmitterState =
 [<RequireQualifiedAccess>]
 module CompilerTmpEmiiterState =
     let createEmpty cache = 
-            { CompilingNumber = 0
-              CompilerTmp = Set.empty
-              EmitReplyChannels = []
-              CompilerTasks = []
-              CrackerFsprojFileBundleCache = cache
-              GetTmpReplyChannels = [] }
+        { CompilingNumber = 0
+          CompilerTmp = Set.empty
+          EmitReplyChannels = []
+          CompilerTasks = []
+          CrackerFsprojFileBundleCache = cache
+          GetTmpReplyChannels = [] }
 
 
     let tryEmit config cache compilerTmpEmiiterState =

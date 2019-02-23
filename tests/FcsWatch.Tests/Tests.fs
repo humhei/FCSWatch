@@ -55,15 +55,17 @@ let createWatcher buildingConfig =
     let fcsWatcher =
         fcsWatcher buildingConfig checker entryProjPath
 
-    let testData = createTestData()
+    useTestData (fun testData ->
+        printfn "Begin wait warm compile" 
+        /// consume warm compile testData
+        testData.SourceFileManualSet.Wait()
 
-    printfn "Begin wait warm compile" 
-    /// consume warm compile testData
-    testData.SourceFileManualSet.Wait()
+        printfn "After consume warm compile number" 
 
-    printfn "After consume warm compile number" 
+        fcsWatcher
+    )
 
-    fcsWatcher
+
 
 let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
     testCase name (fun _ -> 
@@ -71,10 +73,9 @@ let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatche
 
         let watcher = lazyWatcher.Force() 
 
+        useTestData (test watcher)
 
-        let testData = createTestData()
-
-        test watcher testData)
+        )
 
 
 DotNet.build (fun ops ->
