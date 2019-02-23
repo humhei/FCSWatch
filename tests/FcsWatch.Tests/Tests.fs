@@ -61,6 +61,14 @@ let createWatcher buildingConfig =
 
     fcsWatcher
 
+let _testAfterWarmCompile testCase (lazyWatcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
+    testCase name (fun _ -> 
+        let watcher = lazyWatcher.Force() 
+
+        let testData = createTestData()
+        
+        test watcher testData)
+
 
 DotNet.build (fun ops ->
     { ops with 
@@ -73,12 +81,7 @@ let programTests =
         lazy createWatcher id
 
     let testAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
-        testCase name (fun _ -> 
-            let watcher = watcher.Force() 
-
-            let testData = createTestData()
-    
-            test watcher testData)
+        _testAfterWarmCompile testCase watcher name test
 
     testList "program tests" [
 
@@ -162,12 +165,10 @@ let pluginTests =
 
 
     let testAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
-        testCase name (fun _ -> 
-            let watcher = watcher.Force() 
+        _testAfterWarmCompile testCase watcher name test
 
-            let testData = createTestData()
-            
-            test watcher testData)
+    let ftestAfterWarmCompile name (test: MailboxProcessor<FcsWatcherMsg> -> TestData -> unit) =
+        _testAfterWarmCompile ftestCase watcher name test
 
     testList "plugin Tests" [
         testAfterWarmCompile "in plugin mode " <| fun watcher testData ->
