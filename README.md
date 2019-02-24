@@ -39,9 +39,9 @@ Try https://github.com/humhei/FcsWatchMiniSample
 2. Replace build.fsx with below codes
 ```fsharp
 #r "paket:
-nuget FcsWatch
-nuget Fake.Core.Target //"
-
+source https://api.nuget.org/v3/index.json
+nuget Fake.Core.Target = 5.12.0
+nuget FcsWatch //"
 #load "./.fake/build.fsx/intellisense.fsx"
 
 // start build
@@ -51,21 +51,20 @@ open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FakeHelper
 open Fake.DotNet
 
-let root = Path.getDirectory "./"
 Target.create "FcsWatch" (fun _ ->
-    let projectFile = Path.getFullName "YourProject/YourProject.fsproj"
+
+    let projectFile = Path.getFullName "./FcsWatchMiniSample/FcsWatchMiniSample.fsproj"
+    printfn "%A" projectFile
     DotNet.build (fun ops ->
       { ops with
-        Configuration = DotNet.BuildConfiguration.Debug }
+          Configuration = DotNet.BuildConfiguration.Debug }
     ) projectFile
     let checker = FSharpChecker.Create()
-    /// or runFcsWatcherWith for more customizations
     runFcsWatcher checker projectFile
 )
 
-Target.create "Default" ignore
+Target.runOrDefault "FcsWatch"
 
-Target.runOrDefault "Default"
 ```
 3. `fake build -t "FcsWatch"`
 4. `Change fs files in YourProject` and save it
