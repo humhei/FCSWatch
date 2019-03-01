@@ -10,10 +10,7 @@
         <Compile Include="ProcessCommandLine.fs" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Update="FSharp.Core" Version="4.5.2" />
         <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-        <PackageReference Include="FSharp.Compiler.Service" Version="25.0.1" />
-        <PackageReference Include="Dotnet.ProjInfo" Version="0.9.0" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FsLive.Core\FsLive.Core.fsproj" />

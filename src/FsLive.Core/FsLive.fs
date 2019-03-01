@@ -3,7 +3,6 @@ open Microsoft.FSharp.Compiler.SourceCodeServices
 open FsLive.Core.CrackedFsprojBundle
 open Fake.IO.Globbing
 open Fake.IO
-open FsLive.Core.DebuggingServer
 open FsLive.Core.Compiler
 open FsLive.Core.CompilerTmpEmiiter
 open System
@@ -26,15 +25,16 @@ type FsLiveModel =
 
 let fsLive 
     (buildingConfig: Config -> Config) 
-    (developmentTarget: DevelopmentTarget)
+    (developmentTarget: DevelopmentTarget<'EmitReply>)
     (checker: FSharpChecker) 
     (entryProjectFile: string) = 
-        let entryProjectFile = Path.getFullName entryProjectFile
+        let entryProjectFile = Path.getFullName entryProjectFile |> Path.nomarlizeToUnixCompitiable
 
-        let config = buildingConfig {
-                LoggerLevel = Logger.Level.Minimal
-                WorkingDir = Path.getFullName "./"
-            }
+        let config = 
+            { LoggerLevel = Logger.Level.Minimal
+              WorkingDir = Path.getFullName "./"
+              OtherFlags = [] }
+            |> buildingConfig
 
         let config = { config with WorkingDir = Path.getFullName config.WorkingDir }        
  
@@ -58,7 +58,7 @@ let fsLive
             logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
             logger.Info "fcs watcher's working directory is %s" config.WorkingDir
 
-            let crackedProjectBundleAgent = crackedFsprojBundle entryProjectFile
+            let crackedProjectBundleAgent = crackedFsprojBundle config entryProjectFile
 
             let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
 
@@ -80,8 +80,6 @@ let fsLive
                 )        
             
             let compilerTmpEmitterAgent = compilerTmpEmitter developmentTarget config initialCache
-
-            let debuggingServerAgent = debuggingServer compilerTmpEmitterAgent config
 
             let compilerAgent = compiler developmentTarget entryProjectFile compilerTmpEmitterAgent initialCache config checker
 

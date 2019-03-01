@@ -3,7 +3,6 @@ open FsLive.Core.CrackedFsprojBundle
 open System.Threading.Tasks
 open System
 open FsLive.Core.CrackedFsproj
-open Suave
 open Microsoft.FSharp.Compiler.SourceCodeServices
 
 
@@ -18,21 +17,19 @@ with
         | CompilerTask(task = m) -> m
 
 [<RequireQualifiedAccess>]
-type CompilerTmpEmitterMsg =
+type CompilerTmpEmitterMsg<'EmitReply> =
     | IncrCompilingNum of int
     | DecrCompilingNum of int
     | AddTmp of string (*proj path*)
-    | Emit of replyChannel: AsyncReplyChannel<WebPart>
+    | Emit of replyChannel: AsyncReplyChannel<'EmitReply>
     | AddTask of CompilerTask
     | UpdateCache of CrackedFsprojBundleCache
-    | GetCompilerTmp of AsyncReplyChannel<Set<string>>
 
-type CompilerTmpEmitterState =
+type CompilerTmpEmitterState<'EmitReply> =
     { CompilingNumber: int
       /// proj paths
       CompilerTmp: Set<string>
-      EmitReplyChannels: AsyncReplyChannel<WebPart> list
-      GetTmpReplyChannels: AsyncReplyChannel<Set<string>> list
+      EmitReplyChannels: AsyncReplyChannel<'EmitReply> list
       CompilerTasks: CompilerTask list
       CrackerFsprojFileBundleCache: CrackedFsprojBundleCache }
     
@@ -45,14 +42,15 @@ module CompilerTmpEmiiterState =
           CompilerTmp = Set.empty
           EmitReplyChannels = []
           CompilerTasks = []
-          CrackerFsprojFileBundleCache = cache
-          GetTmpReplyChannels = [] }
+          CrackerFsprojFileBundleCache = cache }
 
-type DevelopmentTarget = 
+type DevelopmentTarget<'EmitReply> = 
     { CompileOrCheck: FSharpChecker -> CrackedFsproj -> Async<CompileOrCheckResult []>
-      TryEmit: Logger.Logger -> Config -> CrackedFsprojBundleCache -> CompilerTmpEmitterState -> CompilerTmpEmitterState }
+      TryEmit: Logger.Logger -> CompilerTmpEmitterState<'EmitReply> -> CompilerTmpEmitterState<'EmitReply>
+      StartDebuggingServer: Config -> MailboxProcessor<CompilerTmpEmitterMsg<'EmitReply>> -> unit }
 
-let compilerTmpEmitter (developmentTarget: DevelopmentTarget) config (initialCache: CrackedFsprojBundleCache) = MailboxProcessor<CompilerTmpEmitterMsg>.Start(fun inbox ->
+let compilerTmpEmitter  (developmentTarget: DevelopmentTarget<'EmitReply>) config (initialCache: CrackedFsprojBundleCache) = MailboxProcessor<CompilerTmpEmitterMsg<'EmitReply>>.Start(fun inbox ->
+    developmentTarget.StartDebuggingServer config inbox
     let rec loop state = async {
         let cache = state.CrackerFsprojFileBundleCache        
         let traceMsg compilingNumber msg = 
@@ -68,7 +66,7 @@ let compilerTmpEmitter (developmentTarget: DevelopmentTarget) config (initialCac
             assert (state.CompilingNumber > 0)
             let newState = 
                 {state with CompilingNumber = compilingNumber}
-                |> developmentTarget.TryEmit logger config cache 
+                |> developmentTarget.TryEmit logger
 
             return! loop newState    
 
@@ -88,7 +86,7 @@ let compilerTmpEmitter (developmentTarget: DevelopmentTarget) config (initialCac
 
             let newState =
                 {state with EmitReplyChannels = replyChannel :: state.EmitReplyChannels}
-                |> developmentTarget.TryEmit logger config cache 
+                |> developmentTarget.TryEmit logger 
 
             return! loop newState
         | CompilerTmpEmitterMsg.AddTask task -> 
@@ -100,13 +98,6 @@ let compilerTmpEmitter (developmentTarget: DevelopmentTarget) config (initialCac
 
             return! loop {state with CrackerFsprojFileBundleCache = cache} 
             
-        | CompilerTmpEmitterMsg.GetCompilerTmp replyChannel ->
-            traceMsg state.CompilingNumber "GetCompilerTmp"
-            let newState = 
-                {state with GetTmpReplyChannels = replyChannel :: state.GetTmpReplyChannels }
-                |> developmentTarget.TryEmit logger config cache 
-
-            return! loop newState
     }
     loop (CompilerTmpEmiiterState.createEmpty initialCache) 
 )

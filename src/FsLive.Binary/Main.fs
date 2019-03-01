@@ -1,4 +1,4 @@
-﻿namespace FsLive
+﻿namespace FsLive.Binary
 open FsLive.Core.FsLive
 open FsLive.Core.CompilerTmpEmiiter
 open FsLive.Core.CrackedFsproj
@@ -6,8 +6,9 @@ open FsLive.Core
 open Suave
 open System.Threading
 open FsLive.Core.CrackedFsprojBundle
+open DebuggingServer
 
-module Binary =
+module Main =
 
     type Plugin =
         { Load: unit -> unit
@@ -26,7 +27,9 @@ module Binary =
             compileResults |> Array.map CompileOrCheckResult.CompileResult
     } 
     
-    let private tryEmit binaryDevelopmentTarget (logger: Logger.Logger) config (cache: CrackedFsprojBundleCache) compilerTmpEmiiterState =
+    let private tryEmit binaryDevelopmentTarget (logger: Logger.Logger) compilerTmpEmiiterState =
+        let cache = compilerTmpEmiiterState.CrackerFsprojFileBundleCache
+
         logger.Info "tryEmitAction: current emitReplyChannels number is %d" compilerTmpEmiiterState.EmitReplyChannels.Length
 
         match compilerTmpEmiiterState.CompilingNumber,compilerTmpEmiiterState.EmitReplyChannels with 
@@ -35,7 +38,7 @@ module Binary =
 
             let replyFailure errorText = h.Reply (RequestErrors.BAD_REQUEST errorText)
 
-            logger.Info "Current valid compier task is %d" compilerTmpEmiiterState.CompilerTasks.Length
+            logger.Info "Current cached compier task is %d" compilerTmpEmiiterState.CompilerTasks.Length
 
             match compilerTmpEmiiterState.CompilerTasks with
             | [] ->
@@ -107,12 +110,14 @@ module Binary =
                         plugin.Calculate()
                     | _ -> ()
                 
-                    { CompilerTmpEmiiterState.createEmpty cache with GetTmpReplyChannels = compilerTmpEmiiterState.GetTmpReplyChannels }
+                    CompilerTmpEmiiterState.createEmpty cache 
         | _ -> compilerTmpEmiiterState
 
     let private developmentTarget binaryDevelopmentTarget =
         { CompileOrCheck = compile 
-          TryEmit = tryEmit binaryDevelopmentTarget }
+          TryEmit = tryEmit binaryDevelopmentTarget
+          StartDebuggingServer = 
+            fun config compilerTmpEmitterAgent -> debuggingServer config compilerTmpEmitterAgent |> ignore }
 
     let fsLive binaryDevelopmentTarget config checker entryProjectFile =
         fsLive config (developmentTarget binaryDevelopmentTarget) checker entryProjectFile

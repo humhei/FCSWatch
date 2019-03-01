@@ -5,11 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Library.fs" />
+    <Compile Include="DebuggingServer.fs" />
+    <Compile Include="Main.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FsLive.Core\FsLive.Core.fsproj" />
   </ItemGroup>
-
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

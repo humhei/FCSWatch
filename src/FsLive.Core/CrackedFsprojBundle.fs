@@ -104,6 +104,10 @@ module CrackedFsprojSingleTarget =
 
 [<RequireQualifiedAccess>]
 module CrackedFsproj =
+    
+    /// copy ref dll from proj other options  e.g.
+    /// arg-projectFile is D:\VsCode\Github\FCSWatch\tests\binary\datas\TestLib2.fsproj
+    /// otherOptions contains :r:D:\VsCode\Github\FCSWatch\tests\binary\datas\TestLib2\obj\Debug\netstandard2.0\TestLib2.dll
     let copyFileFromRefDllToBin projectFile (destCrackedFsproj: CrackedFsproj) =
         destCrackedFsproj.AsList
         |> List.iter (CrackedFsprojSingleTarget.copyFileFromRefDllToBin projectFile)
@@ -113,7 +117,7 @@ module CrackedFsproj =
 
 type Config =
     { LoggerLevel: Logger.Level
-      OtherFlags: string []
+      OtherFlags: string list
       WorkingDir: string }
 
 
@@ -238,7 +242,7 @@ module FullCrackedFsproj =
                 if crackedFsproj.ProjPath = projectFile then 
                     CrackedFsproj.mapProjOptions (fun ops -> 
                         { ops with 
-                            OtherOptions = Array.append ops.OtherOptions config.OtherFlags }
+                            OtherOptions = [| yield! ops.OtherOptions; yield! config.OtherFlags |] }
                     ) crackedFsproj
                 else crackedFsproj
             )
@@ -298,6 +302,8 @@ type CrackedFsprojBundleCache =
 
         /// entry project file level is 0
         ProjLevelMap: Map<string, int>
+
+        EntryProjectFile: string
     }
 with
     member x.AllProjectFiles = x.ProjectMap |> Seq.map (fun pair -> pair.Key)
@@ -305,11 +311,12 @@ with
 
 [<RequireQualifiedAccess>]
 module CrackedFsprojBundleCache =
-    let create fsproj (projectMap: Map<string, CrackedFsproj>) =
+    let create entryProjectFile fsproj (projectMap: Map<string, CrackedFsproj>) =
         { ProjectMap = projectMap
           SourceFileMap = ProjectMap.sourceFileMap projectMap
           ProjRefersMap = FullCrackedFsproj.getProjectRefersMap fsproj
-          ProjLevelMap = ProjectMap.getProjectLevelMap projectMap fsproj }
+          ProjLevelMap = ProjectMap.getProjectLevelMap projectMap fsproj
+          EntryProjectFile = entryProjectFile }
 
     let update projPaths (cache: CrackedFsprojBundleCache) = async {
 
@@ -364,5 +371,5 @@ let crackedFsprojBundle (config: Config) (projectFile: string) = MailboxProcesso
     }
 
     let (project, cache) = FullCrackedFsproj.create config projectFile |> Async.RunSynchronously
-    loop project (CrackedFsprojBundleCache.create project cache)
+    loop project (CrackedFsprojBundleCache.create projectFile project cache)
 )

@@ -1,17 +1,17 @@
-module FsLive.Core.DebuggingServer 
+﻿module FsLive.Binary.DebuggingServer 
 open Fake.IO
 open System.Net
 open Fake.IO.FileSystemOperators
 open FsLive.Core.CompilerTmpEmiiter
 open System.Text
-open CrackedFsprojBundle
+open FsLive.Core.CrackedFsprojBundle
 open Suave.Filters
 open Suave.Operators
 open Suave
 open System.Net.Sockets
 
 
-let rec freePort() =
+let freePort() =
     let listener = new TcpListener(IPAddress.Any, 0);
     listener.Start()
     let port = (listener.LocalEndpoint :?> IPEndPoint).Port
@@ -35,7 +35,7 @@ let generateCurlCache freePort (config: Config) =
 type DebuggingServerMsg =
     | EmitCompilerTmp of replyChannel: AsyncReplyChannel<WebPart>
 
-let debuggingServer (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) config = MailboxProcessor<DebuggingServerMsg>.Start(fun inbox ->
+let debuggingServer config  (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg<WebPart>>) = MailboxProcessor<DebuggingServerMsg>.Start(fun inbox ->
     async {
         let webApp =
             let emitCompilerTmp: WebPart = 
@@ -67,7 +67,8 @@ let debuggingServer (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitte
         match msg with 
         | DebuggingServerMsg.EmitCompilerTmp replyChannel ->
             async {
-                let msg = compilerTmpEmitterAgent.PostAndReply CompilerTmpEmitterMsg.Emit          
+                let msg = compilerTmpEmitterAgent.PostAndReply CompilerTmpEmitterMsg.Emit
+                
                 replyChannel.Reply msg
             } |> Async.Start
             return! loop state  

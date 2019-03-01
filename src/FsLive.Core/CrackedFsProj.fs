@@ -26,8 +26,10 @@ module CrackedFsproj =
 
     type CheckResult =
         { Errors: FSharpErrorInfo [] 
-          Result: Result<FSharpImplementationFileContents option ,FSharpImplementationFileContents option>
-          ProjPath: string }
+          Result: Result<FSharpImplementationFileContents list ,unit>
+          ProjPath: string 
+          /// used for eval context
+          ProjOptions: FSharpProjectOptions }
 
     [<RequireQualifiedAccess>]
     type CompileOrCheckResult =
@@ -104,6 +106,11 @@ module CrackedFsproj =
                 op.StartsWith "-r:" && x.ProjRefs |> List.exists (fun ref -> Path.GetFileName op = Path.GetFileNameWithoutExtension ref + ".dll")
             ) |> Array.map (fun op -> op.Remove(0,3))
 
+        member x.SourceFiles =
+            x.FSharpProjectOptions.OtherOptions
+            |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
+            |> Array.map Path.getFullName
+
 
     [<RequireQualifiedAccess>]
     module CrackedFsprojSingleTarget =
@@ -146,9 +153,7 @@ module CrackedFsproj =
         member x.Name = Path.GetFileNameWithoutExtension x.ProjPath
 
         member x.SourceFiles =
-            x.AsList.[0].FSharpProjectOptions.OtherOptions
-            |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
-            |> Array.map Path.getFullName
+            x.AsList.[0].SourceFiles
 
     [<RequireQualifiedAccess>]
     module CrackedFsproj =

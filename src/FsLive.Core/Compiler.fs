@@ -17,7 +17,7 @@ type CompilerModel =
 
 
 
-let compiler (developmentTarget: DevelopmentTarget) (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) (initialCache: CrackedFsprojBundleCache) config checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
+let compiler (developmentTarget: DevelopmentTarget<'EmitReply>) (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg<'EmitReply>>) (initialCache: CrackedFsprojBundleCache) config checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
 
     let createCompileTask (crackedFsprojInfoTargets: CrackedFsproj list) =
         crackedFsprojInfoTargets

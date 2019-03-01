@@ -8,7 +8,6 @@
     <Compile Include="Logger.fs" />
     <Compile Include="CrackedFsprojBundle.fs" />
     <Compile Include="CompilerTmpEmitter.fs" />
-    <Compile Include="DebuggingServer.fs" />
     <Compile Include="Compiler.fs" />
     <Compile Include="FsLive.fs" />
     <Compile Include="FakeHelper.fs" />
