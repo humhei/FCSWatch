@@ -300,7 +300,7 @@ module FullCrackedFsproj =
 
                 match sourceFiles with 
                 | [| |] -> failwithf "no project file found, no compilation arguments given and no project file found in %s" config.WorkingDir
-                | [| script |] when script.EndsWith(".fsx") ->
+                | [| script |] ->
                     let text = File.readAsStringWithEncoding System.Text.Encoding.UTF8 script
                     let options, errors = checker.GetProjectOptionsFromScript(script, text, otherFlags=otherFlags) |> Async.RunSynchronously
                     if errors.Length > 0 then 

@@ -13,10 +13,7 @@ open System.IO
 open FSharp.Compiler.SourceCodeServices
 open System.Net
 open System.Text
-open FsLive.Core.FsLive
 open FsLive.Core.CrackedFsprojBundle
-open Fake.IO.Globbing.Operators
-open Fake.IO.FileSystemOperators
 open FsLive.Core.CrackedFsproj
 open FsLive.Core
 open FsLive.Core.CompilerTmpEmiiter
@@ -476,7 +473,7 @@ let ProcessCommandLine (argv: string[]) =
         let buildingConfig config =
             { config with 
                 LoggerLevel = Logger.Level.Normal
-                OtherFlags = otherFlags }
+                OtherFlags =  List.ofArray fsharpArgs }
 
         FsLive.fsLive buildingConfig developmentTarget checker fsproj
     0
