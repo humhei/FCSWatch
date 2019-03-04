@@ -11,7 +11,7 @@
 
 module FsLive.Driver
 
-open FSharp.Compiler.PortaCode.ProcessCommandLine
+open FsLive.Porta.ProcessCommandLine
 
 
 #if !TEST

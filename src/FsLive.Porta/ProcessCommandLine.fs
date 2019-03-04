@@ -2,15 +2,15 @@
 
 // F# PortaCode command processing (e.g. used by Fabulous.Cli)
 
-module FSharp.Compiler.PortaCode.ProcessCommandLine
+module FsLive.Porta.ProcessCommandLine
 
-open FSharp.Compiler.PortaCode.CodeModel
-open FSharp.Compiler.PortaCode.Interpreter
-open FSharp.Compiler.PortaCode.FromCompilerService
+open FsLive.Porta.CodeModel
+open FsLive.Porta.Interpreter
+open FsLive.Porta.FromCompilerService
 open System
 open System.Collections.Generic
 open System.IO
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open System.Net
 open System.Text
 open FsLive.Core.FsLive
@@ -21,7 +21,6 @@ open FsLive.Core.CrackedFsproj
 open FsLive.Core
 open FsLive.Core.CompilerTmpEmiiter
 
-let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
 let ProcessCommandLine (argv: string[]) =
     let mutable fsproj = None
@@ -120,60 +119,12 @@ let ProcessCommandLine (argv: string[]) =
 
 
 
-    let rec checkFile count sourceFile (crackedFsproj: CrackedFsprojSingleTarget) =         
-        try 
-            let _, checkResults = checker.ParseAndCheckFileInProject(sourceFile, 0, readFile sourceFile, crackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
-            match checkResults with 
-            | FSharpCheckFileAnswer.Aborted -> 
-                printfn "aborted"
-                Result.Error None
-
-            | FSharpCheckFileAnswer.Succeeded res -> 
-                let mutable hasErrors = false
-                for error in res.Errors do 
-                    printfn "%s" (error.ToString())
-                    if error.Severity = FSharpErrorSeverity.Error then 
-                        hasErrors <- true
-
-                if hasErrors then 
-                    Result.Error res.ImplementationFile
-                else
-                    Result.Ok res.ImplementationFile 
-        with 
-        | :? System.IO.IOException when count = 0 -> 
-            System.Threading.Thread.Sleep 500
-            checkFile 1 sourceFile crackedFsproj
-        | exn -> 
-            printfn "%s" (exn.ToString())
-            Result.Error None
 
     let keepRanges = eval
     let convFile (i: FSharpImplementationFileContents) =         
         //(i.QualifiedName, i.FileName
         i.FileName, { Code = Convert(keepRanges).ConvertDecls i.Declarations }
 
-    let checkCracked (crackedFsproj: CrackedFsprojSingleTarget) =    
-        let sourceFiles = crackedFsproj.SourceFiles
-        let rec loop rest acc = 
-            match rest with 
-            | file :: rest -> 
-                match checkFile 0 (Path.GetFullPath(file)) crackedFsproj with 
-
-                // Note, if livechecks are on, we continue on regardless of errors
-                | Result.Error iopt when not livechecksonly -> 
-                    printfn "fscd: ERRORS for %s" file
-                    Result.Error ()
-
-                | Result.Error iopt 
-                | Result.Ok iopt -> 
-                    printfn "fscd: COMPILED %s" file
-                    match iopt with 
-                    | None -> Result.Error ()
-                    | Some i -> 
-                        printfn "fscd: GOT PortaCode for %s" file
-                        loop rest (i :: acc)
-            | [] -> Result.Ok (List.rev acc)
-        loop (List.ofArray sourceFiles) []
 
     let jsonFiles (impls: FSharpImplementationFileContents[]) =         
         let data = Array.map convFile impls
@@ -367,6 +318,74 @@ let ProcessCommandLine (argv: string[]) =
             printfn "...evaluated decls" 
 
 
+    let compileOrCheck (checker: FSharpChecker) (crackedFsproj: CrackedFsproj) =
+        let rec checkFile count sourceFile (crackedFsproj: CrackedFsprojSingleTarget) =         
+            try 
+                let _, checkResults = checker.ParseAndCheckFileInProject(sourceFile, 0, readFile sourceFile, crackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
+                match checkResults with 
+                | FSharpCheckFileAnswer.Aborted -> 
+                    printfn "aborted"
+                    Result.Error None
+
+                | FSharpCheckFileAnswer.Succeeded res -> 
+                    let mutable hasErrors = false
+                    for error in res.Errors do 
+                        printfn "%s" (error.ToString())
+                        if error.Severity = FSharpErrorSeverity.Error then 
+                            hasErrors <- true
+
+                    if hasErrors then 
+                        Result.Error res.ImplementationFile
+                    else
+                        Result.Ok res.ImplementationFile 
+            with 
+            | :? System.IO.IOException when count = 0 -> 
+                System.Threading.Thread.Sleep 500
+                checkFile 1 sourceFile crackedFsproj
+            | exn -> 
+                printfn "%s" (exn.ToString())
+                Result.Error None
+
+
+        let checkCrackedFsprojSingleTarget (crackedFsprojSingleTarget: CrackedFsprojSingleTarget) =    
+            let sourceFiles = crackedFsprojSingleTarget.SourceFiles
+            let rec loop rest acc = 
+                match rest with 
+                | file :: rest -> 
+                    match checkFile 0 (Path.GetFullPath(file)) crackedFsprojSingleTarget with 
+
+                    // Note, if livechecks are on, we continue on regardless of errors
+                    | Result.Error iopt when not livechecksonly -> 
+                        printfn "fscd: ERRORS for %s" file
+                        Result.Error ()
+
+                    | Result.Error iopt 
+                    | Result.Ok iopt -> 
+                        printfn "fscd: COMPILED %s" file
+                        match iopt with 
+                        | None -> Result.Error ()
+                        | Some i -> 
+                            printfn "fscd: GOT PortaCode for %s" file
+                            loop rest (i :: acc)
+                | [] -> Result.Ok (List.rev acc)
+            loop (List.ofArray sourceFiles) []
+
+
+
+        crackedFsproj.AsList
+        |> List.map (fun crackedFsprojSingleTarget ->
+            async { 
+                let result = checkCrackedFsprojSingleTarget crackedFsprojSingleTarget
+                return 
+                    { Result = result 
+                      Errors = [||] 
+                      ProjPath = crackedFsprojSingleTarget.ProjPath 
+                      ProjOptions = crackedFsprojSingleTarget.FSharpProjectOptions }
+                    |> CompileOrCheckResult.CheckResult
+            }
+        )
+        |> Async.Parallel
+
 
     let tryEmit (logger: Logger.Logger) (compilerTmpEmiiterState: CompilerTmpEmitterState<_>) =
         let cache = compilerTmpEmiiterState.CrackerFsprojFileBundleCache
@@ -405,10 +424,6 @@ let ProcessCommandLine (argv: string[]) =
                 )
                 |> Seq.iter (fun projPath ->
                     
-                    let crackedFsprojSingleTarget = 
-                        let crackedFsproj = cache.ProjectMap.[projPath]
-                        crackedFsproj.AsList.[0]
-
                     /// may multiple frameworks
                     /// so use results
                     let results = allResults |> List.filter (fun result ->
@@ -448,14 +463,20 @@ let ProcessCommandLine (argv: string[]) =
                 CompilerTmpEmiiterState.createEmpty cache 
         | _ -> compilerTmpEmiiterState
 
-    let developmentTarget binaryDevelopmentTarget =
-        { CompileOrCheck = compile 
+    let developmentTarget =
+        { CompileOrCheck = compileOrCheck 
           TryEmit = tryEmit
           StartDebuggingServer = 
             fun _ _ -> () }
 
 
+    let fsLive = 
+        let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
-    for o in options.OtherOptions do 
-        printfn "compiling, option %s" o
+        let buildingConfig config =
+            { config with 
+                LoggerLevel = Logger.Level.Normal
+                OtherFlags = otherFlags }
 
+        FsLive.fsLive buildingConfig developmentTarget checker fsproj
+    0

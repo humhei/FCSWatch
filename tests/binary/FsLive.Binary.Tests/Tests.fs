@@ -1,6 +1,6 @@
 module FsLive.Binary.Tests.Tests
 open Expecto
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open System.IO
 open FsLive
 open Fake.IO
@@ -10,8 +10,7 @@ open FsLive.Core.CrackedFsprojBundle
 open FsLive.Core.FsLive
 open Fake.DotNet
 open FsLive.Core
-open FsLive.Binary
-open FsLive.Core.CrackedFsprojBundle
+open FsLive.Binary.Main
 open Types
 
 
@@ -52,16 +51,16 @@ let makeSourceFileChanges fullPaths =
 let makeProjectFileChanges fullPaths =
     FsLiveMsg.DetectProjectFileChanges <!> List.map makeFileChange fullPaths
 
+let checker = FSharpChecker.Create()
 
-let createWatcher developmentTarget buildingConfig =
+let createWatcher otherFlags developmentTarget buildingConfig entryPath =
     lazy
         let buildingConfig config =
-            {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
+            {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal; OtherFlags = otherFlags }
             |> buildingConfig
 
-        let checker = FSharpChecker.Create()
 
-        fsLive developmentTarget buildingConfig checker entryProjPath
+        fsLive developmentTarget buildingConfig checker entryPath
 
 DotNet.build (fun ops ->
     { ops with
@@ -69,8 +68,23 @@ DotNet.build (fun ops ->
 ) entryProjDir
 
 
+let scriptTests =
+    let testScriptFile1 = datas </> @"Scripts/Entry.fsx"
+
+    let watcher = createWatcher [testScriptFile1] DevelopmentTarget.Program id None
+    testList "script tests" [
+
+        testCase "change file in Scripts/Entry.fsx will trigger compiling" <| fun _ ->
+            // Modify fs files in TestLib2
+
+            watcher.Value.PostAndReply (makeSourceFileChanges [testScriptFile1])
+           /// (TestLib2/Library.fs)
+            |> expectCompilerNumber 1
+    ]
+
+
 let programTests =
-    let watcher = createWatcher Binary.DevelopmentTarget.Program id
+    let watcher = createWatcher [] DevelopmentTarget.Program id (Some entryProjPath)
 
 
     testList "program tests" [
@@ -126,7 +140,7 @@ let pluginTests =
                   DebuggerAttachTimeDelay = 1000 }
                 |> DevelopmentTarget.Plugin
 
-        createWatcher plugin id
+        createWatcher [] plugin id (Some entryProjPath)
 
 
     testList "plugin Tests" [
@@ -144,7 +158,7 @@ let functionTests =
             /// "bin ref may be locked by program
             testCaseAsync "obj ref only" <| async {
                 let! fullCracekdFsproj, _  =
-                    FullCrackedFsproj.create entryProjPath
+                    FullCrackedFsproj.create checker Config.DeafultValue (Some entryProjPath)
 
                 let otherOptions =
                     fullCracekdFsproj.Value.AsList |> Seq.collect (fun crackedFsprojSingleTarget ->

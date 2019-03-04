@@ -3,7 +3,7 @@ open FsLive.Core.CrackedFsprojBundle
 open System.Threading.Tasks
 open System
 open FsLive.Core.CrackedFsproj
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 
 
 

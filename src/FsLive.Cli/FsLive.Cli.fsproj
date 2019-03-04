@@ -17,12 +17,14 @@
         <Compile Include="fslive.fs" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\src\FSharp.Compiler.PortaCode.fsproj" />
 
         <!-- References used indirectly by FCS when compiling tests -->
         <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
-        <PackageReference Include="NETStandard.Library" Version="2.0.3"  />
-        <PackageReference Include="System.Reflection.Emit.ILGeneration"  Version="4.3.0" />
-        <PackageReference Include="System.Reflection.Emit.Lightweight"  Version="4.3.0" />
+        <PackageReference Include="NETStandard.Library" Version="2.0.3" />
+        <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.3.0" />
+        <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\FsLive.Porta\FsLive.Porta.fsproj" />
     </ItemGroup>
 </Project>

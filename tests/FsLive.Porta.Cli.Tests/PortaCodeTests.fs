@@ -183,7 +183,7 @@ module TestCode
                yield "--eval"; 
                if livechecks then yield "--livechecksonly"; 
                yield "@" + name + ".args.txt" |]
-        Assert.AreEqual(0, FSharp.Compiler.PortaCode.ProcessCommandLine.ProcessCommandLine(args))
+        Assert.AreEqual(0, FsLive.Porta.ProcessCommandLine.ProcessCommandLine(args))
 
     let GeneralTestCase directory name code refs = GeneralTestCaseLiveChecks directory name code refs false
 

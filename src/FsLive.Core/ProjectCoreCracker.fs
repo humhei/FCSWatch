@@ -3,9 +3,10 @@ module FsLive.Core.ProjectCoreCracker
 
 open System
 open System.IO
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open System.Xml
 open Dotnet.ProjInfo.Workspace
+open Dotnet.ProjInfo.Workspace.FCS
 
 
 module MSBuildPrj = Dotnet.ProjInfo.Inspect
@@ -187,11 +188,17 @@ let getProjectOptionsFromProjectFile (file : string) = async {
         return result
 }
 
-let getProjectOptionsFromProjectFiles (projPaths : string list) = 
-    let config = 
-        let msbuildLocator = MSBuildLocator()
-        LoaderConfig.Default(msbuildLocator)
 
-    let loader = Loader.Create(config)
+let getProjectOptionsFromScript (checker: FSharpChecker) (scriptPath: string): FSharpProjectOptions option = 
+    let msbuildLocator = MSBuildLocator()
 
-    loader.LoadProjects projPaths
+    let loader = 
+        let loaderConfig = LoaderConfig.Default(msbuildLocator)
+        Dotnet.ProjInfo.Workspace.Loader.Create(loaderConfig)
+
+    let netFwInfo = 
+        NetFWInfoConfig.Default(msbuildLocator) |> NetFWInfo.Create
+
+    let fcsBinder = FCSBinder(netFwInfo, loader, checker)
+
+    fcsBinder.GetProjectOptions(scriptPath)

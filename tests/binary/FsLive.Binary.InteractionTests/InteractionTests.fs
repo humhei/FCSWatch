@@ -1,6 +1,6 @@
 module FsLive.Binary.InteractionTests.InteractionTests
 open Expecto
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open System.IO
 open FsLive
 open Fake.IO
@@ -11,7 +11,7 @@ open FsLive.Core.FsLive
 open FsLive.Core.CompilerTmpEmiiter
 open Fake.DotNet
 open FsLive.Core
-open FsLive.Binary
+open FsLive.Binary.Main
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"
@@ -42,7 +42,7 @@ let createWatcher developmentTarget buildingConfig =
 
     let checker = FSharpChecker.Create()
 
-    fsLive developmentTarget buildingConfig checker entryProjPath
+    fsLive developmentTarget buildingConfig checker (Some entryProjPath)
 
 
 // DotNet.build id entryProjDir

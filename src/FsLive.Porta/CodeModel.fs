@@ -1,6 +1,6 @@
 ﻿// Copyright 2018 Fabulous contributors. See LICENSE.md for license.
 
-module FSharp.Compiler.PortaCode.CodeModel
+module FsLive.Porta.CodeModel
 
 type DRange = 
    { File: string 

@@ -1,16 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Library</OutputType>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0; net461</TargetFrameworks>
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="CodeModel.fs" />
         <Compile Include="Interpreter.fs" />
         <Compile Include="FromCompilerService.fs" />
         <Compile Include="ProcessCommandLine.fs" />
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FsLive.Core\FsLive.Core.fsproj" />

@@ -2,10 +2,9 @@ source https://api.nuget.org/v3/index.json
 storage: none
 nuget FSharp.Compiler.Service
 nuget Expecto
-nuget Dotnet.ProjInfo
+nuget Dotnet.ProjInfo.Workspace.FCS
 nuget Fake.DotNet.Cli
 nuget Suave
-nuget Dotnet.ProjInfo.Workspace
 
 group build
     storage: none

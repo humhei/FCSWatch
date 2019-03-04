@@ -5,10 +5,11 @@ open Fake.IO.FileSystemOperators
 open System.Collections.Generic
 open System.Xml
 open FsLive.Core.CrackedFsproj
+open FSharp.Compiler.SourceCodeServices
 
 [<RequireQualifiedAccess>]
 module Path =
-    let nomarlizeToUnixCompitiable path =
+    let nomarlizeToUnixCompatible path =
         let path = (Path.getFullName path).Replace('\\','/')
 
         let dir = Path.getDirectory path
@@ -76,6 +77,10 @@ module CompileOrCheckResult =
 [<RequireQualifiedAccess>]
 module CrackedFsprojSingleTarget =
 
+    /// copy ref dll from proj other options  
+    /// e.g.
+    /// arg-projectFile is D:\VsCode\Github\FCSWatch\tests\binary\datas\TestLib2.fsproj
+    /// otherOptions contains :r:D:\VsCode\Github\FCSWatch\tests\binary\datas\TestLib2\obj\Debug\netstandard2.0\TestLib2.dll
     let copyFileFromRefDllToBin originProjectFile (destCrackedFsprojSingleTarget: CrackedFsprojSingleTarget) =
 
         let targetDir = destCrackedFsprojSingleTarget.TargetDir
@@ -120,6 +125,12 @@ type Config =
       OtherFlags: string list
       WorkingDir: string }
 
+with 
+    static member DeafultValue = 
+        { LoggerLevel = Logger.Level.Minimal
+          OtherFlags = []
+          WorkingDir = Directory.GetCurrentDirectory() }
+
 
 type FullCrackedFsproj =
     { Value: CrackedFsproj
@@ -132,7 +143,7 @@ module FullCrackedFsproj =
         let values = new HashSet<string>()
         let add projectFile = values.Add projectFile |> ignore
         let rec loop (projectFile: string) =
-            let normarlizedPath = Path.nomarlizeToUnixCompitiable projectFile
+            let normarlizedPath = Path.nomarlizeToUnixCompatible projectFile
             add normarlizedPath
 
             let dir = Path.getDirectory projectFile
@@ -226,48 +237,116 @@ module FullCrackedFsproj =
         loop [] fsproj
         cacheMutable
         |> Dictionary.toMap
+        |> Map.filter (fun proj _ -> proj <> fsproj.Value.ProjPath)
         |> Map.map (fun proj crackedFsprojs ->
             crackedFsprojs
             |> List.distinctBy (fun crackedFsproj -> crackedFsproj.ProjPath)
         )
 
 
-    let create (config: Config) projectFile = async {
+    let create (checker: FSharpChecker) (config: Config) (projectFile: string option) = async {
+        let otherFlags = config.OtherFlags
+
         logger.Infots "Begin crack project"
-        let projectMapsMutable = Dictionary<string,CrackedFsproj>()
-        let! allCrackedFsprojs = getAllCrackedFsprojs projectFile
+        match projectFile with 
+        | Some projectFile ->
+            let projectMapsMutable = Dictionary<string,CrackedFsproj>()
+            let! allCrackedFsprojs = getAllCrackedFsprojs projectFile
 
-        let applyOtherFlagsToEntryProject (allCrackedFsprojs: seq<CrackedFsproj> ) =
-            allCrackedFsprojs |> Seq.map (fun crackedFsproj ->
-                if crackedFsproj.ProjPath = projectFile then 
-                    CrackedFsproj.mapProjOptions (fun ops -> 
-                        { ops with 
-                            OtherOptions = [| yield! ops.OtherOptions; yield! config.OtherFlags |] }
-                    ) crackedFsproj
-                else crackedFsproj
-            )
+            let applyOtherFlagsToEntryProject (allCrackedFsprojs: seq<CrackedFsproj> ) =
+                allCrackedFsprojs |> Seq.map (fun crackedFsproj ->
+                    if crackedFsproj.ProjPath = projectFile then 
+                        CrackedFsproj.mapProjOptions (fun ops -> 
+                            { ops with 
+                                OtherOptions = [| yield! ops.OtherOptions; yield! otherFlags |] }
+                        ) crackedFsproj
+                    else crackedFsproj
+                )
 
-        allCrackedFsprojs 
-        |> CrackedFsproj.mapProjOtherOptionsObjRefOnly 
-        |> applyOtherFlagsToEntryProject 
-        |> Seq.iter (fun crakedFsproj -> projectMapsMutable.Add (crakedFsproj.ProjPath,crakedFsproj))
+            allCrackedFsprojs 
+            |> CrackedFsproj.mapProjOtherOptionsObjRefOnly 
+            |> applyOtherFlagsToEntryProject 
+            |> Seq.iter (fun crakedFsproj -> projectMapsMutable.Add (crakedFsproj.ProjPath,crakedFsproj))
 
-        let rec loop projectFile =
-            let projectInfo = projectMapsMutable.[projectFile]
-            { Value = projectInfo
-              Refs = projectInfo.ProjRefs |> List.map loop }
+            let rec loop projectFile =
+                let projectInfo = projectMapsMutable.[projectFile]
+                { Value = projectInfo
+                  Refs = projectInfo.ProjRefs |> List.map loop }
 
-        let project = loop projectFile
+            let project = loop projectFile
 
-        let projectMap =
-            projectMapsMutable
-            |> Dictionary.toMap
+            let projectMap =
+                projectMapsMutable
+                |> Dictionary.toMap
 
-        logger.Infots "End crack project"
+            logger.Infots "End crack project"
+            return (project, projectMap)
 
+        | None ->
+            let otherFlags = 
+                otherFlags
+                |> List.map (fun arg ->
+                    if arg.EndsWith(".fs") || arg.EndsWith(".fsi") || arg.EndsWith(".fsx") 
+                    then arg |> Path.getFullName |> Path.nomarlizeToUnixCompatible
+                    else arg
+                )
+                |> Array.ofList
 
+            let sourceFiles, _ = 
+                otherFlags 
+                |> Array.partition (fun arg -> arg.EndsWith(".fs") || arg.EndsWith(".fsi") || arg.EndsWith(".fsx"))
+            
+            let fsharpProjectOptions, props = 
 
-        return (project, projectMap)
+                match sourceFiles with 
+                | [| |] -> failwithf "no project file found, no compilation arguments given and no project file found in %s" config.WorkingDir
+                | [| script |] when script.EndsWith(".fsx") ->
+                    let text = File.readAsStringWithEncoding System.Text.Encoding.UTF8 script
+                    let options, errors = checker.GetProjectOptionsFromScript(script, text, otherFlags=otherFlags) |> Async.RunSynchronously
+                    if errors.Length > 0 then 
+                        failwithf "FsLive: ERRORS: %A" errors
+                    else 
+                        let outputDll = 
+                            let fileName = Path.GetFileNameWithoutExtension script
+                            let dir = Path.getDirectory script
+                            dir </> "bin/Debug/noframework" </> fileName + ".dll"
+                            |> Path.nomarlizeToUnixCompatible
+
+                        //let options = { options with SourceFiles = sourceFiles }
+
+                        let props = 
+                            ["TargetPath", outputDll
+                             "TargetFramework", "noframework"]
+                            |> Map.ofList
+
+                        { options with 
+                            OtherOptions = 
+                                let keepOrAdd (prediate: string -> bool) added otherOptions =
+                                    match Array.tryFind prediate otherOptions with 
+                                    | Some _ -> otherOptions
+                                    | None -> Array.append [|added|] otherOptions
+
+                                options.OtherOptions 
+                                |> keepOrAdd (fun ops -> ops.StartsWith "-o:" || ops.StartsWith "--out:") ("-o:" + outputDll)
+                                |> keepOrAdd (fun ops -> ops.StartsWith "--target:") ("--target:library")
+
+                        }, props
+
+                | _ -> 
+                    failwith "Only one fs file in compile options is allowed"
+                
+            let project = 
+                { Value = 
+                    { FSharpProjectOptions = fsharpProjectOptions
+                      ProjRefs = []
+                      Props = props
+                      ProjPath = fsharpProjectOptions.ProjectFileName }
+                    |> List.singleton
+                    |> CrackedFsproj.CrackedFsproj
+                  Refs = [] }
+
+            return project, Map.ofList [fsharpProjectOptions.ProjectFileName, project.Value]
+
     }
 
 
@@ -355,7 +434,7 @@ type CrackedFsprojBundleMsg =
     | GetCache of replyChannel: AsyncReplyChannel<CrackedFsprojBundleCache>
     | DetectProjectFileChanges of FileChange list * AsyncReplyChannel<CrackedFsprojBundleCache>
 
-let crackedFsprojBundle (config: Config) (projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
+let crackedFsprojBundle checker (config: Config) (projectFile: string option) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
     let rec loop (entry: FullCrackedFsproj) cache = async {
         let! msg = inbox.Receive()
         match msg with
@@ -370,6 +449,6 @@ let crackedFsprojBundle (config: Config) (projectFile: string) = MailboxProcesso
             return! loop entry newCache
     }
 
-    let (project, cache) = FullCrackedFsproj.create config projectFile |> Async.RunSynchronously
-    loop project (CrackedFsprojBundleCache.create projectFile project cache)
+    let (project, cache) = FullCrackedFsproj.create checker config projectFile |> Async.RunSynchronously
+    loop project (CrackedFsprojBundleCache.create project.Value.AsList.[0].ProjPath project cache)
 )

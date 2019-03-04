@@ -1,10 +1,10 @@
 ﻿// Copyright 2018 Fabulous contributors. See LICENSE.md for license.
-module FSharp.Compiler.PortaCode.Interpreter
+module FsLive.Porta.Interpreter
 
 open System
 open System.Reflection
 open System.Collections.Concurrent
-open FSharp.Compiler.PortaCode.CodeModel
+open FsLive.Porta.CodeModel
 open FSharp.Reflection
 
 type ResolvedEntity = 

@@ -3,8 +3,12 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Remove="Scripts\**" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Library.fs" />
     <Compile Include="Library2.fs" />
     <Compile Include="Added.fs" />
   </ItemGroup>
+  <ItemGroup />
 </Project>

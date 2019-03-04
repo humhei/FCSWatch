@@ -31,6 +31,12 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FsLive.Binary.InteractionTe
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FsLive.Binary.Tests", "tests\binary\FsLive.Binary.Tests\FsLive.Binary.Tests.fsproj", "{48AB9C1D-F4E1-4E51-827E-DE508E9424F2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{46F0D14B-6CF5-4845-AB92-C328E6E19EC1}"
+	ProjectSection(SolutionItems) = preProject
+		tests\binary\datas\Scripts\Common.fsx = tests\binary\datas\Scripts\Common.fsx
+		tests\binary\datas\Scripts\Entry.fsx = tests\binary\datas\Scripts\Entry.fsx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -178,6 +184,7 @@ Global
 		{CA54A1D1-71D4-4837-A7BF-145F34E4D0EF} = {3D12606D-9919-4874-A10C-E37F1CB84CBC}
 		{F150EA62-9FEC-4B29-9B6A-190F62B1BE73} = {40BBC8EA-F1B1-49B7-862D-6C6A142A83B9}
 		{48AB9C1D-F4E1-4E51-827E-DE508E9424F2} = {40BBC8EA-F1B1-49B7-862D-6C6A142A83B9}
+		{46F0D14B-6CF5-4845-AB92-C328E6E19EC1} = {3C655E29-EC24-4364-8C90-E603710C0D11}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4BFB89E1-195E-46FB-8AB6-7632542E82D5}

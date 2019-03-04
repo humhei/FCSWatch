@@ -1,5 +1,5 @@
 module FsLive.Core.FsLive
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open FsLive.Core.CrackedFsprojBundle
 open Fake.IO.Globbing
 open Fake.IO
@@ -27,13 +27,12 @@ let fsLive
     (buildingConfig: Config -> Config) 
     (developmentTarget: DevelopmentTarget<'EmitReply>)
     (checker: FSharpChecker) 
-    (entryProjectFile: string) = 
-        let entryProjectFile = Path.getFullName entryProjectFile |> Path.nomarlizeToUnixCompitiable
+    (entryProjectFileOp: string option) =
+
+        let entryProjectFileOp = entryProjectFileOp |> Option.map (Path.getFullName >> Path.nomarlizeToUnixCompatible)
 
         let config = 
-            { LoggerLevel = Logger.Level.Minimal
-              WorkingDir = Path.getFullName "./"
-              OtherFlags = [] }
+            Config.DeafultValue
             |> buildingConfig
 
         let config = { config with WorkingDir = Path.getFullName config.WorkingDir }        
@@ -58,13 +57,9 @@ let fsLive
             logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
             logger.Info "fcs watcher's working directory is %s" config.WorkingDir
 
-            let crackedProjectBundleAgent = crackedFsprojBundle config entryProjectFile
+            let crackedProjectBundleAgent = crackedFsprojBundle checker config entryProjectFileOp
 
             let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
-
-            let initialProjectMap = initialCache.ProjectMap
-
-            let entryCrackedFsproj = initialProjectMap.[entryProjectFile]
 
             let projectFilesWatcher =
                 let pattern =
@@ -81,7 +76,7 @@ let fsLive
             
             let compilerTmpEmitterAgent = compilerTmpEmitter developmentTarget config initialCache
 
-            let compilerAgent = compiler developmentTarget entryProjectFile compilerTmpEmitterAgent initialCache config checker
+            let compilerAgent = compiler developmentTarget initialCache.EntryProjectFile compilerTmpEmitterAgent initialCache config checker
 
             let rec loop (state: FsLiveModel) = async {
                 let cache = state.CrackerFsprojBundleCache

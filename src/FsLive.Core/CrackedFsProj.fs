@@ -2,7 +2,7 @@ namespace FsLive.Core
 open System.IO
 open Fake.IO
 open Fake.IO.FileSystemOperators
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 
 module CrackedFsproj =
     [<RequireQualifiedAccess>]
@@ -92,9 +92,10 @@ module CrackedFsproj =
 
         member x.ObjTargetFile =
             let projDir = Path.getDirectory x.ProjPath
-            let relative = Path.toRelativeFrom projDir x.TargetPath
+            let targetPath = x.TargetPath
+            let relative = targetPath.Replace(projDir,"").TrimStart([|'/';'\\'|])
             let objRelative =
-                if relative.StartsWith ".\\bin" || relative.StartsWith "./bin" then  "obj" + relative.Substring 5
+                if relative.StartsWith "bin" || relative.StartsWith "bin" then  "obj" + relative.Substring 3
                 else failwithf "is not a valid bin relativePath %s" relative
             projDir </> objRelative
 
@@ -108,8 +109,7 @@ module CrackedFsproj =
 
         member x.SourceFiles =
             x.FSharpProjectOptions.OtherOptions
-            |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
-            |> Array.map Path.getFullName
+            |> Array.filter(fun op -> (op.EndsWith ".fs" || op.EndsWith ".fsx" || op.EndsWith ".fsi") && not <| op.EndsWith "AssemblyInfo.fs" )
 
 
     [<RequireQualifiedAccess>]
@@ -137,7 +137,7 @@ module CrackedFsproj =
 
 
 
-    type CrackedFsproj = private CrackedFsproj of CrackedFsprojSingleTarget list
+    type CrackedFsproj = CrackedFsproj of CrackedFsprojSingleTarget list
 
     with
         member x.AsList =
@@ -163,7 +163,8 @@ module CrackedFsproj =
             | [|projOptions,projRefs,props|] ->
                 return
                     { FSharpProjectOptions = projOptions
-                      Props = props; ProjPath = projectFile
+                      Props = props 
+                      ProjPath = projectFile
                       ProjRefs = projRefs }
                     |> List.singleton
                     |> CrackedFsproj

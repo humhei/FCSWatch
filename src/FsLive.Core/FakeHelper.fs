@@ -1,6 +1,6 @@
 module FsLive.Core.FakeHelper
 open System.Threading
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open FsLive.Core.FsLive
 
 let runFsLive developmentTarget (checker: FSharpChecker) projectFile = 

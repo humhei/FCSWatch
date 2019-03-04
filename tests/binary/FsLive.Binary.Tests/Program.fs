@@ -12,6 +12,7 @@ let testConfig =
 
 let tests = 
     testList "All tests" [ 
+        scriptTests
         programTests             
         pluginTests 
         functionTests           
