@@ -1,9 +1,10 @@
 module FsLive.Core.Compiler
-open CrackedFsprojBundle
 open System.Diagnostics
 open FsLive.Core.CompilerTmpEmiiter
 open System
 open FsLive.Core.CrackedFsproj
+open FullCrackedFsproj
+open FsLive.Core.CrackedFsprojBundle
 
 [<RequireQualifiedAccess>]
 type CompilerMsg =
@@ -13,10 +14,6 @@ type CompilerMsg =
 type CompilerModel =
     { CrackerFsprojBundleCache: CrackedFsprojBundleCache }
 
-
-
-
-
 let compiler (developmentTarget: DevelopmentTarget<'EmitReply>) (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg<'EmitReply>>) (initialCache: CrackedFsprojBundleCache) config checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
 
     let createCompileTask (crackedFsprojInfoTargets: CrackedFsproj list) =
@@ -25,7 +22,7 @@ let compiler (developmentTarget: DevelopmentTarget<'EmitReply>) (entryProjectFil
             async {
                 let stopWatch = Stopwatch.StartNew()
 
-                let! results = developmentTarget.CompileOrCheck checker crackedFsprojInfoTarget
+                let! results = developmentTarget.CompileOrCheck config checker crackedFsprojInfoTarget
 
                 match Array.tryFind CompileOrCheckResult.isFail results with
                 | None ->
@@ -123,9 +120,10 @@ let compiler (developmentTarget: DevelopmentTarget<'EmitReply>) (entryProjectFil
 
 
     }
-    let entryCrackedFsproj = initialCache.ProjectMap.[entryProjectFile]
-
-    inbox.Post (CompilerMsg.CompileProjects [entryCrackedFsproj])
+    if config.WarmCompile then 
+        /// warm compile
+        let entryCrackedFsproj = initialCache.ProjectMap.[entryProjectFile]
+        inbox.Post (CompilerMsg.CompileProjects [entryCrackedFsproj])
 
     loop { CrackerFsprojBundleCache = initialCache }
 )

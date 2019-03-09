@@ -7,6 +7,7 @@
   <ItemGroup>
     <Compile Include="DebuggingServer.fs" />
     <Compile Include="Main.fs" />
+    <Compile Include="FakeHelper.fs" />
   </ItemGroup>
 
   <ItemGroup>

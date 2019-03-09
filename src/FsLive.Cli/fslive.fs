@@ -12,6 +12,7 @@
 module FsLive.Driver
 
 open FsLive.Porta.ProcessCommandLine
+open System
 
 
 #if !TEST

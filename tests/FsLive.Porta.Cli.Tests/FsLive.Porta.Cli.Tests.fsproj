@@ -1,9 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>netcoreapp2.2</TargetFramework>
-        <OutputType>Library</OutputType>
-        <IsPackable>false</IsPackable>
-        <DefineConstants>$(DefineConstants);NETSTANDARD2_0;TEST</DefineConstants>
+        <OutputType>Exe</OutputType>
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="PortaCodeTests.fs" />
@@ -22,4 +20,6 @@
     <ItemGroup>
       <ProjectReference Include="..\..\src\FsLive.Porta\FsLive.Porta.fsproj" />
     </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+
 </Project>

@@ -1,4 +1,4 @@
--o:LetRecSmoke.dll
+-o:Entry.dll
 -g
 --debug:portable
 --noframework
@@ -133,4 +133,4 @@
 --targetprofile:netstandard
 --simpleresolution
 --nocopyfsharpcore
-LetRecSmoke.fs
+Entry.fsx

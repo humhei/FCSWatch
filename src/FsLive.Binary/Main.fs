@@ -5,10 +5,12 @@ open FsLive.Core.CrackedFsproj
 open FsLive.Core
 open Suave
 open System.Threading
-open FsLive.Core.CrackedFsprojBundle
 open DebuggingServer
+open FsLive.Core.FullCrackedFsproj
 
 module Main =
+
+
 
     type Plugin =
         { Load: unit -> unit
@@ -21,7 +23,32 @@ module Main =
         | Plugin of Plugin
         | Program
 
-    let private compile checker crackedFsProj = async {
+    type Config = 
+        { DevelopmentTarget: DevelopmentTarget 
+          LoggerLevel: Logger.Level
+          OtherFlags: string list
+          UseEditFiles: bool
+          WorkingDir: string }
+
+    with 
+        static member DefaultValue = 
+            let coreConfig = FsLive.Core.Config.DeafultValue
+            { DevelopmentTarget = DevelopmentTarget.Program
+              LoggerLevel = coreConfig.LoggerLevel
+              OtherFlags = coreConfig.OtherFlags
+              UseEditFiles = coreConfig.UseEditFiles
+              WorkingDir = coreConfig.WorkingDir }
+
+        member x.AsCore: FsLive.Core.Config = 
+            { LoggerLevel = x.LoggerLevel
+              OtherFlags = x.OtherFlags
+              UseEditFiles = x.UseEditFiles
+              WorkingDir = x.WorkingDir
+              BuildingFSharpProjectOptions = id
+              WarmCompile = true
+              Eval = false }
+
+    let private compile _ checker crackedFsProj = async {
         let! compileResults = CrackedFsproj.compile checker crackedFsProj
         return 
             compileResults |> Array.map CompileOrCheckResult.CompileResult
@@ -119,5 +146,6 @@ module Main =
           StartDebuggingServer = 
             fun config compilerTmpEmitterAgent -> debuggingServer config compilerTmpEmitterAgent |> ignore }
 
-    let fsLive binaryDevelopmentTarget config checker entryProjectFile =
-        fsLive config (developmentTarget binaryDevelopmentTarget) checker entryProjectFile
+    let fsLive (buildingConfig: Config -> Config) checker entryProjectFile =
+        let config = buildingConfig Config.DefaultValue
+        fsLive config.AsCore (developmentTarget config.DevelopmentTarget) checker entryProjectFile

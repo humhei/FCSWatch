@@ -45,14 +45,13 @@ module CompilerTmpEmiiterState =
           CrackerFsprojFileBundleCache = cache }
 
 type DevelopmentTarget<'EmitReply> = 
-    { CompileOrCheck: FSharpChecker -> CrackedFsproj -> Async<CompileOrCheckResult []>
+    { CompileOrCheck: Config -> FSharpChecker -> CrackedFsproj -> Async<CompileOrCheckResult []>
       TryEmit: Logger.Logger -> CompilerTmpEmitterState<'EmitReply> -> CompilerTmpEmitterState<'EmitReply>
       StartDebuggingServer: Config -> MailboxProcessor<CompilerTmpEmitterMsg<'EmitReply>> -> unit }
 
 let compilerTmpEmitter  (developmentTarget: DevelopmentTarget<'EmitReply>) config (initialCache: CrackedFsprojBundleCache) = MailboxProcessor<CompilerTmpEmitterMsg<'EmitReply>>.Start(fun inbox ->
     developmentTarget.StartDebuggingServer config inbox
     let rec loop state = async {
-        let cache = state.CrackerFsprojFileBundleCache        
         let traceMsg compilingNumber msg = 
             logger.Info "compilerTmpEmitter agent receive message %s,current compiling number is %d" msg compilingNumber
 

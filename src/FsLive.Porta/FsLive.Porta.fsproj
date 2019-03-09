@@ -12,4 +12,5 @@
     <ItemGroup>
       <ProjectReference Include="..\FsLive.Core\FsLive.Core.fsproj" />
     </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

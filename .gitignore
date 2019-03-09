@@ -12,7 +12,7 @@ node_modules
 *.userprefs
 *.dll.mdb
 *.exe.mdb
-
+tests/FsLive.Porta.Cli.Tests/data/**
 # Build results
 
 [Dd]ebug/

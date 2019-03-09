@@ -6,11 +6,11 @@
     <Compile Include="ProjectCoreCracker.fs" />
     <Compile Include="CrackedFsproj.fs" />
     <Compile Include="Logger.fs" />
+    <Compile Include="FullCrackedFsproj.fs" />
     <Compile Include="CrackedFsprojBundle.fs" />
     <Compile Include="CompilerTmpEmitter.fs" />
     <Compile Include="Compiler.fs" />
     <Compile Include="FsLive.fs" />
-    <Compile Include="FakeHelper.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -21,7 +21,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "emitCompilerTmp",
-            "program": "${workspaceFolder}/tests/datas/TestProject/bin/Debug/netcoreapp2.2/TestProject.dll",
+            "program": "${workspaceFolder}/tests/binary/datas/TestProject/bin/Debug/netcoreapp2.2/TestProject.dll",
         },
         {
             "name": "Debug My Build Script",

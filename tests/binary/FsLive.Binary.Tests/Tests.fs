@@ -2,7 +2,6 @@ module FsLive.Binary.Tests.Tests
 open Expecto
 open FSharp.Compiler.SourceCodeServices
 open System.IO
-open FsLive
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open System.Threading
@@ -12,12 +11,13 @@ open Fake.DotNet
 open FsLive.Core
 open FsLive.Binary.Main
 open Types
+open FsLive.Core.FullCrackedFsproj
 
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"
 
-let root = __SOURCE_DIRECTORY__ </> "../../"
+let root = __SOURCE_DIRECTORY__ </> "../../../"
 
 let datas = Path.getDirectory(__SOURCE_DIRECTORY__) </> "datas"
 
@@ -55,12 +55,12 @@ let checker = FSharpChecker.Create()
 
 let createWatcher otherFlags developmentTarget buildingConfig entryPath =
     lazy
-        let buildingConfig config =
+        let buildingConfig (config: Config) =
             {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal; OtherFlags = otherFlags }
             |> buildingConfig
 
 
-        fsLive developmentTarget buildingConfig checker entryPath
+        fsLive buildingConfig checker entryPath
 
 DotNet.build (fun ops ->
     { ops with
@@ -75,7 +75,6 @@ let scriptTests =
     testList "script tests" [
 
         testCase "change file in Scripts/Entry.fsx will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
 
             watcher.Value.PostAndReply (makeSourceFileChanges [testScriptFile1])
            /// (TestLib2/Library.fs)
@@ -90,21 +89,19 @@ let programTests =
     testList "program tests" [
 
         testCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
 
             watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1])
            /// (TestLib2/Library.fs)
             |> expectCompilerNumber 1
 
         testCase "change multiple file in TestLib2 will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
 
             watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1; testSourceFile2])
             /// (TestLib2/Library.fs + TestLib2/Library2.fs)
             |> expectCompilerNumber 1
 
         testCase "change file in TestLib1 and TestLib2 will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
+
             watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
             /// (TestLib2/*.fs) + (TestLib1/*.fs)
             |> expectCompilerNumber 2
@@ -112,7 +109,8 @@ let programTests =
         testCase "add fs file in fsproj will update watcher" <| fun _ ->
             try
                 Proj.addFileToProject "Added.fs" testProjPath
-
+                /// how to effectively test actor model? While Akka using TestKit
+                /// https://doc.akka.io/docs/akka/2.5/testing.html
                 Thread.Sleep(1000)
 
                 watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFileAdded])
@@ -145,7 +143,6 @@ let pluginTests =
 
     testList "plugin Tests" [
         testCase "in plugin mode " <| fun _ ->
-            // Modify fs files in TestLib2
             watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1])
             /// TestLib2/Library.fs
             |> expectCompilerNumber 1
@@ -161,8 +158,8 @@ let functionTests =
                     FullCrackedFsproj.create checker Config.DeafultValue (Some entryProjPath)
 
                 let otherOptions =
-                    fullCracekdFsproj.Value.AsList |> Seq.collect (fun crackedFsprojSingleTarget ->
-                        crackedFsprojSingleTarget.FSharpProjectOptions.OtherOptions
+                    fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
+                        singleTargetCrackedFsproj.FSharpProjectOptions.OtherOptions
                     ) |> List.ofSeq
 
                 let p1 =

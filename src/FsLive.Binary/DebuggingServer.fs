@@ -4,7 +4,7 @@ open System.Net
 open Fake.IO.FileSystemOperators
 open FsLive.Core.CompilerTmpEmiiter
 open System.Text
-open FsLive.Core.CrackedFsprojBundle
+open FsLive.Core
 open Suave.Filters
 open Suave.Operators
 open Suave

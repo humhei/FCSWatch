@@ -19,21 +19,20 @@ let inline (<!>) msg content =
         msg (content, replyChannel)
 
 type FsLiveModel = 
-    { SourceFileWatcher: IDisposable
+    { SourceFileWatchers: IDisposable list
       CrackerFsprojBundleCache: CrackedFsprojBundleCache }
 
 
+
+/// <summary>create a fslive agent</summary>
+/// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then config.Otherflags must be not empty</param>
 let fsLive 
-    (buildingConfig: Config -> Config) 
+    (config: Config) 
     (developmentTarget: DevelopmentTarget<'EmitReply>)
     (checker: FSharpChecker) 
-    (entryProjectFileOp: string option) =
+    (entryFileOp: string option) =
 
-        let entryProjectFileOp = entryProjectFileOp |> Option.map (Path.getFullName >> Path.nomarlizeToUnixCompatible)
-
-        let config = 
-            Config.DeafultValue
-            |> buildingConfig
+        let entryProjectFileOp = entryFileOp |> Option.map (Path.getFullName >> Path.nomarlizeToUnixCompatible)
 
         let config = { config with WorkingDir = Path.getFullName config.WorkingDir }        
  
@@ -41,21 +40,35 @@ let fsLive
 
         let agent = MailboxProcessor<FsLiveMsg>.Start(fun inbox ->
         
-            let newSourceFileWatcher cache = 
-                let pattern = 
-                    let files = cache.SourceFileMap |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
-                    { BaseDirectory = config.WorkingDir
-                      Includes = files
-                      Excludes = [] }
+            let newSourceFileWatchers cache = 
+                [
+                    let sourceFileWatcher files =
+                        let pattern = 
+                            { BaseDirectory = config.WorkingDir
+                              Includes = files
+                              Excludes = [] }
 
-                pattern |> ChangeWatcher.run (fun changes ->
-                    inbox.PostAndReply (FsLiveMsg.DetectSourceFileChanges <!> (List.ofSeq changes))
-                    |> ignore
-                    ()
-                )
+                        ChangeWatcher.run (fun changes ->
+                            inbox.PostAndReply (FsLiveMsg.DetectSourceFileChanges <!> (List.ofSeq changes))
+                            |> ignore) pattern
 
-            logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
-            logger.Info "fcs watcher's working directory is %s" config.WorkingDir
+                    let sourceFiles = cache.SourceFileMap |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
+
+                    yield 
+                        sourceFileWatcher sourceFiles
+
+                    if config.UseEditFiles then 
+                        yield
+                            sourceFiles 
+                            |> List.map (fun sourceFile ->
+                                let infoDir, editFile = FileSystem.editDirAndFile sourceFile config
+                                editFile
+                            )
+                            |> sourceFileWatcher
+                ]
+
+            logger.Info "fslive is running in logger level %A" config.LoggerLevel
+            logger.Info "fslive's working directory is %s" config.WorkingDir
 
             let crackedProjectBundleAgent = crackedFsprojBundle checker config entryProjectFileOp
 
@@ -91,8 +104,8 @@ let fsLive
                 | FsLiveMsg.DetectSourceFileChanges (fileChanges, replyChannel) ->
 
                     let projFiles = 
-                        fileChanges |> List.map (fun fileChange ->
-                            logger.ImportantGreen "detect file %s changed" fileChange.FullPath
+                        fileChanges |> List.collect (fun fileChange ->
+                            logger.ImportantGreen "fslive: detect file %s changed" fileChange.FullPath
                             sourceFileMap.[fileChange.FullPath]
                         )
                         |> List.distinct
@@ -106,16 +119,16 @@ let fsLive
                     return! loop state  
 
 
-                | FsLiveMsg.DetectProjectFileChanges (fileChanges,replyChannel) ->
+                | FsLiveMsg.DetectProjectFileChanges (fileChanges, replyChannel) ->
                     fileChanges |> List.iter (fun fileChange ->
-                        logger.ImportantGreen "detect project file %s changed" fileChange.FullPath
+                        logger.ImportantGreen "fslive: detect project file %s changed" fileChange.FullPath
                     )
 
                     let newCache = crackedProjectBundleAgent.PostAndReply (CrackedFsprojBundleMsg.DetectProjectFileChanges <!> fileChanges)
                     
-                    let newSourceFileWatcher = 
-                        state.SourceFileWatcher.Dispose()
-                        newSourceFileWatcher newCache
+                    let newSourceFileWatchers = 
+                        state.SourceFileWatchers |> List.iter (fun watcher -> watcher.Dispose())
+                        newSourceFileWatchers newCache
 
                     compilerAgent.Post(CompilerMsg.UpdateCache newCache)
 
@@ -123,11 +136,11 @@ let fsLive
 
                     replyChannel.Reply()
 
-                    return! loop { state with SourceFileWatcher = newSourceFileWatcher; CrackerFsprojBundleCache = newCache }
+                    return! loop { state with SourceFileWatchers = newSourceFileWatchers; CrackerFsprojBundleCache = newCache }
         
             }
-            let sourceFileWatcher = newSourceFileWatcher initialCache
-            loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojBundleCache = initialCache }
+            let sourceFileWatchers = newSourceFileWatchers initialCache
+            loop { SourceFileWatchers = sourceFileWatchers; CrackerFsprojBundleCache = initialCache }
         )
 
         agent

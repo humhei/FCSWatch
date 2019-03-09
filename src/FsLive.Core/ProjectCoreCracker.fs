@@ -189,16 +189,15 @@ let getProjectOptionsFromProjectFile (file : string) = async {
 }
 
 
-let getProjectOptionsFromScript (checker: FSharpChecker) (scriptPath: string): FSharpProjectOptions option = 
+let getProjectOptionsFromScript (checker: FSharpChecker) (scriptPath: string): FSharpProjectOptions = 
     let msbuildLocator = MSBuildLocator()
-
-    let loader = 
-        let loaderConfig = LoaderConfig.Default(msbuildLocator)
-        Dotnet.ProjInfo.Workspace.Loader.Create(loaderConfig)
 
     let netFwInfo = 
         NetFWInfoConfig.Default(msbuildLocator) |> NetFWInfo.Create
 
-    let fcsBinder = FCSBinder(netFwInfo, loader, checker)
+    let fsxBinder = FsxBinder(netFwInfo, checker)
 
-    fcsBinder.GetProjectOptions(scriptPath)
+    let tfm = netFwInfo.LatestVersion ()
+
+    fsxBinder.GetProjectOptionsFromScriptBy(tfm, scriptPath, File.ReadAllText scriptPath)
+    |> Async.RunSynchronously

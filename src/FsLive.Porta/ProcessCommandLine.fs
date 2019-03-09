@@ -13,10 +13,10 @@ open System.IO
 open FSharp.Compiler.SourceCodeServices
 open System.Net
 open System.Text
-open FsLive.Core.CrackedFsprojBundle
 open FsLive.Core.CrackedFsproj
 open FsLive.Core
 open FsLive.Core.CompilerTmpEmiiter
+open FsLive.Core.FullCrackedFsproj
 
 
 let ProcessCommandLine (argv: string[]) =
@@ -89,32 +89,6 @@ let ProcessCommandLine (argv: string[]) =
             fsproj <- Some file
         | file1 :: file2 :: _ -> 
             failwithf "multiple project files found, e.g. %s and %s" file1 file2 
-
-    let editDirAndFile (fileName: string) =
-        assert useEditFiles
-        let infoDir = Path.Combine(Path.GetDirectoryName fileName,".fsharp")
-        let editFile = Path.Combine(infoDir,Path.GetFileName fileName + ".edit")
-        if not (Directory.Exists infoDir) then 
-            Directory.CreateDirectory infoDir |> ignore
-        infoDir, editFile
-
-    let readFile (fileName: string) = 
-        if useEditFiles && watch then 
-            let infoDir, editFile = editDirAndFile fileName
-            let preferEditFile =
-                try 
-                    Directory.Exists infoDir && File.Exists editFile && File.Exists fileName && File.GetLastWriteTime(editFile) > File.GetLastWriteTime(fileName)
-                with _ -> 
-                    false
-            if preferEditFile then 
-                printfn "*** preferring %s to %s ***" editFile fileName
-                File.ReadAllText editFile
-            else
-                File.ReadAllText fileName
-        else
-            File.ReadAllText fileName
-
-
 
 
     let keepRanges = eval
@@ -315,10 +289,11 @@ let ProcessCommandLine (argv: string[]) =
             printfn "...evaluated decls" 
 
 
-    let compileOrCheck (checker: FSharpChecker) (crackedFsproj: CrackedFsproj) =
-        let rec checkFile count sourceFile (crackedFsproj: CrackedFsprojSingleTarget) =         
+    let check config (checker: FSharpChecker) (crackedFsproj: CrackedFsproj) =
+        let rec checkFile count sourceFile (crackedFsproj: SingleTargetCrackedFsproj) =         
             try 
-                let _, checkResults = checker.ParseAndCheckFileInProject(sourceFile, 0, readFile sourceFile, crackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
+
+                let _, checkResults = checker.ParseAndCheckFileInProject(sourceFile, 0, FileSystem.readFile sourceFile config, crackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
                 match checkResults with 
                 | FSharpCheckFileAnswer.Aborted -> 
                     printfn "aborted"
@@ -344,12 +319,12 @@ let ProcessCommandLine (argv: string[]) =
                 Result.Error None
 
 
-        let checkCrackedFsprojSingleTarget (crackedFsprojSingleTarget: CrackedFsprojSingleTarget) =    
-            let sourceFiles = crackedFsprojSingleTarget.SourceFiles
+        let checkFiles (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =    
+            let sourceFiles = singleTargetCrackedFsproj.SourceFiles
             let rec loop rest acc = 
                 match rest with 
                 | file :: rest -> 
-                    match checkFile 0 (Path.GetFullPath(file)) crackedFsprojSingleTarget with 
+                    match checkFile 0 (Path.GetFullPath(file)) singleTargetCrackedFsproj with 
 
                     // Note, if livechecks are on, we continue on regardless of errors
                     | Result.Error iopt when not livechecksonly -> 
@@ -369,20 +344,46 @@ let ProcessCommandLine (argv: string[]) =
 
 
 
+
         crackedFsproj.AsList
-        |> List.map (fun crackedFsprojSingleTarget ->
+        |> List.map (fun singleTargetCrackedFsproj ->
             async { 
-                let result = checkCrackedFsprojSingleTarget crackedFsprojSingleTarget
+                let result = checkFiles singleTargetCrackedFsproj
                 return 
                     { Result = result 
                       Errors = [||] 
-                      ProjPath = crackedFsprojSingleTarget.ProjPath 
-                      ProjOptions = crackedFsprojSingleTarget.FSharpProjectOptions }
+                      ProjPath = singleTargetCrackedFsproj.ProjPath 
+                      ProjOptions = singleTargetCrackedFsproj.FSharpProjectOptions }
                     |> CompileOrCheckResult.CheckResult
             }
         )
         |> Async.Parallel
 
+
+    let processResult result =
+        match result with 
+        | CompileOrCheckResult.CheckResult checkResult -> 
+            match checkResult.Result with 
+            | Result.Error () -> ()
+
+            | Result.Ok allFileContents -> 
+                match webhook with 
+                | Some hook -> 
+                    sendToWebHook hook allFileContents
+                | None -> 
+
+                if eval then 
+                    printfn "fscd: CHANGE DETECTED, RE-EVALUATING ALL INPUTS...." 
+                    evaluateDecls allFileContents checkResult.ProjOptions
+
+                // The default is to dump
+                if not eval && webhook.IsNone then 
+                    let fileConvContents = jsonFiles (Array.ofList allFileContents)
+
+                    printfn "%A" fileConvContents
+
+        | CompileOrCheckResult.CompileResult _ -> 
+            failwith "invalid token"
 
     let tryEmit (logger: Logger.Logger) (compilerTmpEmiiterState: CompilerTmpEmitterState<_>) =
         let cache = compilerTmpEmiiterState.CrackerFsprojFileBundleCache
@@ -401,13 +402,7 @@ let ProcessCommandLine (argv: string[]) =
             let allResults = lastTasks |> List.collect (fun task -> task.Task.Result)
 
             match List.tryFind CompileOrCheckResult.isFail allResults with 
-            | Some result ->
-                let errorText =  
-                    result.Errors 
-                    |> Seq.map (fun error -> error.ToString())
-                    |> String.concat "\n"
-
-                logger.Important "fscd: ERRORS:\n%s" errorText
+            | Some _ ->
                 compilerTmpEmiiterState
 
             | None ->
@@ -415,65 +410,56 @@ let ProcessCommandLine (argv: string[]) =
                 let projLevelMap = cache.ProjLevelMap
 
                 compilerTmpEmiiterState.CompilerTmp
-                /// may compile multiple projects at some time
                 |> Seq.sortByDescending (fun projPath ->
                     projLevelMap.[projPath]
                 )
                 |> Seq.iter (fun projPath ->
                     
-                    /// may multiple frameworks
+                    /// may multiple target frameworks
                     /// so use results
                     let results = allResults |> List.filter (fun result ->
                         result.ProjPath = projPath
                     )
 
                     results 
-                    |> List.iter (fun result ->
-                        match result with 
-                        | CompileOrCheckResult.CheckResult checkerResult -> 
-                            match checkerResult.Result with 
-                            | Result.Error () -> ()
-
-                            | Result.Ok allFileContents -> 
-                                match webhook with 
-                                | Some hook -> 
-                                    sendToWebHook hook allFileContents
-                                | None -> 
-
-                                if eval then 
-                                    printfn "fscd: CHANGE DETECTED, RE-EVALUATING ALL INPUTS...." 
-                                    evaluateDecls allFileContents checkerResult.ProjOptions
-
-                                // The default is to dump
-                                if not eval && webhook.IsNone then 
-                                    let fileConvContents = jsonFiles (Array.ofList allFileContents)
-
-                                    printfn "%A" fileConvContents
-
-                        | CompileOrCheckResult.CompileResult _ -> 
-                            failwith "invalid token"
-                    )
-
-
+                    |> List.iter processResult
                 )
 
                 CompilerTmpEmiiterState.createEmpty cache 
         | _ -> compilerTmpEmiiterState
 
     let developmentTarget =
-        { CompileOrCheck = compileOrCheck 
+        { CompileOrCheck = check 
           TryEmit = tryEmit
           StartDebuggingServer = 
             fun _ _ -> () }
 
 
-    let fsLive = 
-        let checker = FSharpChecker.Create(keepAssemblyContents = true)
+    let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
-        let buildingConfig config =
-            { config with 
-                LoggerLevel = Logger.Level.Normal
-                OtherFlags =  List.ofArray fsharpArgs }
+    let config =
+        { Config.DeafultValue with 
+            LoggerLevel = Logger.Level.Minimal
+            OtherFlags =  List.ofArray fsharpArgs
+            UseEditFiles = useEditFiles
+            Eval = eval
+            BuildingFSharpProjectOptions = 
+              fun options ->
+                  { options with 
+                      OtherOptions = options.OtherOptions 
+                          |> Array.filter (fun ops -> not (ops.EndsWith ".fs" || ops.EndsWith "fsi" || ops.EndsWith "fsx"))} }
 
-        FsLive.fsLive buildingConfig developmentTarget checker fsproj
+    if watch then 
+        let fsLive = FsLive.fsLive config developmentTarget checker fsproj
+        printfn "Waiting for changes... press any key to exit" 
+        Console.ReadLine() |> ignore
+
+
+    if eval then 
+        let fullCrackedFsproj, _  = FullCrackedFsproj.create checker config None |> Async.RunSynchronously
+        let results = check config checker fullCrackedFsproj.Value |> Async.RunSynchronously
+        results |> Array.iter processResult
+    /// warm compile by default
+    /// no else 
+
     0
