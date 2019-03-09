@@ -5,16 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug FcsWatch.Tests",
+            "name": "Debug Binary.Tests",
             "type": "coreclr",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/FcsWatch.Tests/bin/Debug/netcoreapp2.2/FcsWatch.Tests.dll",
+            "program": "${workspaceFolder}/tests/binary/FsLive.Binary.Tests/bin/Debug/netcoreapp2.2/FsLive.Binary.Tests.dll",
         },
         {
-            "name": "Debug FcsWatch.InteractionTests",
+            "name": "Debug Binary.InteractionTests",
             "type": "coreclr",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/FcsWatch.InteractionTests/bin/Debug/netcoreapp2.2/FcsWatch.InteractionTests.dll",
+            "program": "${workspaceFolder}/tests/binary/FsLive.Binary.InteractionTests/bin/Debug/netcoreapp2.2/FsLive.Binary.InteractionTests.dll",
         },
         {
             "name": "launch TestProject",
@@ -27,7 +27,7 @@
             "name": "Debug My Build Script",
             "type": "coreclr",
             "request": "launch",
-            "program": "D:\\Users\\Jia\\Documents\\MyData\\Tools\\fake-dotnetcore-portable\\fake.dll",
+            "program": "${workspaceFolder}/../fake-dotnetcore-portable\\fake.dll",
             "args": ["run", "--fsiargs", "--debug:portable --optimize-", "build.fsx","-t","MyPublisher.NextBuild"],
             "cwd": "${workspaceRoot}",
             "stopAtEntry": false,
