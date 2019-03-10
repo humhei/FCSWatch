@@ -4,7 +4,9 @@
         <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
     </PropertyGroup>
     <ItemGroup>
-      <Compile Include="File1.fs" />
+      <Compile Include="fslive.fs" />
     </ItemGroup>
-
+  <ItemGroup>
+    <ProjectReference Include="..\FsLive.Porta\FsLive.Porta.fsproj" />
+  </ItemGroup>
 </Project>
