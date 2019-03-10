@@ -6,6 +6,7 @@
         <PackAsTool>True</PackAsTool>
         <ToolCommandName>fslive</ToolCommandName>
         <PackageOutputPath>./nupkg</PackageOutputPath>
+      <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
     <PropertyGroup>
         <PackageId>fslive-cli</PackageId>
@@ -26,4 +27,5 @@
     <ItemGroup>
       <ProjectReference Include="..\FsLive.Porta\FsLive.Porta.fsproj" />
     </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
