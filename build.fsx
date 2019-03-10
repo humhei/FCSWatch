@@ -42,8 +42,9 @@ Target.create "Collaborator.NextRelease" <| fun _ ->
 
 Target.create "RunCI" <| fun _ ->
     let paket = Path.getFullName ".paket/paket.exe"
+    let mono = Mono.monoPath.Value
     printfn "paket path is %s" paket
-    exec paket "./" ["install"]
+    exec mono "./" [paket ;"install"]
     BuildServer.run (BuildServer.Msg.RunCI) buildServer
 
 Target.create "Default" ignore
