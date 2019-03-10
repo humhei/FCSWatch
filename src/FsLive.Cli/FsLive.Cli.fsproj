@@ -6,8 +6,5 @@
     <ItemGroup>
       <Compile Include="fslive.fs" />
     </ItemGroup>
-    <ItemGroup>
-      <ProjectReference Include="..\FsLive.Porta\FsLive.Porta.fsproj" />
-    </ItemGroup>
 
 </Project>
