@@ -13,6 +13,7 @@ open FPublisher.Nuget
 open FPublisher.Git
 open Fake.DotNet
 open Fake.Core.TargetOperators
+open FPublisher.FakeHelper.CommandHelper
 
 let buildServer =
     BuildServer.create
@@ -39,6 +40,8 @@ Target.create "Collaborator.NextRelease" <| fun _ ->
     BuildServer.run (!^ Collaborator.Msg.NextRelease) buildServer
 
 Target.create "RunCI" <| fun _ ->
+    let paket = ".paket/paket.exe"
+    exec paket "./" ["install"]
     BuildServer.run (BuildServer.Msg.RunCI) buildServer
 
 Target.create "Default" ignore
