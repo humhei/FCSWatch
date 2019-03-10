@@ -1,4 +1,4 @@
-#Run standard fsharp codes in watch mode
+# Run standard fsharp codes in watch mode
 
 Stable | Prerelease
 --- | ---

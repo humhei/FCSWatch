@@ -46,8 +46,6 @@ DotNet.build (fun ops ->
         Configuration = DotNet.BuildConfiguration.Debug }
 ) entryProjDir
 
-
-
 let interactionTests =
     testCase "base interaction test" <| fun _ ->
         let manualSet = new ManualResetEventSlim()
