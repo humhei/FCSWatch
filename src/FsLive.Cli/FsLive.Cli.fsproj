@@ -4,6 +4,7 @@
         <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
     </PropertyGroup>
     <ItemGroup>
-      <Compile Include="fslive.fs" />
+      <Compile Include="File1.fs" />
     </ItemGroup>
+
 </Project>
