@@ -6,7 +6,6 @@
         <PackAsTool>True</PackAsTool>
         <ToolCommandName>fslive</ToolCommandName>
         <PackageOutputPath>./nupkg</PackageOutputPath>
-      <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
     <PropertyGroup>
         <PackageId>fslive-cli</PackageId>
