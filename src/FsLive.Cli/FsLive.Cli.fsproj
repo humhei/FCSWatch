@@ -3,6 +3,11 @@
         <OutputType>Exe</OutputType>
         <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
     </PropertyGroup>
+    <PropertyGroup>
+        <PackageId>fslive-cli</PackageId>
+        <Description>.NET Core Global Tool for FsLive - allows to send files to Fabulous.LiveUpdate and more</Description>
+        <PackageTags>Tool;CLI</PackageTags>
+    </PropertyGroup>
     <ItemGroup>
         <Compile Include="fslive.fs" />
     </ItemGroup>
