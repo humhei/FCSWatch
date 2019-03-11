@@ -274,7 +274,7 @@ module FullCrackedFsproj =
 
         /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then config.Otherflags must be not empty</param>
 
-        let create (checker: FSharpChecker) (config: Config) (file: string option) = async {
+        let create (checker: FSharpChecker) (config: Config) (entryFileOp: string option) = async {
             let otherFlags = config.OtherFlags
 
             let ofScript (scriptFile: string) fsharpProjectOptions =
@@ -309,7 +309,7 @@ module FullCrackedFsproj =
                 ( project, Map.ofList [fsharpProjectOptions.ProjectFileName, project.Value] )
                     
             logger.Infots "Begin crack project"
-            match file with 
+            match entryFileOp with 
             | Some file ->
                 match file with 
                 | projectFile when projectFile.EndsWith ".fsproj" ->
