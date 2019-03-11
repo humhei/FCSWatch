@@ -272,6 +272,8 @@ module FullCrackedFsproj =
             )
 
 
+        /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then config.Otherflags must be not empty</param>
+
         let create (checker: FSharpChecker) (config: Config) (file: string option) = async {
             let otherFlags = config.OtherFlags
 

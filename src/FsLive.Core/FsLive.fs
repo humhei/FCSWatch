@@ -32,7 +32,7 @@ let fsLive
     (checker: FSharpChecker) 
     (entryFileOp: string option) =
 
-        let entryProjectFileOp = entryFileOp |> Option.map (Path.getFullName >> Path.nomarlizeToUnixCompatible)
+        let entryFileOp = entryFileOp |> Option.map (Path.getFullName >> Path.nomarlizeToUnixCompatible)
 
         let config = { config with WorkingDir = Path.getFullName config.WorkingDir }        
  
@@ -70,7 +70,7 @@ let fsLive
             logger.Info "fslive is running in logger level %A" config.LoggerLevel
             logger.Info "fslive's working directory is %s" config.WorkingDir
 
-            let crackedProjectBundleAgent = crackedFsprojBundle checker config entryProjectFileOp
+            let crackedProjectBundleAgent = crackedFsprojBundle checker config entryFileOp
 
             let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
 

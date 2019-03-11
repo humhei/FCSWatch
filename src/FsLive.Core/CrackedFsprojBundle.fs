@@ -96,7 +96,9 @@ module CrackedFsprojBundle =
         | GetCache of replyChannel: AsyncReplyChannel<CrackedFsprojBundleCache>
         | DetectProjectFileChanges of FileChange list * AsyncReplyChannel<CrackedFsprojBundleCache>
 
-    let crackedFsprojBundle checker (config: Config) (projectFile: string option) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
+    /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then config.Otherflags must be not empty</param>
+
+    let crackedFsprojBundle checker (config: Config) (entryFileOp: string option) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
         let rec loop (entry: FullCrackedFsproj) cache = async {
             let! msg = inbox.Receive()
             match msg with
@@ -111,6 +113,6 @@ module CrackedFsprojBundle =
                 return! loop entry newCache
         }
 
-        let (project, cache) = FullCrackedFsproj.create checker config projectFile |> Async.RunSynchronously
+        let (project, cache) = FullCrackedFsproj.create checker config entryFileOp |> Async.RunSynchronously
         loop project (CrackedFsprojBundleCache.create project.Value.AsList.[0].ProjPath project cache)
     )
