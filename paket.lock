@@ -4,15 +4,15 @@ NUGET
     BlackFox.VsWhere (1.0) - restriction: || (>= net462) (>= netstandard2.0)
       FSharp.Core (>= 4.0.0.1) - restriction: >= net45
       FSharp.Core (>= 4.2.3) - restriction: && (< net45) (>= netstandard2.0)
-    Dotnet.ProjInfo (0.32.1) - restriction: >= netstandard2.0
+    Dotnet.ProjInfo (0.33) - restriction: >= netstandard2.0
       FSharp.Core (>= 4.5.2) - restriction: || (>= net461) (>= netstandard2.0)
       System.ValueTuple (>= 4.4) - restriction: || (>= net461) (>= netstandard2.0)
-    Dotnet.ProjInfo.Workspace (0.32.1) - restriction: >= netstandard2.0
-      Dotnet.ProjInfo (>= 0.32.1) - restriction: >= netstandard2.0
+    Dotnet.ProjInfo.Workspace (0.33) - restriction: >= netstandard2.0
+      Dotnet.ProjInfo (>= 0.33) - restriction: >= netstandard2.0
       FSharp.Core (>= 4.5.2) - restriction: >= netstandard2.0
       Sln (>= 0.3) - restriction: >= netstandard2.0
-    Dotnet.ProjInfo.Workspace.FCS (0.32.1)
-      Dotnet.ProjInfo.Workspace (>= 0.32.1) - restriction: >= netstandard2.0
+    Dotnet.ProjInfo.Workspace.FCS (0.33)
+      Dotnet.ProjInfo.Workspace (>= 0.33) - restriction: >= netstandard2.0
       FSharp.Compiler.Service (>= 27.0.1) - restriction: >= netstandard2.0
       FSharp.Core (>= 4.5.2) - restriction: >= netstandard2.0
     Expecto (8.9.1)
@@ -506,8 +506,8 @@ NUGET
       System.Runtime.InteropServices (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Security.Cryptography.Primitives (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Text.Encoding (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
-    System.Security.Cryptography.OpenSsl (4.5) - restriction: && (< monoandroid) (< net45) (>= netstandard2.0) (< xamarinios)
-      Microsoft.NETCore.Platforms (>= 2.0) - restriction: && (>= netcoreapp2.0) (< netcoreapp2.1)
+    System.Security.Cryptography.OpenSsl (4.5.1) - restriction: && (< monoandroid) (< net45) (>= netstandard2.0) (< xamarinios)
+      Microsoft.NETCore.Platforms (>= 2.1.2) - restriction: && (>= netcoreapp2.0) (< netcoreapp2.1)
     System.Security.Cryptography.Primitives (4.3) - restriction: || (&& (>= dnxcore50) (>= netstandard2.0)) (&& (< monoandroid) (< net45) (< netstandard1.4) (>= netstandard2.0)) (&& (< monoandroid) (< net45) (< netstandard1.6) (>= netstandard2.0)) (&& (< net45) (>= net46) (< netstandard1.4) (>= netstandard2.0)) (&& (< net45) (>= net461) (< netstandard1.6) (>= netstandard2.0)) (&& (< net45) (>= net463) (>= netstandard2.0)) (&& (< net45) (>= netstandard2.0) (< xamarinios))
       System.Diagnostics.Debug (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Globalization (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
@@ -1178,8 +1178,8 @@ NUGET
       System.Runtime.InteropServices (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Security.Cryptography.Primitives (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Text.Encoding (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
-    System.Security.Cryptography.OpenSsl (4.5) - restriction: || (&& (< monoandroid) (< net45) (>= netstandard2.0) (< xamarinios)) (&& (< net45) (>= net46) (< netstandard1.4) (>= netstandard2.0)) (&& (< net45) (>= net462) (>= netstandard1.6)) (&& (< net45) (< netstandard1.4) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< net45) (< netstandard1.5) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< net45) (< netstandard1.6) (>= netstandard2.0) (< win8) (< wpa81)) (&& (>= net462) (>= netstandard1.6) (>= uap10.0)) (&& (>= netstandard2.0) (>= uap10.0))
-      Microsoft.NETCore.Platforms (>= 2.0) - restriction: && (>= netcoreapp2.0) (< netcoreapp2.1)
+    System.Security.Cryptography.OpenSsl (4.5.1) - restriction: || (&& (< monoandroid) (< net45) (>= netstandard2.0) (< xamarinios)) (&& (< net45) (>= net46) (< netstandard1.4) (>= netstandard2.0)) (&& (< net45) (>= net462) (>= netstandard1.6)) (&& (< net45) (< netstandard1.4) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< net45) (< netstandard1.5) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< net45) (< netstandard1.6) (>= netstandard2.0) (< win8) (< wpa81)) (&& (>= net462) (>= netstandard1.6) (>= uap10.0)) (&& (>= netstandard2.0) (>= uap10.0))
+      Microsoft.NETCore.Platforms (>= 2.1.2) - restriction: && (>= netcoreapp2.0) (< netcoreapp2.1)
     System.Security.Cryptography.Primitives (4.3) - restriction: || (&& (< monoandroid) (< net45) (>= netstandard2.0) (< xamarinios)) (&& (< net45) (>= net46) (< netstandard1.4) (>= netstandard2.0)) (&& (< net45) (>= net462) (>= netstandard1.6)) (&& (< net45) (< netstandard1.4) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< net45) (< netstandard1.5) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< net45) (< netstandard1.6) (>= netstandard2.0) (< win8) (< wpa81)) (&& (>= net462) (>= netstandard1.6) (>= uap10.0)) (&& (>= netstandard2.0) (>= uap10.0))
       System.Diagnostics.Debug (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Globalization (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
