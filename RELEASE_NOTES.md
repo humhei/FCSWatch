@@ -1,6 +1,8 @@
 ﻿# Release Notes
 
-## 0.5.1-alpha - tbd
+## 0.5.1 - tbd
+* BUGFIX: (Fetch full framework Cracked fsproj) List.exists -> List.forAll
+* Using FPublisher cli
 
 ## 0.5.0 - 2019-02-23
 * Multiple target frameworks

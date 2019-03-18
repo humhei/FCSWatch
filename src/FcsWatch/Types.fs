@@ -177,7 +177,7 @@ module FullCrackedFsproj =
     let private getAllCrackedFsprojs projectFile =
         let prediate (crackedFsproj: CrackedFsproj) =
             crackedFsproj.AsList
-            |> List.exists (fun crackedFsprojSingleTarget ->
+            |> List.forall (fun crackedFsprojSingleTarget ->
                 crackedFsprojSingleTarget.FSharpProjectOptions.OtherOptions.Length <> 0
             )
         let allProjects = easyGetAllProjPaths projectFile
