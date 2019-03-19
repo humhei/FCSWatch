@@ -13,5 +13,4 @@
     <Compile Include="Test2.fs" />
     <Compile Include="Test.fs" />
   </ItemGroup>
-  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>
