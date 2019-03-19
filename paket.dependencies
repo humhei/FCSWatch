@@ -6,9 +6,3 @@ nuget Dotnet.ProjInfo
 nuget Fake.DotNet.Cli
 nuget Suave
 nuget Dotnet.ProjInfo.Workspace
-
-group build
-    storage: none
-    source https://api.nuget.org/v3/index.json
-    nuget FPublisher prerelease
-    nuget Fake.Core.Target = 5.12.0
