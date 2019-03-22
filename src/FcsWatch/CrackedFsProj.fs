@@ -4,6 +4,17 @@ open Fake.IO
 open Fake.IO.FileSystemOperators
 open Microsoft.FSharp.Compiler.SourceCodeServices
 
+
+
+type CompilerResult =
+    { Dll: string
+      Errors: FSharpErrorInfo []
+      ExitCode: int
+      ProjPath: string }
+
+with
+    member x.Pdb = Path.changeExtension ".pdb" x.Dll
+
 module CrackedFsproj =
     [<RequireQualifiedAccess>]
     module FSharpProjectOptions =
@@ -15,14 +26,6 @@ module CrackedFsproj =
     type ProjectTarget =
         | Exe
         | Library
-
-    type CompilerResult =
-        { Dll: string
-          Errors: FSharpErrorInfo []
-          ExitCode: int
-          ProjPath: string }
-    with
-        member x.Pdb = Path.changeExtension ".pdb" x.Dll
 
     type CrackedFsprojSingleTarget =
         { FSharpProjectOptions: FSharpProjectOptions

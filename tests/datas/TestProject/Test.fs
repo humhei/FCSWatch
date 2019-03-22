@@ -6,5 +6,5 @@ open System.Threading
 open TestLib2
 [<EntryPoint>]
 let main _ =
-    printfn "21121221      %s" (Say.fromLib2 )
+    printfn "21121221         %s" (Say.fromLib2 )
     0 // return an integer exit code

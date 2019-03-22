@@ -13,28 +13,30 @@ MacOS/Linux | Windows
 
 ---
 
-## Play around
-vscode only
-
-### MiniSample
-For a quick play around
-Try https://github.com/humhei/FcsWatchMiniSample
-
-### From source code interaction test
-
-* git clone https://github.com/humhei/FCSWatch.git
-* .paket/paket.exe install
-* cd tests/FcsWatch.InteractionTests/`
-* dotnet run
-* modify fs files in any of TestProject,TestLib2,TestLib1
-* Set breakpoint in any of TestProject,TestLib2,TestLib1
-* F5 Debug `Launch TestProject`
-* modify fs files in any of TestProject,TestLib2,TestLib1
-* (Optional) add new fs file in any of TestProject,TestLib2,TestLib1
-* Relaunch Debugger
 
 ## Get started
+### From Cli
 
+dotnet tool install --global fcswatch-cli
+
+```
+USAGE: fcswatch.exe [--help] [--working-dir <string>] [--project-file <string>] [--auto-reload]
+                    [--logger-level <minimal|normal|quiet>] [--no-build]
+
+OPTIONS:
+
+    --working-dir <string>
+                          Specfic working directory, default is current directory
+    --project-file <string>
+                          Entry project file, default is exact fsproj file in working dir
+    --auto-reload         AutoReload Or Debuggable in vscode
+    --logger-level <minimal|normal|quiet>
+                          Quiet; Minimal; Normal
+    --no-build            --no-build
+    --help                display this list of options.
+```
+
+### From Fake
 1. Install [fake5](https://fake.build/fake-gettingstarted.html)
 2. Replace build.fsx with below codes
 ```fsharp
@@ -59,8 +61,13 @@ Target.create "FcsWatch" (fun _ ->
           Configuration = DotNet.BuildConfiguration.Debug }
     ) projectFile
     let checker = FSharpChecker.Create()
-    /// using runFcsWatcher for more customizations
-    runFcsWatcher checker projectFile
+
+    let config =
+        { Config.DefaultValue with
+            AutoReload = true
+            /// LoggerLevel = Logger.Level.Normal }
+
+    runFcsWatcherWith config checker projectFile
 )
 
 Target.runOrDefault "FcsWatch"
@@ -69,8 +76,27 @@ Target.runOrDefault "FcsWatch"
 3. `fake build -t "FcsWatch"`
 4. `Change fs files in YourProject` and save it
 
+## Debug in vscode(only when AutoReload is false)
 
-### Launch debugging in vscode
+### Play around
+
+#### MiniSample
+https://github.com/humhei/FcsWatchMiniSample
+
+#### From source code interaction test
+
+* git clone https://github.com/humhei/FCSWatch.git
+* .paket/paket.exe install
+* cd tests/FcsWatch.InteractionTests/`
+* dotnet run
+* modify fs files in any of TestProject,TestLib2,TestLib1
+* Set breakpoint in any of TestProject,TestLib2,TestLib1
+* F5 Debug `Launch TestProject`
+* modify fs files in any of TestProject,TestLib2,TestLib1
+* (Optional) add new fs file in any of TestProject,TestLib2,TestLib1
+* Relaunch Debugger
+
+#### Launch debugging in vscode
 You can also launch debugging when running in watch mode
 ```
     {
@@ -98,7 +124,7 @@ You can also launch debugging when running in watch mode
 When you are debugging files,watch mode still take effect
 
 
-### Plugin mode
+## Plugin mode
 e.g.: excelDna sample
 vscode launch.json setting
 ```
@@ -149,8 +175,7 @@ build.fsx setting
 
 ```
 
-
-### Why?
+## Why?
 why not use dotnet watch:
 1. dotnet watch reference all dlls every time (which will take at least 3000ms?) (while fcs hold dlls in runtime cache)
 2. not easy to debug when you are using dotnet watch

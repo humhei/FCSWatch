@@ -1,5 +1,4 @@
 module FcsWatch.Types
-open Microsoft.FSharp.Compiler.SourceCodeServices
 open System.IO
 open FcsWatch
 open Fake.IO
@@ -8,6 +7,7 @@ open System.Collections.Generic
 open System.Xml
 open FcsWatch.CrackedFsproj
 open System
+open System.Threading.Tasks
 
 [<RequireQualifiedAccess>]
 module Path =
@@ -96,21 +96,6 @@ module CrackedFsproj =
     let copyObjToBin (crackedFsproj: CrackedFsproj) =
         crackedFsproj.AsList |> List.iter CrackedFsprojSingleTarget.copyObjToBin
 
-type Plugin =
-    { Load: unit -> unit
-      Unload: unit -> unit
-      Calculate: unit -> unit
-      DebuggerAttachTimeDelay: int }
-
-[<RequireQualifiedAccess>]
-type DevelopmentTarget =
-    | Program
-    | Plugin of Plugin
-
-type Config =
-    { LoggerLevel: Logger.Level
-      WorkingDir: string
-      DevelopmentTarget: DevelopmentTarget }
 
 
 
@@ -354,3 +339,31 @@ let crackedFsprojBundle (projectFile: string) = MailboxProcessor<CrackedFsprojBu
     let (project, cache) = FullCrackedFsproj.create projectFile |> Async.RunSynchronously
     loop project (CrackedFsprojBundleCache.create project cache)
 )
+
+
+type PluginDebugInfo =
+    { DebuggerAttachTimeDelay: int 
+      Pid: int 
+      VscodeLaunchConfigurationName: string }
+
+type Plugin =
+    { Load: unit -> unit
+      Unload: unit -> unit
+      Calculate: unit -> unit
+      PluginDebugInfo: PluginDebugInfo option }
+
+[<RequireQualifiedAccess>]
+type DevelopmentTarget =
+    | Program
+    | Plugin of Plugin
+
+
+
+type CompilerTask = CompilerTask of startTime: DateTime * task: Task<CompilerResult list>
+with 
+    member x.StartTime = 
+        match x with 
+        | CompilerTask(startTime = m) -> m
+    member x.Task = 
+        match x with 
+        | CompilerTask(task = m) -> m

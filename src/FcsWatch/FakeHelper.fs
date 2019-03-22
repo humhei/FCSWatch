@@ -1,14 +1,15 @@
 module FcsWatch.FakeHelper
-open System.Threading
 open Microsoft.FSharp.Compiler.SourceCodeServices
 open FcsWatch.FcsWatcher
+open FcsWatch.Types
+open System
 
 let runFcsWatcher (checker: FSharpChecker) projectFile = 
-    let manualSet = new ManualResetEventSlim(false)
-    let watcher = fcsWatcher id checker projectFile 
-    manualSet.Wait()
+    let watcher = fcsWatcher Config.DefaultValue checker projectFile 
+    logger.Important "Waiting for changes... press any key to exit"
+    Console.ReadLine() |> ignore
 
-let runFcsWatcherWith buidingConfig (checker: FSharpChecker) projectFile = 
-    let manualSet = new ManualResetEventSlim(false)
-    let watcher = fcsWatcher buidingConfig checker projectFile 
-    manualSet.Wait()
+let runFcsWatcherWith config (checker: FSharpChecker) projectFile = 
+    let watcher = fcsWatcher config checker projectFile 
+    logger.Important "Waiting for changes... press any key to exit"
+    Console.ReadLine() |> ignore
