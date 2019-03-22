@@ -14,20 +14,16 @@ MacOS/Linux | Windows
 ---
 
 
-- [Run standard fsharp codes in watch mode](#run-standard-fsharp-codes-in-watch-mode)
-  * [Get started](#get-started)
-    + [From Cli](#from-cli)
-    + [From Fake](#from-fake)
-  * [Debug in vscode(only when AutoReload is false)](#debug-in-vscode-only-when-autoreload-is-false-)
-    + [Play around](#play-around)
-      - [MiniSample](#minisample)
-      - [From source code interaction test](#from-source-code-interaction-test)
-      - [Launch debugging in vscode](#launch-debugging-in-vscode)
-  * [Plugin mode](#plugin-mode)
-  * [Why?](#why-)
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
+* [Get started](#get-started)
++ [From Cli](#from-cli)
++ [From Fake](#from-fake)
+* [Debug in vscode(only when AutoReload is false)](#debug-in-vscode-only-when-autoreload-is-false-)
++ [Play around](#play-around)
+    - [MiniSample](#minisample)
+    - [From source code interaction test](#from-source-code-interaction-test)
+    - [Launch debugging in vscode](#launch-debugging-in-vscode)
+* [Plugin mode](#plugin-mode)
+* [Why?](#why-)
 
 
 ## Get started
