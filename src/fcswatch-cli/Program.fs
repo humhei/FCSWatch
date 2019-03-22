@@ -17,58 +17,58 @@ type Arguments =
     | Auto_Reload
     | Logger_Level of Logger.Level
     | No_Build
-with 
+with
     interface IArgParserTemplate with
         member x.Usage =
-            match x with 
+            match x with
             | Working_Dir _  -> "Specfic working directory, default is current directory"
             | Project_File _ -> "Entry project file, default is exact fsproj file in working dir"
-            | Auto_Reload _ -> "AutoReload Or Debuggable in vscode"
+            | Auto_Reload _ -> "true : AutoReload; false : Debuggable in vscode"
             | Logger_Level _ -> "Quiet; Minimal; Normal"
             | No_Build -> "--no-build"
 
 type ProcessResult =
-    { Config: Config 
+    { Config: Config
       ProjectFile: string }
 
 
 let processParseResults usage (results: ParseResults<Arguments>) =
-    try 
+    try
         let execContext = Fake.Core.Context.FakeExecutionContext.Create false "generate.fsx" []
         Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake execContext)
         let defaultConfigValue = Config.DefaultValue
 
         let workingDir = results.GetResult (Working_Dir,defaultConfigValue.WorkingDir)
 
-        let projectFile = 
-            match results.TryGetResult Project_File with 
+        let projectFile =
+            match results.TryGetResult Project_File with
             | Some projectFile -> projectFile
             | None ->
-                (!! (workingDir </> "*.fsproj") 
+                (!! (workingDir </> "*.fsproj")
                 |> Seq.filter (fun file -> file.EndsWith ".fsproj")
-                |> List.ofSeq 
-                |> function 
-                    | [ ] -> 
-                        failwithf "no project file found, no compilation arguments given and no project file found in \"%s\"" Environment.CurrentDirectory 
-                    | [ file ] -> 
+                |> List.ofSeq
+                |> function
+                    | [ ] ->
+                        failwithf "no project file found, no compilation arguments given and no project file found in \"%s\"" Environment.CurrentDirectory
+                    | [ file ] ->
                         printfn "using implicit project file '%s'" file
                         file
-                    | file1 :: file2 :: _ -> 
+                    | file1 :: file2 :: _ ->
                         failwithf "multiple project files found, e.g. %s and %s" file1 file2 )
 
-        match results.TryGetResult No_Build with 
+        match results.TryGetResult No_Build with
         | Some _ -> ()
         | None ->
             DotNet.build (fun ops ->
                 { ops with Configuration = DotNet.BuildConfiguration.Debug }
             ) projectFile
 
-        { ProjectFile = projectFile 
+        { ProjectFile = projectFile
           Config =
-            { Config.DefaultValue with 
+            { Config.DefaultValue with
                 WorkingDir = workingDir
-                AutoReload = 
-                    match results.TryGetResult Auto_Reload with 
+                AutoReload =
+                    match results.TryGetResult Auto_Reload with
                     | Some _ -> true
                     | None -> false
                 LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel) } }

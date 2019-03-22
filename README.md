@@ -29,7 +29,7 @@ OPTIONS:
                           Specfic working directory, default is current directory
     --project-file <string>
                           Entry project file, default is exact fsproj file in working dir
-    --auto-reload         AutoReload Or Debuggable in vscode
+    --auto-reload         true : AutoReload; false : Debuggable in vscode
     --logger-level <minimal|normal|quiet>
                           Quiet; Minimal; Normal
     --no-build            --no-build
