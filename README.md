@@ -14,18 +14,6 @@ MacOS/Linux | Windows
 ---
 
 
-  * [Get started](#get-started)
-    + [From Cli](#from-cli)
-    + [From Fake](#from-fake)
-  * [Debug in vscode(only when AutoReload is false)](#debug-in-vscode-only-when-autoreload-is-false-)
-    + [Play around](#play-around)
-      - [MiniSample](#minisample)
-      - [From source code interaction test](#from-source-code-interaction-test)
-      - [Launch debugging in vscode](#launch-debugging-in-vscode)
-  * [Plugin mode](#plugin-mode)
-  * [Why?](#why-)
-
-
 ## Get started
 ### From Cli
 
