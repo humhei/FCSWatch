@@ -7,14 +7,17 @@
     <Compile Include="CrackedFsProj.fs" />
     <Compile Include="Logger.fs" />
     <Compile Include="Types.fs" />
-    <Compile Include="CompilerTmpEmitter.fs" />
+    <Compile Include="AutoReload.fs" />
     <Compile Include="DebuggingServer.fs" />
+    <Compile Include="CompilerTmpEmitter.fs" />
     <Compile Include="Compiler.fs" />
     <Compile Include="FcsWatcher.fs" />
-    <Compile Include="FakeHelper.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-18618-05" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FcsWatch.Helpers\FcsWatch.Helpers.csproj" />
   </ItemGroup>
 
   <Import Project="..\..\.paket\Paket.Restore.targets" />

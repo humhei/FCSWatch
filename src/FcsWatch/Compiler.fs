@@ -1,15 +1,17 @@
 module FcsWatch.Compiler
-open Fake.IO
 open Types
 open System.Diagnostics
-open FcsWatch.CompilerTmpEmiiter
+open FcsWatch.CompilerTmpEmitter
 open System
 open FcsWatch.CrackedFsproj
+
+
+type CommonTmpEmitterMsg = AutoReload.TmpEmitterMsg
 
 [<RequireQualifiedAccess>]
 type CompilerMsg =
     | UpdateCache of CrackedFsprojBundleCache
-    | CompilerProjects of project: CrackedFsproj list
+    | CompilerProjects of why: string * projects: CrackedFsproj list
 
 type CompilerModel =
     { CrackerFsprojBundleCache: CrackedFsprojBundleCache }
@@ -23,7 +25,7 @@ let private summary projectPath dll elapsed =
 
 
 
-let compiler (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg>) (initialCache: CrackedFsprojBundleCache) config checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
+let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (initialCache: CrackedFsprojBundleCache) config checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
 
     let createCompileTask (crackedFsprojInfoTargets: CrackedFsproj list) =
         crackedFsprojInfoTargets
@@ -41,7 +43,7 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<Compi
 
                     logger.Important "%s" (summary crackedFsprojInfoTarget.ProjPath compilerResult.Dll stopWatch.ElapsedMilliseconds)
 
-                    compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.AddTmp crackedFsprojInfoTarget.ProjPath)
+                    compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.AddTmp crackedFsprojInfoTarget.ProjPath)
 
                     return compilerResult
 
@@ -60,8 +62,8 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<Compi
         let! msg = inbox.Receive()
 
         match msg with
-        | CompilerMsg.CompilerProjects (crackedFsprojs) ->
-            compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.IncrCompilingNum crackedFsprojs.Length)
+        | CompilerMsg.CompilerProjects (why,crackedFsprojs) ->
+            compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.IncrCompilingNum crackedFsprojs.Length)
 
             let projPaths = crackedFsprojs |> List.map (fun crackedFsproj -> crackedFsproj.ProjPath)
 
@@ -93,8 +95,6 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<Compi
                         )
                         |> function
                             | Some errorResult ->
-                                results |> Array.iter (CompilerResult.processCompileResult)
-
                                 [errorResult]
 
                             | None ->
@@ -118,22 +118,20 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: MailboxProcessor<Compi
 
                 async {
                     let! result = compileByLevel [] correnspondingProjLevelMap
-                    compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.DecrCompilingNum crackedFsprojs.Length)
+                    compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.DecrCompilingNum crackedFsprojs.Length)
                     return result
                 } |> Async.StartAsTask
 
-            compilerTmpEmitterAgent.Post (CompilerTmpEmitterMsg.AddTask (CompilerTask (startTime,task)))
+            compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.AddTask (CompilerTask (why, startTime, task)))
             return! loop model
 
         | CompilerMsg.UpdateCache cache ->
             return! loop { model with CrackerFsprojBundleCache = cache }
 
-
-
     }
     let entryCrackedFsproj = initialCache.ProjectMap.[entryProjectFile]
 
-    inbox.Post (CompilerMsg.CompilerProjects [entryCrackedFsproj])
+    inbox.Post (CompilerMsg.CompilerProjects ("warm compile",[entryCrackedFsproj]))
 
     loop { CrackerFsprojBundleCache = initialCache }
 )

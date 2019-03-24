@@ -14,8 +14,7 @@ module Fsproj =
         let compiledFiles = doc.GetElementsByTagName "Compile"
         let compiledFileList =                         
             [ for compiledFile in compiledFiles do 
-                yield compiledFile
-            ]
+                yield compiledFile ]
         match List.tryFind (fun (compiledFile: XmlNode) -> 
             equalIgnoreCaseAndEdgeSpace file compiledFile.Attributes.["Include"].Value) compiledFileList with 
         | Some _ -> ()

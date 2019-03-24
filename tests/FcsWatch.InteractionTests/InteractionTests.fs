@@ -1,15 +1,8 @@
 module FcsWatch.InteractionTests.InteractionTests
 open Expecto
-open Microsoft.FSharp.Compiler.SourceCodeServices
-open System.IO
-open FcsWatch
 open Fake.IO
 open Fake.IO.FileSystemOperators
-open System.Threading
 open FcsWatch.Types
-open FcsWatch.FcsWatcher
-open FcsWatch.CompilerTmpEmiiter
-open Fake.DotNet
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"
@@ -33,25 +26,13 @@ let testSourceFileAdded = datas </> @"TestLib2/Added.fs"
 let testSourceFile1InTestLib = datas </> @"TestLib1/Library.fs"
 
 
-let createWatcher buildingConfig =
-    let buildingConfig config =
-        {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
-        |> buildingConfig
-
-    let checker = FSharpChecker.Create()
-
-    fcsWatcher buildingConfig checker entryProjPath
-
-DotNet.build (fun ops ->
-
-    { ops with
-
-        Configuration = DotNet.BuildConfiguration.Debug }
-
-) entryProjDir
-
 let interactionTests =
-    testCase "base interaction test" <| fun _ ->
-        let manualSet = new ManualResetEventSlim()
-        let watcher = createWatcher id
-        manualSet.Wait()
+    testList "interaction tests" [
+        testCase "base interaction test" <| fun _ ->
+            FcsWatch.Cli.main [|"--project-file"; entryProjPath|]
+            |> ignore
+
+        ftestCase "auto reload test" <| fun _ ->
+            FcsWatch.Cli.main [|"--project-file"; entryProjPath; "--no-build"|]
+            |> ignore
+    ]

@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "fcswatch-cli": {
+      "commandName": "Project"
+    }
+  }
+}

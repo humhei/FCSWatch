@@ -1,6 +1,6 @@
 module FcsWatch.Tests.Tests
 open Expecto
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open System.IO
 open FcsWatch
 open Fake.IO
@@ -8,7 +8,6 @@ open Fake.IO.FileSystemOperators
 open System.Threading
 open FcsWatch.Types
 open FcsWatch.FcsWatcher
-open FcsWatch.CompilerTmpEmiiter
 open FcsWatch.Tests.Types
 open Fake.DotNet
 
@@ -50,15 +49,12 @@ let makeProjectFileChanges fullPaths =
     FcsWatcherMsg.DetectProjectFileChanges <!> List.map makeFileChange fullPaths
 
 
-let createWatcher buildingConfig =
+let createWatcher config =
     lazy
-        let buildingConfig config =
+        let config =
             {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
-            |> buildingConfig
 
-        let checker = FSharpChecker.Create()
-
-        fcsWatcher buildingConfig checker entryProjPath
+        fcsWatcher config entryProjPath
 
 DotNet.build (fun ops ->
     { ops with
@@ -67,8 +63,7 @@ DotNet.build (fun ops ->
 
 
 let programTests =
-    let watcher = createWatcher id
-
+    let watcher = createWatcher Config.DefaultValue
 
     testList "program tests" [
 
@@ -110,23 +105,21 @@ let programTests =
 
 let pluginTests =
     let watcher =
-        let buildConfig =
-            fun config ->
-                let installPlugin() = printfn "install plugin"
+        let config =
+            let installPlugin() = printfn "install plugin"
 
-                let unInstallPlugin() = printfn "uninstall plugin"
+            let unInstallPlugin() = printfn "uninstall plugin"
 
-                let plugin =
-                    { Load = installPlugin
-                      Unload = unInstallPlugin
-                      Calculate = (fun _ ->
-                        Thread.Sleep(100)
-                        printf "Calculate" )
-                      DebuggerAttachTimeDelay = 1000 }
+            let plugin: AutoReload.Plugin =
+                { Load = installPlugin
+                  Unload = unInstallPlugin
+                  Calculate = (fun _ ->
+                    Thread.Sleep(100)
+                    printf "Calculate" ) }
 
-                {config with DevelopmentTarget = DevelopmentTarget.Plugin plugin }
+            {Config.DefaultValue with DevelopmentTarget = DevelopmentTarget.autoReloadPlugin plugin }
 
-        createWatcher buildConfig
+        createWatcher config
 
 
     testList "plugin Tests" [
@@ -143,7 +136,7 @@ let functionTests =
     testList "functionTests"
         [
             /// "bin ref may be locked by program
-            testCaseAsync "obj ref only" <| async {
+            ftestCaseAsync "obj ref only" <| async {
                 let! fullCracekdFsproj, _  =
                     FullCrackedFsproj.create entryProjPath
 
