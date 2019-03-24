@@ -159,6 +159,7 @@ module FcsWatcher =
     type FcsWatcherMsg =
         | DetectSourceFileChanges of fileChanges: FileChange list * AsyncReplyChannel<CompilerNumber>
         | DetectProjectFileChanges of fileChanges: FileChange list * AsyncReplyChannel<unit>
+        | TryKill of AsyncReplyChannel<unit>
 
     let inline (<!>) msg content = 
         fun replyChannel ->
@@ -273,7 +274,15 @@ module FcsWatcher =
                         replyChannel.Reply()
 
                         return! loop { state with SourceFileWatcher = newSourceFileWatcher; CrackerFsprojBundleCache = newCache }
-        
+                    
+                    | FcsWatcherMsg.TryKill replyChannel ->
+                        match config.DevelopmentTarget with 
+                        | DevelopmentTarget.AutoReload autoReload ->
+                            AutoReload.CrackedFsproj.tryKill autoReload entryCrackedFsproj
+                            replyChannel.Reply()
+
+                        | DevelopmentTarget.Debuggable _ -> ()
+
                 }
                 let sourceFileWatcher = newSourceFileWatcher initialCache
 
@@ -290,7 +299,9 @@ module FcsWatcher =
     let runFcsWatcher 
         (config: Config)
         (entryProjectFile: string) = 
-            fcsWatcher config entryProjectFile |> ignore
+            let watcher = fcsWatcher config entryProjectFile
+
             Console.ReadLine() |> ignore
             
+            watcher.PostAndReply FcsWatcherMsg.TryKill 
         

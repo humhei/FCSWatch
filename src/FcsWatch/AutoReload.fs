@@ -21,7 +21,7 @@ type DevelopmentTarget =
 let private runningProjects = new ConcurrentDictionary<string,Process>()
 
 [<RequireQualifiedAccess>]
-module private CrackedFsproj =
+module internal CrackedFsproj =
 
     let dotnetTool = 
         [DotNet.Options.Create().DotNetCliPath]
