@@ -1,6 +1,8 @@
 ﻿# Release Notes
 
-## 0.6.2 - tbd
+## 0.6.3-alpha - tbd
+
+## 0.6.2 - 2019-03-24
 * PrivateAssets FcsWatch-Helper.csproj
 
 ## 0.6.1 - 2019-03-24
