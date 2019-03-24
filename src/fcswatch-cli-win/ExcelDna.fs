@@ -4,14 +4,11 @@ open Fake.IO
 open System.IO
 open Fake.IO.FileSystemOperators
 
-open FcsWatch
 open System.Diagnostics
 open System.Runtime.InteropServices
 open Microsoft.Office.Interop.Excel
-open Microsoft.FSharp.Compiler.SourceCodeServices
 open Fake.Core
 open FcsWatch.Types
-
 
 
 [<AutoOpen>]
@@ -26,7 +23,7 @@ module User32 =
         pid
 
 
-let watchExcelDnaPlugin (config: Config) (projectPath: string) =
+let plugin (projectPath: string) =
     if not (File.exists projectPath) then failwithf "Cannot find file %s" projectPath
 
     let projectName = Path.GetFileNameWithoutExtension projectPath
@@ -75,8 +72,6 @@ let watchExcelDnaPlugin (config: Config) (projectPath: string) =
 
     addIn.Installed <- true
 
-    let checker = FSharpChecker.Create()
-
     let installPlugin() =
         //let r = DotNet.exec (fun ops -> { ops with WorkingDirectory = projectDir}) "msbuild" "/t:ExcelDnaBuild;ExcelDnaPack"
         //assert (r.OK)
@@ -96,17 +91,12 @@ let watchExcelDnaPlugin (config: Config) (projectPath: string) =
         let ws = app.ActiveSheet :?> Worksheet
         ws.Calculate()
 
-    let plugin: Plugin =
-        { Load = installPlugin
-          Unload = unInstall
-          Calculate = calculate
-          PluginDebugInfo = 
-            { DebuggerAttachTimeDelay = 2000
-              Pid = procId 
-              VscodeLaunchConfigurationName = "Launch Excel" }
-            |> Some }
+    { Load = installPlugin
+      Unload = unInstall
+      Calculate = calculate
+      PluginDebugInfo = 
+      { DebuggerAttachTimeDelay = 2000
+        Pid = procId 
+        VscodeLaunchConfigurationName = "Launch Excel" }
+      |> Some }
 
-    let watcher =
-        FakeHelper.runFcsWatcherWith config checker projectPath
-
-    watcher

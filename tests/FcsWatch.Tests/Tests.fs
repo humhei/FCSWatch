@@ -1,6 +1,6 @@
 module FcsWatch.Tests.Tests
 open Expecto
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open System.IO
 open FcsWatch
 open Fake.IO
@@ -54,9 +54,7 @@ let createWatcher config =
         let config =
             {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
 
-        let checker = FSharpChecker.Create()
-
-        fcsWatcher config checker entryProjPath
+        fcsWatcher config entryProjPath
 
 DotNet.build (fun ops ->
     { ops with
@@ -139,7 +137,7 @@ let functionTests =
     testList "functionTests"
         [
             /// "bin ref may be locked by program
-            testCaseAsync "obj ref only" <| async {
+            ftestCaseAsync "obj ref only" <| async {
                 let! fullCracekdFsproj, _  =
                     FullCrackedFsproj.create entryProjPath
 

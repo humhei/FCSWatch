@@ -3,7 +3,7 @@ module FcsWatch.ProjectCoreCracker
 
 open System
 open System.IO
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open System.Xml
 open Dotnet.ProjInfo.Workspace
 

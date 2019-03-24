@@ -6,3 +6,4 @@ nuget Dotnet.ProjInfo
 nuget Fake.DotNet.Cli
 nuget Suave
 nuget Dotnet.ProjInfo.Workspace
+github aspnet/AspNetCore:316fbbe9c42477b6c1d2088b5ef72f8ee3462186 src/Shared/Process/ProcessExtensions.cs

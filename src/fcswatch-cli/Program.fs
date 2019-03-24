@@ -3,13 +3,10 @@ module FcsWatch.Cli
 open System
 open FcsWatch
 open Argu
-open System.IO
 open Fake.IO.Globbing.Operators
 open Fake.IO.FileSystemOperators
-open Microsoft.FSharp.Compiler.SourceCodeServices
-open Fake.DotNet
 open Fake.Core
-open System.Threading
+open FcsWatch.FcsWatcher
 
 type Arguments =
     | Working_Dir of string
@@ -30,7 +27,6 @@ with
 type ProcessResult =
     { Config: Config
       ProjectFile: string }
-
 
 let processParseResults usage (results: ParseResults<Arguments>) =
     try
@@ -56,25 +52,31 @@ let processParseResults usage (results: ParseResults<Arguments>) =
                     | file1 :: file2 :: _ ->
                         failwithf "multiple project files found, e.g. %s and %s" file1 file2 )
 
-        match results.TryGetResult No_Build with
-        | Some _ -> ()
-        | None ->
-            DotNet.build (fun ops ->
-                { ops with Configuration = DotNet.BuildConfiguration.Debug }
-            ) projectFile
+        let autoReload = 
+            match results.TryGetResult Auto_Reload with
+            | Some _ -> true
+            | None -> false
+
+        let noBuild =
+            match results.TryGetResult No_Build with
+            | Some _ -> true
+            | None ->
+                false
 
         { ProjectFile = projectFile
           Config =
             { Config.DefaultValue with
                 WorkingDir = workingDir
-                AutoReload =
-                    match results.TryGetResult Auto_Reload with
-                    | Some _ -> true
-                    | None -> false
-                LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel) } }
+                AutoReload = autoReload
+                LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel)
+                NoBuild = noBuild } 
+
+        }
     with ex ->
         let usage = usage()
         failwithf "%A\n%s" ex.Message usage
+
+
 
 let parser = ArgumentParser.Create<Arguments>(programName = "fcswatch.exe")
 
@@ -85,8 +87,6 @@ let main argv =
 
     let processResult = processParseResults parser.PrintUsage results
 
-    let checker = FSharpChecker.Create()
-
-    FakeHelper.runFcsWatcherWith processResult.Config checker processResult.ProjectFile
+    runFcsWatcher processResult.Config processResult.ProjectFile
 
     0 // return an integer exit code

@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{43FBDDAF
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FcsWatch.Tests", "tests\FcsWatch.Tests\FcsWatch.Tests.fsproj", "{14A80081-D97A-405D-9A49-C686ABF00842}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "fscwatch-cli-win", "src\fscwatch-cli-win\fscwatch-cli-win.fsproj", "{FF38477D-AECB-46B6-BC9D-BA728A1A80B0}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "fcswatch-cli-win", "src\fcswatch-cli-win\fcswatch-cli-win.fsproj", "{FF38477D-AECB-46B6-BC9D-BA728A1A80B0}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "fcswatch-cli", "src\fcswatch-cli\fcswatch-cli.fsproj", "{93848AEF-4B94-4DEB-AF9A-68DB264FA8CE}"
 EndProject

@@ -25,9 +25,9 @@ with
 [<RequireQualifiedAccess>]
 module CompilerTmpEmitterState =
 
-    let tryEmit developmentTarget = function 
+    let tryEmit workingDir developmentTarget = function 
         | CompilerTmpEmitterState.AutoReload autoReload -> 
-            AutoReloadTmpEmitterState.tryEmit developmentTarget autoReload
+            AutoReloadTmpEmitterState.tryEmit workingDir developmentTarget autoReload
             |> CompilerTmpEmitterState.AutoReload
 
         | CompilerTmpEmitterState.DebuggingServer debuggingServer -> 
@@ -63,7 +63,7 @@ module CompilerTmpEmitter =
     let create autoReload developmentTarget initialCache workingDir =
         if autoReload 
         then 
-            autoReloadTmpEmitter developmentTarget initialCache
+            autoReloadTmpEmitter workingDir developmentTarget initialCache
             |> CompilerTmpEmitter.AutoReload
         else 
             debuggingServer developmentTarget initialCache workingDir

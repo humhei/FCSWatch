@@ -3,8 +3,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net462</TargetFramework>
-    <PackAsTool> true </PackAsTool>
-    <ToolCommandName>fcswatch-win</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>

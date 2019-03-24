@@ -9,7 +9,7 @@ open FcsWatch.AutoReload
 [<RequireQualifiedAccess>]
 type CompilerMsg =
     | UpdateCache of CrackedFsprojBundleCache
-    | CompilerProjects of project: CrackedFsproj list
+    | CompilerProjects of why: string * projects: CrackedFsproj list
 
 type CompilerModel =
     { CrackerFsprojBundleCache: CrackedFsprojBundleCache }
@@ -60,7 +60,7 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (i
         let! msg = inbox.Receive()
 
         match msg with
-        | CompilerMsg.CompilerProjects (crackedFsprojs) ->
+        | CompilerMsg.CompilerProjects (why,crackedFsprojs) ->
             compilerTmpEmitterAgent.Post (AutoReloadTmpEmitterMsg.IncrCompilingNum crackedFsprojs.Length)
 
             let projPaths = crackedFsprojs |> List.map (fun crackedFsproj -> crackedFsproj.ProjPath)
@@ -122,7 +122,7 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (i
                     return result
                 } |> Async.StartAsTask
 
-            compilerTmpEmitterAgent.Post (AutoReloadTmpEmitterMsg.AddTask (CompilerTask (startTime,task)))
+            compilerTmpEmitterAgent.Post (AutoReloadTmpEmitterMsg.AddTask (CompilerTask (why, startTime, task)))
             return! loop model
 
         | CompilerMsg.UpdateCache cache ->
@@ -131,7 +131,7 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (i
     }
     let entryCrackedFsproj = initialCache.ProjectMap.[entryProjectFile]
 
-    inbox.Post (CompilerMsg.CompilerProjects [entryCrackedFsproj])
+    inbox.Post (CompilerMsg.CompilerProjects ("warm compile",[entryCrackedFsproj]))
 
     loop { CrackerFsprojBundleCache = initialCache }
 )

@@ -7,6 +7,7 @@ open System.Collections.Generic
 open System.Xml
 open FcsWatch.CrackedFsproj
 open System
+open Fake.DotNet
 open System.Threading.Tasks
 
 [<RequireQualifiedAccess>]
@@ -39,12 +40,25 @@ module Dictionary =
 
 [<AutoOpen>]
 module internal Global =
+    open Fake.Core
+
     let mutable logger = Logger.create (Logger.Level.Minimal)
+    let private dotnetWith command args dir =
+        DotNet.exec
+            (fun ops -> {ops with WorkingDirectory = dir})
+            command
+            (Args.toWindowsCommandLine args)
+
+    let dotnet command args dir =
+        let result = dotnetWith command args dir
+        if result.ExitCode <> 0
+        then failwithf "Error while running %s with args %A" command (List.ofSeq args)
+
 
 type Logger.Logger with
     member x.CopyFile src dest =
         File.Copy(src,dest,true)
-        logger.Info "%s ->\n%s" src dest
+        logger.Important "%s ->\n%s" src dest
 
     member x.ProcessCompileResult (errors,exitCode) =
         if exitCode = 0 then
@@ -271,10 +285,14 @@ type CrackedFsprojBundleCache =
 
         /// entry project file level is 0
         ProjLevelMap: Map<string, int>
+
+        EntryProjectFile: string
+
     }
 with
     member x.AllProjectFiles = x.ProjectMap |> Seq.map (fun pair -> pair.Key)
 
+    member x.EntryCrackedFsproj = x.ProjectMap.[x.EntryProjectFile]
 
 [<RequireQualifiedAccess>]
 module CrackedFsprojBundleCache =
@@ -282,7 +300,8 @@ module CrackedFsprojBundleCache =
         { ProjectMap = projectMap
           SourceFileMap = ProjectMap.sourceFileMap projectMap
           ProjRefersMap = FullCrackedFsproj.getProjectRefersMap fsproj
-          ProjLevelMap = ProjectMap.getProjectLevelMap projectMap fsproj }
+          ProjLevelMap = ProjectMap.getProjectLevelMap projectMap fsproj
+          EntryProjectFile = fsproj.Value.ProjPath }
 
     let update projPaths (cache: CrackedFsprojBundleCache) = async {
 
@@ -359,11 +378,18 @@ type DevelopmentTarget =
 
 
 
-type CompilerTask = CompilerTask of startTime: DateTime * task: Task<CompilerResult list>
+type CompilerTask = CompilerTask of why:string * startTime: DateTime * task: Task<CompilerResult list>
 with 
+
+    member x.Why = 
+        match x with 
+        | CompilerTask(why = m) -> m
+
     member x.StartTime = 
         match x with 
         | CompilerTask(startTime = m) -> m
+
     member x.Task = 
         match x with 
         | CompilerTask(task = m) -> m
+

@@ -1,5 +1,5 @@
 namespace FcsWatch
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.SourceCodeServices
 open FcsWatch.Types
 open Fake.IO.Globbing
 open Fake.IO
@@ -7,21 +7,150 @@ open FcsWatch.Compiler
 open FcsWatch.CompilerTmpEmitter
 open System
 open AutoReload
+open System.IO
+open System.Threading
+open System.Timers
+
+
+[<RequireQualifiedAccess>]
+module IntervalAccumMailBoxProcessor =
+    type State<'accum> =
+        { Timer: Timer option
+          Accums: 'accum list }
+
+    type Msg<'accum> =
+        | Accum of 'accum
+        | IntervalUp 
+
+    type IntervalAccumMailBoxProcessor<'accum> =
+        { Agent: MailboxProcessor<'accum>
+          CancellationTokenSource: CancellationTokenSource }
+
+    let create (onChange : 'accum seq -> unit) =
+
+        let cancellationTokenSource = new CancellationTokenSource()
+        let agent = 
+            MailboxProcessor<Msg<'accum>>.Start ((fun inbox ->
+
+                let createTimer() =
+                    let timer = new Timer(100.)
+                    timer.Start()
+                    timer.Elapsed.Add (fun _ -> 
+                        timer.Stop()
+                        timer.Dispose()
+                        inbox.Post IntervalUp
+                    )
+                    timer
+
+                let rec loop state = async {
+                    let! msg = inbox.Receive()
+                    match msg with 
+                    | Accum accum ->
+                        match state.Timer with 
+                        | Some timer -> 
+                            timer.Stop()
+                            timer.Dispose()
+                        | None -> ()
+                    
+                        return! 
+                            loop 
+                                { state with 
+                                    Timer = Some (createTimer())
+                                    Accums = accum :: state.Accums }
+
+                    | IntervalUp ->
+                        onChange state.Accums
+                        return! loop { state with Timer = None; Accums = [] }
+                }
+
+                loop { Timer = None; Accums = [] }
+            ),cancellationTokenSource.Token)
+
+        { CancellationTokenSource = cancellationTokenSource
+          Agent = agent }
+
+    let accum value = Msg.Accum value 
+
+[<RequireQualifiedAccess>]
+module ChangeWatcher =
+
+    type Options = ChangeWatcher.Options
+
+    let private handleWatcherEvents (status : FileStatus) (onChange : FileChange -> unit) (e : FileSystemEventArgs) =
+        onChange ({ FullPath = e.FullPath
+                    Name = e.Name
+                    Status = status })
+
+    let runWithAgent (foptions:Options -> Options) (onChange : FileChange seq -> unit) (fileIncludes : IGlobbingPattern) =
+        let options = foptions { IncludeSubdirectories = true }
+        let dirsToWatch = fileIncludes |> GlobbingPattern.getBaseDirectoryIncludes
+
+
+        let intervalAccumAgent = IntervalAccumMailBoxProcessor.create onChange
+
+        let postFileChange (fileChange: FileChange) = 
+            if fileIncludes.IsMatch fileChange.FullPath 
+            then intervalAccumAgent.Agent.Post (IntervalAccumMailBoxProcessor.accum fileChange)
+
+        let watchers =
+            dirsToWatch |> List.map (fun dir ->
+                               //tracefn "watching dir: %s" dir
+
+                               let watcher = new FileSystemWatcher(Path.getFullName dir, "*.*")
+                               watcher.EnableRaisingEvents <- true
+                               watcher.IncludeSubdirectories <- options.IncludeSubdirectories
+                               watcher.Changed.Add(handleWatcherEvents Changed postFileChange)
+                               watcher.Created.Add(handleWatcherEvents Created postFileChange)
+                               watcher.Deleted.Add(handleWatcherEvents Deleted postFileChange)
+                               watcher.Renamed.Add(fun (e : RenamedEventArgs) ->
+                                   postFileChange { FullPath = e.OldFullPath
+                                                    Name = e.OldName
+                                                    Status = Deleted }
+                                   postFileChange { FullPath = e.FullPath
+                                                    Name = e.Name
+                                                    Status = Created })
+                               watcher)
+
+        { new System.IDisposable with
+              member this.Dispose() =
+                  for watcher in watchers do
+                      watcher.EnableRaisingEvents <- false
+                      watcher.Dispose()
+                  // only dispose the timer if it has been constructed
+                  intervalAccumAgent.CancellationTokenSource.Cancel()
+                  intervalAccumAgent.CancellationTokenSource.Dispose() }
+
+    let run (onChange : FileChange seq -> unit) (fileIncludes : IGlobbingPattern) = runWithAgent id onChange fileIncludes
+
+
 
 type Config =
     { LoggerLevel: Logger.Level
       WorkingDir: string
       DevelopmentTarget: DevelopmentTarget
-      AutoReload: bool }
+      AutoReload: bool
+      NoBuild: bool }
 
 with 
     static member DefaultValue =
         { LoggerLevel = Logger.Level.Minimal
           WorkingDir = Path.getFullName "./"
           DevelopmentTarget = DevelopmentTarget.Program
-          AutoReload = false }
+          AutoReload = false
+          NoBuild = false }
+
+
+[<RequireQualifiedAccess>]
+module Config =
+
+    let internal tryBuildProject entryProjectFile (config: Config) =
+        let workingDir = config.WorkingDir
+        if not config.NoBuild then dotnet "build" [entryProjectFile] workingDir
+
 
 module FcsWatcher =
+
+
 
     type ReplyData =
         { AllCompilerTaskNumber: int 
@@ -45,16 +174,18 @@ module FcsWatcher =
 
     let fcsWatcher 
         (config: Config)
-        (checker: FSharpChecker) 
         (entryProjectFile: string) = 
+
+            let checker = FSharpChecker.Create()
             let entryProjectFile = Path.getFullName entryProjectFile
 
             let config = { config with WorkingDir = Path.getFullName config.WorkingDir }        
- 
+
             logger <- Logger.create (config.LoggerLevel)
 
+            Config.tryBuildProject entryProjectFile config
+
             let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->
-        
                 let newSourceFileWatcher cache = 
                     let pattern = 
                         let files = cache.SourceFileMap |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
@@ -78,6 +209,7 @@ module FcsWatcher =
                 let initialProjectMap = initialCache.ProjectMap
 
                 let entryCrackedFsproj = initialProjectMap.[entryProjectFile]
+
 
                 let projectFilesWatcher =
                     let pattern =
@@ -109,7 +241,9 @@ module FcsWatcher =
                     | FcsWatcherMsg.DetectSourceFileChanges (fileChanges, replyChannel) ->
 
                         let projFiles = 
-                            fileChanges |> List.map (fun fileChange ->
+                            fileChanges 
+                            |> List.distinctBy (fun fileChange -> fileChange.FullPath) 
+                            |> List.map (fun fileChange ->
                                 logger.ImportantGreen "detect file %s changed" fileChange.FullPath
                                 sourceFileMap.[fileChange.FullPath]
                             )
@@ -119,7 +253,7 @@ module FcsWatcher =
 
                         replyChannel.Reply (CompilerNumber crackedFsprojs.Length)
 
-                        compilerAgent.Post(CompilerMsg.CompilerProjects crackedFsprojs)
+                        compilerAgent.Post(CompilerMsg.CompilerProjects ("detect source file changes",crackedFsprojs))
 
                         return! loop state  
 
@@ -145,8 +279,21 @@ module FcsWatcher =
         
                 }
                 let sourceFileWatcher = newSourceFileWatcher initialCache
+
+                logger.Important "Waiting for changes... press any key to exit"
+                
                 loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojBundleCache = initialCache }
+
             )
 
             agent
+        
+
+
+    let runFcsWatcher 
+        (config: Config)
+        (entryProjectFile: string) = 
+            fcsWatcher config entryProjectFile |> ignore
+            Console.ReadLine() |> ignore
+            
         

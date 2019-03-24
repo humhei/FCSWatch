@@ -32,7 +32,7 @@ let interactionTests =
             FcsWatch.Cli.main [|"--project-file"; entryProjPath|]
             |> ignore
 
-        testCase "auto reload tst" <| fun _ ->
-            FcsWatch.Cli.main [|"--project-file"; entryProjPath; "--auto-reload"|]
+        ftestCase "auto reload test" <| fun _ ->
+            FcsWatch.Cli.main [|"--project-file"; entryProjPath; "--auto-reload"; "--no-build"|]
             |> ignore
     ]

@@ -1,10 +1,9 @@
 ﻿// Learn more about F# at http://fsharp.org
 
-open System
 open Argu
 open FcsWatch
-open ExcelDna
-open Microsoft.FSharp.Compiler.SourceCodeServices
+open FcsWatch.Types
+open System
 
 type CoreArguments = FcsWatch.Cli.Arguments
 
@@ -45,12 +44,18 @@ let main argv =
         |> coreParser.ToParseResults
         |> FcsWatch.Cli.processParseResults parser.PrintUsage
 
-    match results.TryGetResult ExcelDna with 
-    | Some _ ->
-        watchExcelDnaPlugin processResult.Config processResult.ProjectFile
-        |> ignore
-    | None ->
-        let checker = FSharpChecker.Create()
-        FakeHelper.runFcsWatcherWith processResult.Config checker processResult.ProjectFile
+    let developmentTarget = 
+        match results.TryGetResult ExcelDna with 
+        | Some _ ->
+            ExcelDna.plugin processResult.ProjectFile
+            |> DevelopmentTarget.Plugin
+        | None ->
+            DevelopmentTarget.Program
+
+    let config =
+        { processResult.Config with 
+            DevelopmentTarget = developmentTarget }
+
+    FcsWatch.FcsWatcher.runFcsWatcher config processResult.ProjectFile
 
     0 // return an integer exit code

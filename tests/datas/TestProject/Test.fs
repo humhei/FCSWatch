@@ -6,5 +6,9 @@ open System.Threading
 open TestLib2
 [<EntryPoint>]
 let main _ =
-    printfn "21121221         %s" (Say.fromLib2 )
+    printfn "211212255551226%s" (Say.fromLib2 )
+    /// simulate server
+    Console.ReadLine()
+    |> ignore
+
     0 // return an integer exit code
