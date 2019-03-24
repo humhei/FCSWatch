@@ -110,15 +110,14 @@ let pluginTests =
 
             let unInstallPlugin() = printfn "uninstall plugin"
 
-            let plugin =
+            let plugin: AutoReload.Plugin =
                 { Load = installPlugin
                   Unload = unInstallPlugin
                   Calculate = (fun _ ->
                     Thread.Sleep(100)
-                    printf "Calculate" )
-                  PluginDebugInfo = None }
+                    printf "Calculate" ) }
 
-            {Config.DefaultValue with DevelopmentTarget = DevelopmentTarget.Plugin plugin }
+            {Config.DefaultValue with DevelopmentTarget = DevelopmentTarget.autoReloadPlugin plugin }
 
         createWatcher config
 
