@@ -1,6 +1,8 @@
 ﻿# Release Notes
 
-## 0.6.1 - tbd
+## 0.6.2-alpha - tbd
+
+## 0.6.1 - 2019-03-24
 * Nuget package Include FcsWatch.Helpers
 
 ## 0.6.0 - 2019-03-24
