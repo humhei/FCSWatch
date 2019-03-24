@@ -1,6 +1,8 @@
 ﻿# Release Notes
 
-## 0.6.3 - tbd
+## 0.6.4-alpha - tbd
+
+## 0.6.3 - 2019-03-24
 * Using shared file between cli
 
 ## 0.6.2 - 2019-03-24
