@@ -52,7 +52,9 @@ let makeProjectFileChanges fullPaths =
 let createWatcher config =
     lazy
         let config =
-            {config with WorkingDir = root; LoggerLevel = Logger.Level.Normal }
+            { config with 
+                WorkingDir = root
+                LoggerLevel = Logger.Level.Normal }
 
         fcsWatcher config entryProjPath
 
@@ -63,7 +65,7 @@ DotNet.build (fun ops ->
 
 
 let programTests =
-    let watcher = createWatcher Config.DefaultValue
+    let watcher = createWatcher { Config.DefaultValue with DevelopmentTarget = DevelopmentTarget.debuggableProgram }
 
     testList "program tests" [
 
