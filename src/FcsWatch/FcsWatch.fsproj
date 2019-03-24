@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <PropertyGroup>
+  <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProcessExtensions</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
   <Target Name="IncludeProcessExtensions">
