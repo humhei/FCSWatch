@@ -4,7 +4,9 @@ open System.Diagnostics
 open FcsWatch.CompilerTmpEmitter
 open System
 open FcsWatch.CrackedFsproj
-open FcsWatch.AutoReload
+
+
+type CommonTmpEmitterMsg = AutoReload.TmpEmitterMsg
 
 [<RequireQualifiedAccess>]
 type CompilerMsg =
@@ -41,7 +43,7 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (i
 
                     logger.Important "%s" (summary crackedFsprojInfoTarget.ProjPath compilerResult.Dll stopWatch.ElapsedMilliseconds)
 
-                    compilerTmpEmitterAgent.Post (AutoReloadTmpEmitterMsg.AddTmp crackedFsprojInfoTarget.ProjPath)
+                    compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.AddTmp crackedFsprojInfoTarget.ProjPath)
 
                     return compilerResult
 
@@ -61,7 +63,7 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (i
 
         match msg with
         | CompilerMsg.CompilerProjects (why,crackedFsprojs) ->
-            compilerTmpEmitterAgent.Post (AutoReloadTmpEmitterMsg.IncrCompilingNum crackedFsprojs.Length)
+            compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.IncrCompilingNum crackedFsprojs.Length)
 
             let projPaths = crackedFsprojs |> List.map (fun crackedFsproj -> crackedFsproj.ProjPath)
 
@@ -93,8 +95,6 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (i
                         )
                         |> function
                             | Some errorResult ->
-                                results |> Array.iter (CompilerResult.processCompileResult)
-
                                 [errorResult]
 
                             | None ->
@@ -118,11 +118,11 @@ let compiler (entryProjectFile) (compilerTmpEmitterAgent: CompilerTmpEmitter) (i
 
                 async {
                     let! result = compileByLevel [] correnspondingProjLevelMap
-                    compilerTmpEmitterAgent.Post (AutoReloadTmpEmitterMsg.DecrCompilingNum crackedFsprojs.Length)
+                    compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.DecrCompilingNum crackedFsprojs.Length)
                     return result
                 } |> Async.StartAsTask
 
-            compilerTmpEmitterAgent.Post (AutoReloadTmpEmitterMsg.AddTask (CompilerTask (why, startTime, task)))
+            compilerTmpEmitterAgent.Post (CommonTmpEmitterMsg.AddTask (CompilerTask (why, startTime, task)))
             return! loop model
 
         | CompilerMsg.UpdateCache cache ->

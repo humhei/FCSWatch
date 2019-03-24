@@ -6,7 +6,6 @@ open Fake.IO
 open FcsWatch.Compiler
 open FcsWatch.CompilerTmpEmitter
 open System
-open AutoReload
 open System.IO
 open System.Threading
 open System.Timers
@@ -124,21 +123,19 @@ module ChangeWatcher =
 
 
 
+
 type Config =
     { LoggerLevel: Logger.Level
       WorkingDir: string
       DevelopmentTarget: DevelopmentTarget
-      AutoReload: bool
       NoBuild: bool }
 
 with 
     static member DefaultValue =
         { LoggerLevel = Logger.Level.Minimal
           WorkingDir = Path.getFullName "./"
-          DevelopmentTarget = DevelopmentTarget.Program
-          AutoReload = false
+          DevelopmentTarget = DevelopmentTarget.autoReloadProgram
           NoBuild = false }
-
 
 [<RequireQualifiedAccess>]
 module Config =
@@ -224,7 +221,7 @@ module FcsWatcher =
                         inbox.PostAndReply(FcsWatcherMsg.DetectProjectFileChanges <!> (List.ofSeq changes))
                     )        
             
-                let compilerTmpEmitterAgent = CompilerTmpEmitter.create config.AutoReload config.DevelopmentTarget initialCache config.WorkingDir
+                let compilerTmpEmitterAgent = CompilerTmpEmitter.create config.DevelopmentTarget initialCache config.WorkingDir
 
                 let compilerAgent = compiler entryProjectFile compilerTmpEmitterAgent initialCache config checker
 
@@ -271,7 +268,7 @@ module FcsWatcher =
 
                         compilerAgent.Post(CompilerMsg.UpdateCache newCache)
 
-                        compilerTmpEmitterAgent.Post(AutoReloadTmpEmitterMsg.UpdateCache newCache)
+                        compilerTmpEmitterAgent.Post(CommonTmpEmitterMsg.UpdateCache newCache)
 
                         replyChannel.Reply()
 

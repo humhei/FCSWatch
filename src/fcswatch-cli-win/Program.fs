@@ -10,7 +10,7 @@ type CoreArguments = FcsWatch.Cli.Arguments
 type Arguments =
     | Working_Dir of string
     | Project_File of string
-    | Auto_Reload
+    | Debuggable
     | Logger_Level of Logger.Level
     | No_Build
     | ExcelDna
@@ -19,7 +19,7 @@ with
         match x with 
         | Working_Dir arg  -> CoreArguments.Working_Dir arg |> Some
         | Project_File arg -> CoreArguments.Project_File arg |> Some
-        | Auto_Reload -> CoreArguments.Auto_Reload |> Some
+        | Debuggable -> CoreArguments.Debuggable |> Some
         | Logger_Level arg -> CoreArguments.Logger_Level arg |> Some
         | No_Build -> Some CoreArguments.No_Build
         | ExcelDna -> None
@@ -46,11 +46,9 @@ let main argv =
 
     let developmentTarget = 
         match results.TryGetResult ExcelDna with 
-        | Some _ ->
-            ExcelDna.plugin processResult.ProjectFile
-            |> DevelopmentTarget.Plugin
+        | Some _ -> ExcelDna.plugin processResult.Config.DevelopmentTarget processResult.ProjectFile
         | None ->
-            DevelopmentTarget.Program
+            processResult.Config.DevelopmentTarget
 
     let config =
         { processResult.Config with 

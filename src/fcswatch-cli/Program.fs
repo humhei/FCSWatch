@@ -11,7 +11,7 @@ open FcsWatch.FcsWatcher
 type Arguments =
     | Working_Dir of string
     | Project_File of string
-    | Auto_Reload
+    | Debuggable
     | Logger_Level of Logger.Level
     | No_Build
 with
@@ -20,8 +20,8 @@ with
             match x with
             | Working_Dir _  -> "Specfic working directory, default is current directory"
             | Project_File _ -> "Entry project file, default is exact fsproj file in working dir"
-            | Auto_Reload _ -> "true : AutoReload; false : Debuggable in vscode"
-            | Logger_Level _ -> "Quiet; Minimal; Normal"
+            | Debuggable _ -> "Enable debuggable in vscode, This will disable auto Reload"
+            | Logger_Level _ -> "Default is Minimal"
             | No_Build -> "--no-build"
 
 type ProcessResult =
@@ -52,11 +52,6 @@ let processParseResults usage (results: ParseResults<Arguments>) =
                     | file1 :: file2 :: _ ->
                         failwithf "multiple project files found, e.g. %s and %s" file1 file2 )
 
-        let autoReload = 
-            match results.TryGetResult Auto_Reload with
-            | Some _ -> true
-            | None -> false
-
         let noBuild =
             match results.TryGetResult No_Build with
             | Some _ -> true
@@ -67,7 +62,11 @@ let processParseResults usage (results: ParseResults<Arguments>) =
           Config =
             { Config.DefaultValue with
                 WorkingDir = workingDir
-                AutoReload = autoReload
+                DevelopmentTarget = 
+                    match results.TryGetResult Debuggable with
+                    | Some _ -> DevelopmentTarget.debuggableProgram
+                    | None -> DevelopmentTarget.autoReloadProgram
+
                 LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel)
                 NoBuild = noBuild } 
 

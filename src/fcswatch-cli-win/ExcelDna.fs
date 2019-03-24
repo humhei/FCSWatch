@@ -9,6 +9,7 @@ open System.Runtime.InteropServices
 open Microsoft.Office.Interop.Excel
 open Fake.Core
 open FcsWatch.Types
+open FcsWatch
 
 
 [<AutoOpen>]
@@ -23,7 +24,7 @@ module User32 =
         pid
 
 
-let plugin (projectPath: string) =
+let plugin developmentTarget (projectPath: string) =
     if not (File.exists projectPath) then failwithf "Cannot find file %s" projectPath
 
     let projectName = Path.GetFileNameWithoutExtension projectPath
@@ -91,12 +92,24 @@ let plugin (projectPath: string) =
         let ws = app.ActiveSheet :?> Worksheet
         ws.Calculate()
 
-    { Load = installPlugin
-      Unload = unInstall
-      Calculate = calculate
-      PluginDebugInfo = 
-      { DebuggerAttachTimeDelay = 2000
-        Pid = procId 
-        VscodeLaunchConfigurationName = "Launch Excel" }
-      |> Some }
+    match developmentTarget with 
+    | DevelopmentTarget.AutoReload _ ->
+        let plugin : AutoReload.Plugin= 
+            { Load = installPlugin
+              Unload = unInstall
+              Calculate = calculate }
+
+        DevelopmentTarget.autoReloadPlugin plugin
+    | DevelopmentTarget.Debuggable _ ->
+        let plugin : DebuggingServer.Plugin = 
+            { Load = installPlugin
+              Unload = unInstall
+              Calculate = calculate
+              PluginDebugInfo = 
+                { DebuggerAttachTimeDelay = 2000
+                  Pid = procId 
+                  VscodeLaunchConfigurationName = "Launch Excel" }} 
+        DevelopmentTarget.debuggablePlugin plugin
+       
+
 

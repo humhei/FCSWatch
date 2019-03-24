@@ -360,21 +360,6 @@ let crackedFsprojBundle (projectFile: string) = MailboxProcessor<CrackedFsprojBu
 )
 
 
-type PluginDebugInfo =
-    { DebuggerAttachTimeDelay: int 
-      Pid: int 
-      VscodeLaunchConfigurationName: string }
-
-type Plugin =
-    { Load: unit -> unit
-      Unload: unit -> unit
-      Calculate: unit -> unit
-      PluginDebugInfo: PluginDebugInfo option }
-
-[<RequireQualifiedAccess>]
-type DevelopmentTarget =
-    | Program
-    | Plugin of Plugin
 
 
 

@@ -20,7 +20,7 @@ MacOS/Linux | Windows
 dotnet tool install --global fcswatch-cli
 
 ```
-USAGE: fcswatch.exe [--help] [--working-dir <string>] [--project-file <string>] [--auto-reload]
+USAGE: fcswatch.exe [--help] [--working-dir <string>] [--project-file <string>] [--debuggable]
                     [--logger-level <minimal|normal|quiet>] [--no-build]
 
 OPTIONS:
@@ -29,9 +29,9 @@ OPTIONS:
                           Specfic working directory, default is current directory
     --project-file <string>
                           Entry project file, default is exact fsproj file in working dir
-    --auto-reload         true : AutoReload; false : Debuggable in vscode
+    --debuggable          Enable debuggable in vscode, This will disable auto Reload
     --logger-level <minimal|normal|quiet>
-                          Quiet; Minimal; Normal
+                          Default is Minimal
     --no-build            --no-build
     --help                display this list of options.
 ```

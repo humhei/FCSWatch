@@ -1,4 +1,5 @@
-﻿module FcsWatch.AutoReload
+﻿[<RequireQualifiedAccess>]
+module FcsWatch.AutoReload
 open Fake.Core
 open Types
 open FcsWatch.CrackedFsproj
@@ -7,7 +8,15 @@ open System.Collections.Concurrent
 open FcsWatch.Helpers
 open Fake.DotNet
 
+type Plugin =
+    { Load: unit -> unit
+      Unload: unit -> unit
+      Calculate: unit -> unit }
 
+[<RequireQualifiedAccess>]
+type DevelopmentTarget =
+    | Program
+    | Plugin of Plugin
 
 let private runningProjects = new ConcurrentDictionary<string,Process>()
 
@@ -30,7 +39,7 @@ module private CrackedFsproj =
             Process.Start(startInfo)
 
     let tryRun developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
-        match developmentTarget with
+        match (developmentTarget: DevelopmentTarget) with
         | DevelopmentTarget.Program ->
             match crackedFsproj.ProjectTarget with 
             | ProjectTarget.Exe -> 
@@ -68,7 +77,7 @@ module private CrackedFsproj =
                 failwithf "Cannot remove %s from running projects" crackedFsproj.ProjPath
 
 [<RequireQualifiedAccess>]
-type AutoReloadTmpEmitterMsg =
+type TmpEmitterMsg =
     | IncrCompilingNum of int
     | DecrCompilingNum of int
     | AddTmp of string (*proj path*)
@@ -76,15 +85,15 @@ type AutoReloadTmpEmitterMsg =
     | UpdateCache of CrackedFsprojBundleCache
 
 [<RequireQualifiedAccess>]
-module AutoReloadTmpEmitterMsg =
+module TmpEmitterMsg =
     let msgName = function 
-        | AutoReloadTmpEmitterMsg.IncrCompilingNum _ -> "IncrCompilingNum"
-        | AutoReloadTmpEmitterMsg.DecrCompilingNum _ -> "DecrCompilingNum"
-        | AutoReloadTmpEmitterMsg.AddTmp _ -> "AddTmp"
-        | AutoReloadTmpEmitterMsg.AddTask _ -> "AddTask"
-        | AutoReloadTmpEmitterMsg.UpdateCache _ -> "UpdateCache"
+        | TmpEmitterMsg.IncrCompilingNum _ -> "IncrCompilingNum"
+        | TmpEmitterMsg.DecrCompilingNum _ -> "DecrCompilingNum"
+        | TmpEmitterMsg.AddTmp _ -> "AddTmp"
+        | TmpEmitterMsg.AddTask _ -> "AddTask"
+        | TmpEmitterMsg.UpdateCache _ -> "UpdateCache"
 
-type AutoReloadTmpEmitterState =
+type TmpEmitterState =
     { CompilingNumber: int
       /// proj paths
       CompilerTmp: Set<string>
@@ -92,7 +101,7 @@ type AutoReloadTmpEmitterState =
       CrackerFsprojFileBundleCache: CrackedFsprojBundleCache }
 
 [<RequireQualifiedAccess>]
-module AutoReloadTmpEmitterState =
+module TmpEmitterState =
 
     let createEmpty cache = 
         { CompilingNumber = 0
@@ -169,55 +178,55 @@ module AutoReloadTmpEmitterState =
 
 
 
-    let processMsg (msg: AutoReloadTmpEmitterMsg) (state: AutoReloadTmpEmitterState) =
+    let processMsg (msg: TmpEmitterMsg) (state: TmpEmitterState) =
         let newState = 
             match msg with 
 
-            | AutoReloadTmpEmitterMsg.DecrCompilingNum number ->
+            | TmpEmitterMsg.DecrCompilingNum number ->
                 let compilingNumber = state.CompilingNumber - number
 
                 assert (state.CompilingNumber > 0)
                 {state with CompilingNumber = compilingNumber}
 
-            | AutoReloadTmpEmitterMsg.IncrCompilingNum number -> 
+            | TmpEmitterMsg.IncrCompilingNum number -> 
                 let compilingNumber = state.CompilingNumber + number
 
                 {state with CompilingNumber = compilingNumber } 
 
-            | AutoReloadTmpEmitterMsg.AddTmp projectFile -> 
+            | TmpEmitterMsg.AddTmp projectFile -> 
                 let newCompilerTmp = state.CompilerTmp.Add projectFile
 
                 {state with CompilerTmp = newCompilerTmp }        
 
-            | AutoReloadTmpEmitterMsg.AddTask task -> 
+            | TmpEmitterMsg.AddTask task -> 
                 {state with CachedCompilerTasks = task :: state.CachedCompilerTasks} 
 
-            | AutoReloadTmpEmitterMsg.UpdateCache cache ->
+            | TmpEmitterMsg.UpdateCache cache ->
                 {state with CrackerFsprojFileBundleCache = cache} 
 
 
-        let msgName = AutoReloadTmpEmitterMsg.msgName msg
+        let msgName = TmpEmitterMsg.msgName msg
         logger.Info "compilerTmpEmitter agent receive message %s,current compiling number is %d" msgName newState.CompilingNumber
 
         newState
 
-let autoReloadTmpEmitter workingDir developmentTarget (initialCache: CrackedFsprojBundleCache) = MailboxProcessor<AutoReloadTmpEmitterMsg>.Start(fun inbox ->
+let create workingDir developmentTarget (initialCache: CrackedFsprojBundleCache) = MailboxProcessor<TmpEmitterMsg>.Start(fun inbox ->
     logger.Important "FcsWatch is running in autoReload mode"
     CrackedFsproj.tryRun developmentTarget workingDir initialCache.EntryCrackedFsproj
     let rec loop state = async {
 
         let! msg = inbox.Receive()
-        let newState = AutoReloadTmpEmitterState.processMsg msg state
+        let newState = TmpEmitterState.processMsg msg state
 
         match msg with 
-        | AutoReloadTmpEmitterMsg.DecrCompilingNum _ ->
+        | TmpEmitterMsg.DecrCompilingNum _ ->
 
-            let newState = AutoReloadTmpEmitterState.tryEmit workingDir developmentTarget newState
+            let newState = TmpEmitterState.tryEmit workingDir developmentTarget newState
 
             return! loop newState    
 
         | _ -> return! loop newState
     }
-    loop (AutoReloadTmpEmitterState.createEmpty initialCache) 
+    loop (TmpEmitterState.createEmpty initialCache) 
 )
 

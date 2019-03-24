@@ -1,70 +1,61 @@
-module FcsWatch.CompilerTmpEmitter
-open AutoReload
-open FcsWatch.DebuggingServer
+namespace FcsWatch
 
 
 [<RequireQualifiedAccess>]
-type CompilerTmpEmitterMsg =
-    | AutoReload of AutoReloadTmpEmitterMsg
-    | DebuggingServer of DebuggingServerMsg
-
-
+type DevelopmentTarget =
+    | Debuggable of DebuggingServer.DevelopmentTarget
+    | AutoReload of AutoReload.DevelopmentTarget
 
 [<RequireQualifiedAccess>]
-type CompilerTmpEmitterState =
-    | AutoReload of AutoReloadTmpEmitterState
-    | DebuggingServer of DebuggingServer.DebuggingServerState
+module DevelopmentTarget =
+    let debuggableProgram = DevelopmentTarget.Debuggable DebuggingServer.DevelopmentTarget.Program
+    let autoReloadProgram = DevelopmentTarget.AutoReload AutoReload.DevelopmentTarget.Program
+    let autoReloadPlugin plugin = DevelopmentTarget.AutoReload (AutoReload.DevelopmentTarget.Plugin plugin)
+    let debuggablePlugin plugin = DevelopmentTarget.Debuggable (DebuggingServer.DevelopmentTarget.Plugin plugin)
 
-with 
-    member x.CompilingNumber = 
-        match x with 
-        | CompilerTmpEmitterState.AutoReload autoReload -> autoReload.CompilingNumber
-        | CompilerTmpEmitterState.DebuggingServer debuggingServer -> debuggingServer.CompilingNumber
-
-
-[<RequireQualifiedAccess>]
-module CompilerTmpEmitterState =
-
-    let tryEmit workingDir developmentTarget = function 
-        | CompilerTmpEmitterState.AutoReload autoReload -> 
-            AutoReloadTmpEmitterState.tryEmit workingDir developmentTarget autoReload
-            |> CompilerTmpEmitterState.AutoReload
-
-        | CompilerTmpEmitterState.DebuggingServer debuggingServer -> 
-            DebuggingServerState.tryEmit developmentTarget debuggingServer
-            |> CompilerTmpEmitterState.DebuggingServer
-
-    let setCompilingNumber number = function
-        | CompilerTmpEmitterState.AutoReload autoReload -> 
-            AutoReloadTmpEmitterState.setCompilingNumber number autoReload
-            |> CompilerTmpEmitterState.AutoReload
-
-        | CompilerTmpEmitterState.DebuggingServer debuggingServer -> 
-            DebuggingServerState.setCompilingNumber number debuggingServer
-            |> CompilerTmpEmitterState.DebuggingServer
-
-
-[<RequireQualifiedAccess>]
-type CompilerTmpEmitter =
-    | AutoReload of MailboxProcessor<AutoReloadTmpEmitterMsg>
-    | DebuggingServer of MailboxProcessor<DebuggingServerMsg>
-
-with 
-    member x.Post msg = 
-        match x with 
-        | CompilerTmpEmitter.AutoReload autoReload ->
-            autoReload.Post msg
-        | CompilerTmpEmitter.DebuggingServer debuggingServer ->
-            debuggingServer.Post !^ (msg)
-
-
-[<RequireQualifiedAccess>]
 module CompilerTmpEmitter =
-    let create autoReload developmentTarget initialCache workingDir =
-        if autoReload 
-        then 
-            autoReloadTmpEmitter workingDir developmentTarget initialCache
-            |> CompilerTmpEmitter.AutoReload
-        else 
-            debuggingServer developmentTarget initialCache workingDir
-            |> CompilerTmpEmitter.DebuggingServer
+
+    [<RequireQualifiedAccess>]
+    type CompilerTmpEmitterMsg =
+        | AutoReload of DebuggingServer.TmpEmitterMsg
+        | DebuggingServer of AutoReload.TmpEmitterMsg
+
+
+
+    [<RequireQualifiedAccess>]
+    type CompilerTmpEmitterState =
+        | AutoReload of AutoReload.TmpEmitterState
+        | DebuggingServer of DebuggingServer.TmpEmitterState
+
+    with 
+        member x.CompilingNumber = 
+            match x with 
+            | CompilerTmpEmitterState.AutoReload autoReload -> autoReload.CompilingNumber
+            | CompilerTmpEmitterState.DebuggingServer debuggingServer -> debuggingServer.CompilingNumber
+
+
+    [<RequireQualifiedAccess>]
+    type CompilerTmpEmitter =
+        | AutoReload of MailboxProcessor<AutoReload.TmpEmitterMsg>
+        | DebuggingServer of MailboxProcessor<DebuggingServer.TmpEmitterMsg>
+
+    with 
+        member x.Post msg = 
+            match x with 
+            | CompilerTmpEmitter.AutoReload autoReload ->
+                autoReload.Post msg
+            | CompilerTmpEmitter.DebuggingServer debuggingServer ->
+                debuggingServer.Post (DebuggingServer.upcastMsg msg)
+
+
+    [<RequireQualifiedAccess>]
+    module CompilerTmpEmitter =
+        let create developmentTarget initialCache workingDir =
+            match developmentTarget with 
+            | DevelopmentTarget.AutoReload autoReload ->
+                AutoReload.create workingDir autoReload initialCache
+                |> CompilerTmpEmitter.AutoReload
+
+            | DevelopmentTarget.Debuggable debuggable ->
+                DebuggingServer.create debuggable initialCache workingDir
+                |> CompilerTmpEmitter.DebuggingServer

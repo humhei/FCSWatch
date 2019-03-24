@@ -1,3 +1,4 @@
+[<RequireQualifiedAccess>]
 module FcsWatch.DebuggingServer 
 open Fake.IO
 open System.Net
@@ -8,17 +9,33 @@ open Suave.Filters
 open Suave.Operators
 open Suave
 open System.Net.Sockets
-open AutoReload
+
+type PluginDebugInfo =
+    { DebuggerAttachTimeDelay: int 
+      Pid: int 
+      VscodeLaunchConfigurationName: string }
+
+type Plugin =
+    { Load: unit -> unit
+      Unload: unit -> unit
+      Calculate: unit -> unit
+      PluginDebugInfo: PluginDebugInfo }
+
+[<RequireQualifiedAccess>]
+type DevelopmentTarget =
+    | Program
+    | Plugin of Plugin
 
 
-let freePort() =
+
+let private freePort() =
     let listener = new TcpListener(IPAddress.Any, 0);
     listener.Start()
     let port = (listener.LocalEndpoint :?> IPEndPoint).Port
     listener.Stop()
     port
 
-let generateCurlCache freePort workingDir =         
+let private generateCurlCache freePort workingDir =         
     let cacheDir = workingDir </> ".fake" </> "fcswatch"
 
     let fileName = cacheDir </> "port.cache"
@@ -32,14 +49,14 @@ let generateCurlCache freePort workingDir =
     File.writeWithEncoding Encoding.ASCII false fileName lines
 
 [<RequireQualifiedAccess>]
-type DebuggingServerMsg =
+type TmpEmitterMsg =
     | EmitCompilerTmp of replyChannel: AsyncReplyChannel<WebPart>
-    | AutoReload of AutoReloadTmpEmitterMsg
+    | AutoReload of AutoReload.TmpEmitterMsg
 
-let (!^) msg = DebuggingServerMsg.AutoReload msg
+let upcastMsg msg = TmpEmitterMsg.AutoReload msg
 
-type DebuggingServerState =
-    { AutoReloadTmpEmitterState: AutoReloadTmpEmitterState
+type TmpEmitterState  =
+    { AutoReloadTmpEmitterState: AutoReload.TmpEmitterState
       EmitReplyChannels: AsyncReplyChannel<WebPart> list }
 
 with 
@@ -53,50 +70,46 @@ with
 
 
 [<RequireQualifiedAccess>]
-module DebuggingServerState =
+module TmpEmitterState =
     open System.Threading
 
     let createEmpty cache =
-        { AutoReloadTmpEmitterState = AutoReloadTmpEmitterState.createEmpty cache 
+        { AutoReloadTmpEmitterState = AutoReload.TmpEmitterState.createEmpty cache 
           EmitReplyChannels = [] }
 
-    let mapAutoReloadTmpEmitterState mapping (debuggingServerState: DebuggingServerState) =
-        { debuggingServerState with 
-            AutoReloadTmpEmitterState = mapping debuggingServerState.AutoReloadTmpEmitterState }
+    let mapAutoReloadTmpEmitterState mapping (tmpEmitterState: TmpEmitterState) =
+        { tmpEmitterState with 
+            AutoReloadTmpEmitterState = mapping tmpEmitterState.AutoReloadTmpEmitterState }
 
-    let setCompilingNumber number (debuggingServerState: DebuggingServerState) =
-        mapAutoReloadTmpEmitterState (AutoReloadTmpEmitterState.setCompilingNumber number) debuggingServerState
+    let setCompilingNumber number (tmpEmitterState: TmpEmitterState) =
+        mapAutoReloadTmpEmitterState (AutoReload.TmpEmitterState.setCompilingNumber number) tmpEmitterState
 
-    let tryEmit developmentTarget (debuggingServerState: DebuggingServerState) =
-        let cache = debuggingServerState.CrackerFsprojFileBundleCache
-        logger.Info "tryEmitAction: current emitReplyChannels number is %d" debuggingServerState.EmitReplyChannels.Length
+    let tryEmit (developmentTarget: DevelopmentTarget) (tmpEmitterState: TmpEmitterState) =
+        let cache = tmpEmitterState.CrackerFsprojFileBundleCache
+        logger.Info "tryEmitAction: current emitReplyChannels number is %d" tmpEmitterState.EmitReplyChannels.Length
 
-        match debuggingServerState.CompilingNumber, debuggingServerState.EmitReplyChannels with 
+        match tmpEmitterState.CompilingNumber, tmpEmitterState.EmitReplyChannels with 
         | 0, h::t ->
             let replySuccess() = h.Reply (Successful.OK "fcswatch: Ready to debug") 
 
             let replyFailure errorText = h.Reply (RequestErrors.BAD_REQUEST errorText)
 
-            logger.Info "Current valid compier task is %d" debuggingServerState.CachedCompilerTasks.Length
+            logger.Info "Current valid compier task is %d" tmpEmitterState.CachedCompilerTasks.Length
 
-            match debuggingServerState.CachedCompilerTasks with
+            match tmpEmitterState.CachedCompilerTasks with
             | [] ->
                 replySuccess()
 
                 match developmentTarget with 
                 | DevelopmentTarget.Plugin plugin ->
-                    match plugin.PluginDebugInfo with 
-                    | Some pluginDebugInfo ->
-                        Thread.Sleep(pluginDebugInfo.DebuggerAttachTimeDelay)
-                    | None -> ()
-
+                    Thread.Sleep(plugin.PluginDebugInfo.DebuggerAttachTimeDelay)
                     plugin.Calculate()
                 | _ -> ()
 
-                debuggingServerState
+                tmpEmitterState
             | _ ->
                 let lastTasks = 
-                    debuggingServerState.CachedCompilerTasks 
+                    tmpEmitterState.CachedCompilerTasks 
                     |> List.groupBy (fun compilerTask ->
                         compilerTask.Task.Result.[0].ProjPath
                     )
@@ -114,7 +127,7 @@ module DebuggingServerState =
                         |> String.concat "\n"
 
                     replyFailure errorText
-                    { debuggingServerState with EmitReplyChannels = [] } 
+                    { tmpEmitterState with EmitReplyChannels = [] } 
 
                 | None ->
 
@@ -127,7 +140,7 @@ module DebuggingServerState =
                         plugin.Unload()
                     | _ -> ()
 
-                    debuggingServerState.CompilerTmp
+                    tmpEmitterState.CompilerTmp
                     |> Seq.sortByDescending (fun projPath ->
                         projLevelMap.[projPath]
                     )
@@ -154,7 +167,7 @@ module DebuggingServerState =
                     
                     createEmpty cache
 
-        | _ -> debuggingServerState
+        | _ -> tmpEmitterState
 
 
 [<RequireQualifiedAccess>]
@@ -209,14 +222,12 @@ module DebuggingServer =
         | DevelopmentTarget.Plugin plugin ->
             let file = root </> ".vscode" </> "launch.json"
             if File.exists file then 
-                match plugin.PluginDebugInfo with 
-                | Some pluginDebugInfo ->
-                    let launch = Launch.read file
-                    Launch.writePid pluginDebugInfo.VscodeLaunchConfigurationName pluginDebugInfo.Pid launch
-                    |> ignore
-                | None -> ()
+                let pluginDebugInfo = plugin.PluginDebugInfo
+                let launch = Launch.read file
+                Launch.writePid pluginDebugInfo.VscodeLaunchConfigurationName pluginDebugInfo.Pid launch
+                |> ignore
 
-let debuggingServer developmentTarget cache workingDir = MailboxProcessor<DebuggingServerMsg>.Start(fun inbox ->
+let create developmentTarget cache workingDir = MailboxProcessor<TmpEmitterMsg>.Start(fun inbox ->
     DebuggingServer.writePidForPlugin developmentTarget workingDir
 
     logger.Important "FcsWatch is running in debuggable mode \n Added launch settings in vscode to debug it"
@@ -227,7 +238,7 @@ let debuggingServer developmentTarget cache workingDir = MailboxProcessor<Debugg
                     async {
                         let! handler = 
                             inbox.PostAndAsyncReply(fun replyChannel ->
-                                DebuggingServerMsg.EmitCompilerTmp replyChannel
+                                TmpEmitterMsg.EmitCompilerTmp replyChannel
                             )
                         return! handler ctx  
                     }
@@ -249,23 +260,23 @@ let debuggingServer developmentTarget cache workingDir = MailboxProcessor<Debugg
     let rec loop state = async {
         let! msg = inbox.Receive()
         match msg with 
-        | DebuggingServerMsg.EmitCompilerTmp replyChannel ->
+        | TmpEmitterMsg.EmitCompilerTmp replyChannel ->
             let newState =
                 { state with 
                     EmitReplyChannels = replyChannel :: state.EmitReplyChannels }
-                |> DebuggingServerState.tryEmit developmentTarget
+                |> TmpEmitterState.tryEmit developmentTarget
 
             return! loop newState
 
-        | DebuggingServerMsg.AutoReload autoReloadMsg ->
+        | TmpEmitterMsg.AutoReload autoReloadMsg ->
             let newState = 
                 { state with 
-                    AutoReloadTmpEmitterState = AutoReloadTmpEmitterState.processMsg autoReloadMsg state.AutoReloadTmpEmitterState }
+                    AutoReloadTmpEmitterState = AutoReload.TmpEmitterState.processMsg autoReloadMsg state.AutoReloadTmpEmitterState }
             match autoReloadMsg with 
-            | AutoReloadTmpEmitterMsg.DecrCompilingNum _ ->
-                return! loop (DebuggingServerState.tryEmit developmentTarget newState)
+            | AutoReload.TmpEmitterMsg.DecrCompilingNum _ ->
+                return! loop (TmpEmitterState.tryEmit developmentTarget newState)
             | _ -> return! loop newState
 
     }
-    loop (DebuggingServerState.createEmpty cache)
+    loop (TmpEmitterState.createEmpty cache)
 ) 
