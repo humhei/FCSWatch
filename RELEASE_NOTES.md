@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.6.5-alpha - tbd
+## 0.6.6-alpha - tbd
+
+## 0.6.5 - 2019-03-24
+* Kill running project after watch mode is interrupt
 
 ## 0.6.4 - 2019-03-24
 * Pack as tool
