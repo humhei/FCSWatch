@@ -18,7 +18,7 @@ MacOS/Linux | Windows
 ### From Cli
 
 dotnet tool install --global fcswatch-cli
-
+fcswatch --project-file yourProjectFile
 ```
 USAGE: fcswatch.exe [--help] [--working-dir <string>] [--project-file <string>] [--debuggable]
                     [--logger-level <minimal|normal|quiet>] [--no-build]
