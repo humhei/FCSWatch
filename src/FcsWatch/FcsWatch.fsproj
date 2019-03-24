@@ -26,6 +26,8 @@
   <Target Name="IncludeProcessExtensions">
     <ItemGroup>
       <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Helpers.dll" />
+      <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Helpers.pdb" />
+
     </ItemGroup>
   </Target>
 
