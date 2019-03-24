@@ -1,6 +1,8 @@
 ﻿# Release Notes
 
-## 0.6.0-alpha - tbd
+## 0.6.1-alpha - tbd
+
+## 0.6.0 - 2019-03-24
 * Added autoReload mode
 * FcsWatch Cli Support
 
