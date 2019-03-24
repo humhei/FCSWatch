@@ -29,10 +29,10 @@ let testSourceFile1InTestLib = datas </> @"TestLib1/Library.fs"
 let interactionTests =
     testList "interaction tests" [
         testCase "base interaction test" <| fun _ ->
-            FcsWatch.Cli.main [|"--project-file"; entryProjPath|]
+            FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath|]
             |> ignore
 
         ftestCase "auto reload test" <| fun _ ->
-            FcsWatch.Cli.main [|"--project-file"; entryProjPath; "--no-build"|]
+            FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath; "--no-build"|]
             |> ignore
     ]
