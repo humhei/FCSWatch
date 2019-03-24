@@ -17,8 +17,17 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-18618-05" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FcsWatch.Helpers\FcsWatch.Helpers.csproj" />
+    <ProjectReference Include="..\FcsWatch.Helpers\FcsWatch.Helpers.csproj" PrivateAssets="All" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProcessExtensions</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+  <Target Name="IncludeProcessExtensions">
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Helpers.dll" />
+    </ItemGroup>
+  </Target>
 
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

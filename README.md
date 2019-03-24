@@ -59,18 +59,7 @@ open Fake.DotNet
 Target.create "FcsWatch" (fun _ ->
     /// replace it to your entry project file
     let projectFile = Path.getFullName "./FcsWatchMiniSample/FcsWatchMiniSample.fsproj"
-    DotNet.build (fun ops ->
-      { ops with
-          Configuration = DotNet.BuildConfiguration.Debug }
-    ) projectFile
-    let checker = FSharpChecker.Create()
-
-    let config =
-        { Config.DefaultValue with
-            AutoReload = true
-            /// LoggerLevel = Logger.Level.Normal }
-
-    runFcsWatcherWith config checker projectFile
+    runFcsWatcher Config.DefaultValue projectFile
 )
 
 Target.runOrDefault "FcsWatch"
@@ -170,12 +159,11 @@ build.fsx setting
           /// and reload debugger
           DebuggerAttachTimeDelay = 1000 }
 
-    runFcsWatcherWith (fun config ->
-        { config with
-            Logger = Logger.Normal
-            DevelopmentTarget = DevelopmentTarget.Plugin plugin
-        }
-    ) checker projectFile
+    let config =
+        {Config.DefaultValue with
+            DevelopmentTarget = DevelopmentTarget.autoReloadPlugin plugin }
+
+    runFcsWatcher config projectFile
 
 ```
 
