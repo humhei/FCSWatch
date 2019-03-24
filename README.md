@@ -16,9 +16,12 @@ MacOS/Linux | Windows
 
 ## Get started
 ### From Cli
+`dotnet tool install --global fcswatch-cli`
 
-dotnet tool install --global fcswatch-cli
-fcswatch --project-file yourProjectFile
+`fcswatch --project-file yourProjectFile`
+
+FcsWatch will load your project in autoReload mode by defalut
+
 ```
 USAGE: fcswatch.exe [--help] [--working-dir <string>] [--project-file <string>] [--debuggable]
                     [--logger-level <minimal|normal|quiet>] [--no-build]
@@ -96,7 +99,8 @@ https://github.com/humhei/FcsWatchMiniSample
 * (Optional) add new fs file in any of TestProject,TestLib2,TestLib1
 * Relaunch Debugger
 
-#### Launch debugging in vscode
+
+### Launch debugging in vscode
 You can also launch debugging when running in watch mode
 ```
     {
