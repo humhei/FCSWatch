@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.6.4-alpha - tbd
+## 0.6.5-alpha - tbd
+
+## 0.6.4 - 2019-03-24
+* Pack as tool
 
 ## 0.6.3 - 2019-03-24
 * Using shared file between cli
