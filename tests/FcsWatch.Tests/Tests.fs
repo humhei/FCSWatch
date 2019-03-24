@@ -136,7 +136,7 @@ let functionTests =
     testList "functionTests"
         [
             /// "bin ref may be locked by program
-            ftestCaseAsync "obj ref only" <| async {
+            testCaseAsync "obj ref only" <| async {
                 let! fullCracekdFsproj, _  =
                     FullCrackedFsproj.create entryProjPath
 
