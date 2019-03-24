@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FcsWatch.Helpers\FcsWatch.Helpers.csproj" PrivateAssets="All" />
     <ProjectReference Include="..\FcsWatch\FcsWatch.fsproj" />
   </ItemGroup>
 
