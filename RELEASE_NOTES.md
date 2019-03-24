@@ -1,6 +1,7 @@
 ﻿# Release Notes
 
-## 0.6.3-alpha - tbd
+## 0.6.3 - tbd
+* Using shared file between cli
 
 ## 0.6.2 - 2019-03-24
 * PrivateAssets FcsWatch-Helper.csproj

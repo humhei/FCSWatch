@@ -6,16 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\fcswatch-cli\Share.fs" />
     <Compile Include="ExcelDna.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Argu" Version="5.2.0" />
     <PackageReference Include="ExcelDna.Interop" Version="14.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\fcswatch-cli\fcswatch-cli.fsproj" />
+    <ProjectReference Include="..\FcsWatch\FcsWatch.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

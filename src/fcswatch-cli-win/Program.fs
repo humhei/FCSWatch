@@ -1,11 +1,10 @@
 ﻿// Learn more about F# at http://fsharp.org
-
+module Program
 open Argu
 open FcsWatch
-open FcsWatch.Types
-open System
 
-type CoreArguments = FcsWatch.Cli.Arguments
+
+type CoreArguments = FcsWatch.Cli.Share.Arguments
 
 type Arguments =
     | Working_Dir of string
@@ -33,7 +32,7 @@ with
 
 [<EntryPoint>]
 let main argv =
-    let coreParser = FcsWatch.Cli.parser
+    let coreParser = FcsWatch.Cli.Share.parser
 
     let parser = ArgumentParser.Create<Arguments>(programName = "fcswatch-win.exe")
     let results = parser.Parse argv
@@ -42,7 +41,7 @@ let main argv =
         results.GetAllResults()
         |> List.choose (fun (result: Arguments) -> result.AsCore)
         |> coreParser.ToParseResults
-        |> FcsWatch.Cli.processParseResults parser.PrintUsage
+        |> FcsWatch.Cli.Share.processParseResults parser.PrintUsage
 
     let developmentTarget = 
         match results.TryGetResult ExcelDna with 
