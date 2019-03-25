@@ -10,10 +10,8 @@ open Suave.Operators
 open Suave
 open System.Net.Sockets
 
-type PluginDebugInfo =
-    { DebuggerAttachTimeDelay: int 
-      Pid: int 
-      VscodeLaunchConfigurationName: string }
+type PluginDebugInfo = AutoReload.PluginDebugInfo
+module PluginDebugInfo = AutoReload.PluginDebugInfo
 
 type Plugin =
     { Load: unit -> unit
@@ -170,65 +168,13 @@ module TmpEmitterState =
         | _ -> tmpEmitterState
 
 
-[<RequireQualifiedAccess>]
-module DebuggingServer =
-    [<AutoOpen>]
-    module internal VscodeHelper =
-
-        type Configuration =
-            { name: string
-              ``type``: string
-              request: string
-              preLaunchTask: obj
-              program: obj
-              args: obj
-              processId: obj
-              justMyCode: obj
-              cwd: obj
-              stopAtEntry: obj
-              console: obj }
-
-        type Launch =
-            { version: string
-              configurations: Configuration list }
-
-        [<RequireQualifiedAccess>]
-        module Launch =
-            open Newtonsoft.Json
-
-            let read file =
-
-                let jsonTest = File.readAsString file
-                JsonConvert.DeserializeObject<Launch> jsonTest
-
-            let write file (launch: Launch) =
-                let settings = JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore)
-                let jsonText = JsonConvert.SerializeObject(launch,Formatting.Indented,settings)
-                File.writeString false file jsonText
-
-            let writePid configurationName pid (launch: Launch) =
-                { launch with
-                    configurations =
-                        launch.configurations
-                        |> List.map (fun configuration ->
-                            if configuration.request = "attach" && configuration.name = configurationName then
-                                {configuration with processId = pid}
-                            else configuration
-                        ) }
-
-    let writePidForPlugin developmentTarget root =
-        match developmentTarget with 
-        | DevelopmentTarget.Program -> ()
-        | DevelopmentTarget.Plugin plugin ->
-            let file = root </> ".vscode" </> "launch.json"
-            if File.exists file then 
-                let pluginDebugInfo = plugin.PluginDebugInfo
-                let launch = Launch.read file
-                Launch.writePid pluginDebugInfo.VscodeLaunchConfigurationName pluginDebugInfo.Pid launch
-                |> ignore
 
 let create developmentTarget cache workingDir = MailboxProcessor<TmpEmitterMsg>.Start(fun inbox ->
-    DebuggingServer.writePidForPlugin developmentTarget workingDir
+    
+    match developmentTarget with 
+    | DevelopmentTarget.Plugin plugin ->
+        PluginDebugInfo.writePidForPlugin workingDir plugin.PluginDebugInfo
+    | _ -> ()
 
     logger.Important "FcsWatch is running in debuggable mode \n Added launch settings in vscode to debug it"
     async {

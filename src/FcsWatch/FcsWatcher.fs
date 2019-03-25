@@ -10,6 +10,7 @@ open System.IO
 open System.Threading
 open System.Timers
 
+module CrackedFsproj = AutoReload.CrackedFsproj
 
 [<RequireQualifiedAccess>]
 module IntervalAccumMailBoxProcessor =
@@ -278,7 +279,7 @@ module FcsWatcher =
                     | FcsWatcherMsg.TryKill replyChannel ->
                         match config.DevelopmentTarget with 
                         | DevelopmentTarget.AutoReload autoReload ->
-                            AutoReload.CrackedFsproj.tryKill autoReload entryCrackedFsproj
+                            CrackedFsproj.tryKill autoReload entryCrackedFsproj
                             replyChannel.Reply()
 
                         | DevelopmentTarget.Debuggable _ -> ()

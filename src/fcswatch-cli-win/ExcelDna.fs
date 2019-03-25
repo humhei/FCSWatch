@@ -34,7 +34,7 @@ let plugin developmentTarget (projectPath: string) =
     let app =
         let appInbox =
             Process.GetProcesses()
-            |> Seq.tryFind (fun proc -> proc.ProcessName = "EXCEL")
+            |> Array.tryFind (fun proc -> proc.ProcessName = "EXCEL")
             |> function
                 | Some proc -> Marshal.GetActiveObject("Excel.Application")
                 | None ->
@@ -97,7 +97,8 @@ let plugin developmentTarget (projectPath: string) =
         let plugin : AutoReload.Plugin= 
             { Load = installPlugin
               Unload = unInstall
-              Calculate = calculate }
+              Calculate = calculate
+              PluginDebugInfo = None }
 
         DevelopmentTarget.autoReloadPlugin plugin
     | DevelopmentTarget.Debuggable _ ->

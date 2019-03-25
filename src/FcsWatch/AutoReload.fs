@@ -7,11 +7,75 @@ open System.Diagnostics
 open System.Collections.Concurrent
 open FcsWatch.Helpers
 open Fake.DotNet
+open Fake.IO
+open Fake.IO.FileSystemOperators
+
+type PluginDebugInfo =
+    { DebuggerAttachTimeDelay: int 
+      Pid: int 
+      VscodeLaunchConfigurationName: string }
+
+[<RequireQualifiedAccess>]
+module PluginDebugInfo =
+    [<AutoOpen>]
+    module internal VscodeHelper =
+
+        type Configuration =
+            { name: string
+              ``type``: string
+              request: string
+              preLaunchTask: obj
+              program: obj
+              args: obj
+              processId: obj
+              justMyCode: obj
+              cwd: obj
+              stopAtEntry: obj
+              console: obj }
+
+        type Launch =
+            { version: string
+              configurations: Configuration list }
+
+        [<RequireQualifiedAccess>]
+        module Launch =
+            open Newtonsoft.Json
+
+            let read file =
+
+                let jsonTest = File.readAsString file
+                JsonConvert.DeserializeObject<Launch> jsonTest
+
+            let write file (launch: Launch) =
+                let settings = JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore)
+                let jsonText = JsonConvert.SerializeObject(launch,Formatting.Indented,settings)
+                File.writeString false file jsonText
+
+            let writePid configurationName pid (launch: Launch) =
+                { launch with
+                    configurations =
+                        launch.configurations
+                        |> List.map (fun configuration ->
+                            if configuration.request = "attach" && configuration.name = configurationName then
+                                {configuration with processId = pid}
+                            else configuration
+                        ) }
+
+    let writePidForPlugin root (pluginDebugInfo: PluginDebugInfo) =
+        let file = root </> ".vscode" </> "launch.json"
+        if File.exists file then 
+            let launch = Launch.read file
+            Launch.writePid pluginDebugInfo.VscodeLaunchConfigurationName pluginDebugInfo.Pid launch
+            |> ignore
+
 
 type Plugin =
     { Load: unit -> unit
       Unload: unit -> unit
-      Calculate: unit -> unit }
+      Calculate: unit -> unit
+      /// sometimes i want work both in autoReload + debuggable
+      PluginDebugInfo: PluginDebugInfo option }
+
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
@@ -213,6 +277,15 @@ module TmpEmitterState =
 let create workingDir developmentTarget (initialCache: CrackedFsprojBundleCache) = MailboxProcessor<TmpEmitterMsg>.Start(fun inbox ->
     logger.Important "FcsWatch is running in autoReload mode"
     CrackedFsproj.tryRun developmentTarget workingDir initialCache.EntryCrackedFsproj
+
+    match developmentTarget with 
+    | DevelopmentTarget.Plugin plugin ->
+        match plugin.PluginDebugInfo with 
+        | Some pluginDebugInfo -> 
+            PluginDebugInfo.writePidForPlugin workingDir pluginDebugInfo
+        | None -> ()
+    | _ -> ()
+
     let rec loop state = async {
 
         let! msg = inbox.Receive()
