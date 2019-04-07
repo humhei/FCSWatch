@@ -1,15 +1,15 @@
 ﻿// Learn more about F# at http://fsharp.org
 module FcsWatch.Cli.Main
-open FcsWatch.FcsWatcher
+open FcsWatch.Binary
 open FcsWatch.Cli.Share
 
 
 [<EntryPoint>]
 let main argv =
 
-    let results = parser.Parse argv
+    let results = Binary.parser.Parse argv
 
-    let processResult = processParseResults parser.PrintUsage results
+    let processResult = Binary.processParseResults Binary.parser.PrintUsage results
 
     runFcsWatcher processResult.Config processResult.ProjectFile
 

@@ -8,8 +8,9 @@ open System.Diagnostics
 open System.Runtime.InteropServices
 open Microsoft.Office.Interop.Excel
 open Fake.Core
-open FcsWatch.Types
-open FcsWatch
+open FcsWatch.Core.Types
+open FcsWatch.Core
+open FcsWatch.Binary
 
 
 [<AutoOpen>]
@@ -92,13 +93,19 @@ let plugin developmentTarget (projectPath: string) =
         let ws = app.ActiveSheet :?> Worksheet
         ws.Calculate()
 
+    let pluginDebugInfo: PluginDebugInfo = 
+        { DebuggerAttachTimeDelay = 2000
+          Pid = procId 
+          VscodeLaunchConfigurationName = "Attach Excel" } 
+
     match developmentTarget with 
     | DevelopmentTarget.AutoReload _ ->
         let plugin : AutoReload.Plugin= 
             { Load = installPlugin
               Unload = unInstall
               Calculate = calculate
-              PluginDebugInfo = None }
+              PluginDebugInfo = Some pluginDebugInfo
+            }
 
         DevelopmentTarget.autoReloadPlugin plugin
     | DevelopmentTarget.Debuggable _ ->
@@ -106,10 +113,7 @@ let plugin developmentTarget (projectPath: string) =
             { Load = installPlugin
               Unload = unInstall
               Calculate = calculate
-              PluginDebugInfo = 
-                { DebuggerAttachTimeDelay = 2000
-                  Pid = procId 
-                  VscodeLaunchConfigurationName = "Launch Excel" }} 
+              PluginDebugInfo = pluginDebugInfo } 
         DevelopmentTarget.debuggablePlugin plugin
        
 

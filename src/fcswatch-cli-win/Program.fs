@@ -2,6 +2,8 @@
 module Program
 open Argu
 open FcsWatch
+open FcsWatch.Core
+open FcsWatch.Binary
 
 
 type CoreArguments = FcsWatch.Cli.Share.Arguments
@@ -53,6 +55,6 @@ let main argv =
         { processResult.Config with 
             DevelopmentTarget = developmentTarget }
 
-    FcsWatch.FcsWatcher.runFcsWatcher config processResult.ProjectFile
+    runFcsWatcher config processResult.ProjectFile
 
     0 // return an integer exit code

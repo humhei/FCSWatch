@@ -1,4 +1,4 @@
-﻿namespace FcsWatch
+﻿namespace FcsWatch.Core
 open Fake.Core
 
 
@@ -54,6 +54,7 @@ module Logger =
         member x.InfoGreents format =
             Printf.ksprintf (withTimeStamp (_info Trace.trace)) format
 
+        /// LG = light gray
         member x.ImportantLG format =
             Printf.ksprintf (_important Trace.log) format
 

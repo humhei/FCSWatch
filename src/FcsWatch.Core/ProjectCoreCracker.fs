@@ -1,5 +1,5 @@
 ﻿/// Adapted from https://github.com/fsharp/FsAutoComplete/blob/45bf4a7255f8856b0164f722a82a17108ae64981/src/FsAutoComplete.Core/ProjectCoreCracker.fs
-module FcsWatch.ProjectCoreCracker
+module FcsWatch.Core.ProjectCoreCracker
 
 open System
 open System.IO

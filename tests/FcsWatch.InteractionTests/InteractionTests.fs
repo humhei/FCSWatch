@@ -2,7 +2,6 @@ module FcsWatch.InteractionTests.InteractionTests
 open Expecto
 open Fake.IO
 open Fake.IO.FileSystemOperators
-open FcsWatch.Types
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"

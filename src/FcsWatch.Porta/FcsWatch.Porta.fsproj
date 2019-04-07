@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="CodeModel.fs" />
+    <Compile Include="Interpreter.fs" />
+    <Compile Include="FromCompilerService.fs" />
+    <Compile Include="Extensions.fs" />
+    <Compile Include="FromProcessCommandLine.fs" />
+    <Compile Include="CompilerTmpEmitter.fs" />
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FcsWatch.Core\FcsWatch.Core.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+  </ItemGroup>
+
+</Project>

@@ -6,9 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\fcswatch-cli\fcswatch-cli.fsproj" />
-    <ProjectReference Include="..\..\src\FcsWatch\FcsWatch.fsproj">
-      <Name>FcsWatch.fsproj</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Types.fs" />

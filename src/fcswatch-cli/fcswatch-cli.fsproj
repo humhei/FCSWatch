@@ -18,7 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FcsWatch\FcsWatch.fsproj" />
+    <ProjectReference Include="..\FcsWatch.Binary\FcsWatch.Binary.fsproj" />
+    <ProjectReference Include="..\FcsWatch.Core\FcsWatch.Core.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

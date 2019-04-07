@@ -1,41 +1,47 @@
-module FcsWatch.Types
+module FcsWatch.Core.Types
 open System.IO
 open FcsWatch
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open System.Collections.Generic
 open System.Xml
-open FcsWatch.CrackedFsproj
+open FcsWatch.Core.CrackedFsproj
 open System
 open Fake.DotNet
 open System.Threading.Tasks
-
-[<RequireQualifiedAccess>]
-module Path =
-    let nomarlizeToUnixCompitiable path =
-        let path = (Path.getFullName path).Replace('\\','/')
-
-        let dir = Path.getDirectory path
-
-        let segaments =
-            let fileName = Path.GetFileName path
-            fileName.Split([|'\\'; '/'|])
-
-        let folder dir segament =
-            dir </> segament
-            |> Path.getFullName
-
-        segaments
-        |> Array.fold folder dir
+open FSharp.Compiler.SourceCodeServices
 
 
-[<RequireQualifiedAccess>]
-module Dictionary =
+[<AutoOpen>]
+module internal Extensions =
 
-    let toMap dictionary =
-        (dictionary :> seq<_>)
-        |> Seq.map (|KeyValue|)
-        |> Map.ofSeq
+
+    [<RequireQualifiedAccess>]
+    module internal Path =
+        let nomarlizeToUnixCompitiable path =
+            let path = (Path.getFullName path).Replace('\\','/')
+
+            let dir = Path.getDirectory path
+
+            let segaments =
+                let fileName = Path.GetFileName path
+                fileName.Split([|'\\'; '/'|])
+
+            let folder dir segament =
+                dir </> segament
+                |> Path.getFullName
+
+            segaments
+            |> Array.fold folder dir
+
+
+    [<RequireQualifiedAccess>]
+    module internal Dictionary =
+
+        let toMap dictionary =
+            (dictionary :> seq<_>)
+            |> Seq.map (|KeyValue|)
+            |> Map.ofSeq
 
 
 [<AutoOpen>]
@@ -43,6 +49,7 @@ module internal Global =
     open Fake.Core
 
     let mutable logger = Logger.create (Logger.Level.Minimal)
+
     let private dotnetWith command args dir =
         DotNet.exec
             (fun ops -> {ops with WorkingDirectory = dir})
@@ -55,63 +62,45 @@ module internal Global =
         then failwithf "Error while running %s with args %A" command (List.ofSeq args)
 
 
-type Logger.Logger with
-    member x.CopyFile src dest =
-        File.Copy(src,dest,true)
-        logger.Important "%s ->\n%s" src dest
+[<RequireQualifiedAccess>]
+module FileSystem =
+    let internal editDirAndFile (fileName: string) (useEditFiles) =
+        assert useEditFiles
+        let infoDir = Path.Combine(Path.GetDirectoryName fileName,".fsharp")
+        let editFile = Path.Combine(infoDir,Path.GetFileName fileName + ".edit")
+        if not (Directory.Exists infoDir) then 
+            Directory.CreateDirectory infoDir |> ignore
+        infoDir, editFile
 
-    member x.ProcessCompileResult (errors,exitCode) =
+    let readFile (fileName: string) (useEditFiles) = 
+        if useEditFiles then 
+            let infoDir, editFile = editDirAndFile fileName useEditFiles
+            let preferEditFile =
+                try 
+                    Directory.Exists infoDir && File.Exists editFile && File.Exists fileName && File.GetLastWriteTime(editFile) > File.GetLastWriteTime(fileName)
+                with _ -> 
+                    false
+            if preferEditFile then 
+                logger.Info "*** preferring %s to %s ***" editFile fileName
+                File.ReadAllText editFile
+            else
+                File.ReadAllText fileName
+        else
+            File.ReadAllText fileName
+
+
+type internal Logger.Logger with
+    member x.ProcessCompileOrCheckResult (errors: FSharpErrorInfo [],exitCode) =
         if exitCode = 0 then
             if not <| Array.isEmpty errors then
                 logger.Warn "WARNINGS:\n%A" errors
 
         else logger.Error "ERRORS:\n%A" errors
 
-
-module internal CompilerResult =
-    let processCompileResult compilerResult =
-        logger.ProcessCompileResult (compilerResult.Errors,compilerResult.ExitCode)
-
 [<RequireQualifiedAccess>]
-module CrackedFsprojSingleTarget =
-
-    let copyFileFromRefDllToBin originProjectFile (destCrackedFsprojSingleTarget: CrackedFsprojSingleTarget) =
-
-        let targetDir = destCrackedFsprojSingleTarget.TargetDir
-
-        let originDll =
-            let projName = Path.GetFileNameWithoutExtension originProjectFile
-
-            destCrackedFsprojSingleTarget.RefDlls
-            |> Array.find(fun refDll -> Path.GetFileNameWithoutExtension refDll = projName)
-
-        let fileName = Path.GetFileName originDll
-
-        let destDll = targetDir </> fileName
-
-        logger.CopyFile originDll destDll
-
-        let originPdb = originDll |> Path.changeExtension ".pdb"
-
-        let destPdb = targetDir </> (Path.changeExtension ".pdb" fileName)
-
-        logger.CopyFile originPdb destPdb
-
-    let copyObjToBin (crackedFsprojSingleTarget: CrackedFsprojSingleTarget) =
-        logger.CopyFile crackedFsprojSingleTarget.ObjTargetFile crackedFsprojSingleTarget.TargetPath
-        logger.CopyFile crackedFsprojSingleTarget.ObjTargetPdb crackedFsprojSingleTarget.TargetPdbPath
-
-[<RequireQualifiedAccess>]
-module CrackedFsproj =
-    let copyFileFromRefDllToBin projectFile (destCrackedFsproj: CrackedFsproj) =
-        destCrackedFsproj.AsList
-        |> List.iter (CrackedFsprojSingleTarget.copyFileFromRefDllToBin projectFile)
-
-    let copyObjToBin (crackedFsproj: CrackedFsproj) =
-        crackedFsproj.AsList |> List.iter CrackedFsprojSingleTarget.copyObjToBin
-
-
-
+module internal ICompilerOrCheckResult =
+    let processCompileOrCheckResult (result: ICompilerOrCheckResult) =
+        logger.ProcessCompileOrCheckResult (result.Errors,result.ExitCode)
 
 
 type FullCrackedFsproj =
@@ -173,11 +162,11 @@ module FullCrackedFsproj =
         return loop 1 [||] allTaskArgs
     }
 
-    let private getAllCrackedFsprojs projectFile =
+    let getAllCrackedFsprojs projectFile =
         let prediate (crackedFsproj: CrackedFsproj) =
             crackedFsproj.AsList
-            |> List.forall (fun crackedFsprojSingleTarget ->
-                crackedFsprojSingleTarget.FSharpProjectOptions.OtherOptions.Length <> 0
+            |> List.forall (fun singleTargetCrackedFsproj ->
+                singleTargetCrackedFsproj.FSharpProjectOptions.OtherOptions.Length <> 0
             )
         let allProjects = easyGetAllProjPaths projectFile
 
@@ -190,7 +179,7 @@ module FullCrackedFsproj =
 
 
     /// entry level is 0
-    let internal getLevel projectFile (entryFsproj: FullCrackedFsproj) =
+    let getLevel projectFile (entryFsproj: FullCrackedFsproj) =
         let rec loop level (fsproj: FullCrackedFsproj) =
             [
                 if fsproj.Value.ProjPath = projectFile
@@ -202,7 +191,7 @@ module FullCrackedFsproj =
         |> List.max
 
 
-    let internal getProjectRefersMap (fsproj: FullCrackedFsproj) =
+    let getProjectRefersMap (fsproj: FullCrackedFsproj) =
         let cacheMutable = new Dictionary<string, CrackedFsproj list>()
         let rec loop (stack: CrackedFsproj list) (fsproj: FullCrackedFsproj) =
             match cacheMutable.TryGetValue fsproj.Value.ProjPath with
@@ -257,10 +246,13 @@ module FullCrackedFsproj =
 [<RequireQualifiedAccess>]
 module private ProjectMap =
     let sourceFileMap (projectMap: Map<string,CrackedFsproj>) =
-        let dict = new Dictionary<string, string>()
+        let dict = new Dictionary<string, string list>()
         projectMap |> Seq.iter (fun pair ->
             pair.Value.SourceFiles |> Seq.iter (fun sourceFile ->
-                dict.Add(sourceFile,pair.Key)
+                match dict.TryGetValue sourceFile with 
+                | true, projPaths ->
+                    dict.[sourceFile] <- pair.Key :: projPaths
+                | false, _ -> dict.Add(sourceFile,[pair.Key])
             )
         )
         Dictionary.toMap dict
@@ -280,8 +272,10 @@ type CrackedFsprojBundleCache =
 
         ProjectMap: Map<string ,CrackedFsproj>
 
-        /// sourceFile,projectFile
-        SourceFileMap: Map<string, string>
+        /// sourceFile,projectFiles
+        SourceFileMap: Map<string, string list>
+
+        EditSourceFileMap: Map<string, string list>
 
         /// entry project file level is 0
         ProjLevelMap: Map<string, int>
@@ -294,13 +288,29 @@ with
 
     member x.EntryCrackedFsproj = x.ProjectMap.[x.EntryProjectFile]
 
+
+
+
 [<RequireQualifiedAccess>]
 module CrackedFsprojBundleCache =
-    let create fsproj (projectMap: Map<string, CrackedFsproj>) =
+    let create useEditFiles fsproj (projectMap: Map<string, CrackedFsproj>) =
+        let sourceFileMap = ProjectMap.sourceFileMap projectMap
+
+        let editSourceFileMap =
+            if useEditFiles then 
+                sourceFileMap |> Seq.map (fun pair ->
+                    let sourceFile = pair.Key
+                    let (_, file) = FileSystem.editDirAndFile sourceFile useEditFiles
+                    (file, pair.Value)
+                )
+                |> Map.ofSeq
+            else sourceFileMap
+
         { ProjectMap = projectMap
-          SourceFileMap = ProjectMap.sourceFileMap projectMap
+          SourceFileMap = sourceFileMap
           ProjRefersMap = FullCrackedFsproj.getProjectRefersMap fsproj
           ProjLevelMap = ProjectMap.getProjectLevelMap projectMap fsproj
+          EditSourceFileMap = editSourceFileMap
           EntryProjectFile = fsproj.Value.ProjPath }
 
     let update projPaths (cache: CrackedFsprojBundleCache) = async {
@@ -340,7 +350,7 @@ type CrackedFsprojBundleMsg =
     | GetCache of replyChannel: AsyncReplyChannel<CrackedFsprojBundleCache>
     | DetectProjectFileChanges of FileChange list * AsyncReplyChannel<CrackedFsprojBundleCache>
 
-let crackedFsprojBundle (projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
+let crackedFsprojBundle useEditFiles (projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
     let rec loop (entry: FullCrackedFsproj) cache = async {
         let! msg = inbox.Receive()
         match msg with
@@ -356,16 +366,17 @@ let crackedFsprojBundle (projectFile: string) = MailboxProcessor<CrackedFsprojBu
     }
 
     let (project, cache) = FullCrackedFsproj.create projectFile |> Async.RunSynchronously
-    loop project (CrackedFsprojBundleCache.create project cache)
+    loop project (CrackedFsprojBundleCache.create useEditFiles project cache)
 )
 
 
+[<RequireQualifiedAccess>]
+type WhyCompile =
+    | WarmCompile
+    | DetectFileChange
 
-
-
-type CompilerTask = CompilerTask of why:string * startTime: DateTime * task: Task<CompilerResult list>
+type CompilerTask<'Result when 'Result :> ICompilerOrCheckResult> = CompilerTask of why:WhyCompile * startTime: DateTime * task: Task<'Result list>
 with 
-
     member x.Why = 
         match x with 
         | CompilerTask(why = m) -> m

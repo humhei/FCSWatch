@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Extensions.fs" />
+    <Compile Include="VsCodeHelper.fs" />
+    <Compile Include="AutoReload.fs" />
+    <Compile Include="DebuggingServer.fs" />
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Suave" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FcsWatch.Binary.Helpers\FcsWatch.Binary.Helpers.csproj" PrivateAssets="All" />
+    <ProjectReference Include="..\FcsWatch.Core\FcsWatch.Core.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+  </ItemGroup>
+  
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProcessExtensions</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+  <Target Name="IncludeProcessExtensions">
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Binary.Helpers.dll" />
+      <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Binary.Helpers.pdb" />
+
+    </ItemGroup>
+  </Target>
+</Project>

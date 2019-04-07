@@ -6,7 +6,7 @@ open System.Threading
 open TestLib2
 [<EntryPoint>]
 let main _ =
-    printfn "2199910885454sss9999459 99911000999  %s" (Say.fromLib2 )
+    printfn "HELLO21999108859911000999  %s" (Say.fromLib2 )
     /// simulate server
     Console.ReadLine()
     |> ignore
