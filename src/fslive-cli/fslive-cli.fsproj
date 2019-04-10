@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <RootNamespace>fslive_cli</RootNamespace>
+    <ToolCommandName>fslive</ToolCommandName>
+    <PackAsTool>True</PackAsTool>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="fslive.fs" />
+  </ItemGroup>
+  
+  <PropertyGroup>
+    <PackageId>fslive-cli</PackageId>
+    <Description>.NET Core Global Tool for FsLive - allows to send files to Fabulous.LiveUpdate and more</Description>
+    <PackageTags>Tool;CLI</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FcsWatch.Porta\FcsWatch.Porta.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+  </ItemGroup>
+
+</Project>

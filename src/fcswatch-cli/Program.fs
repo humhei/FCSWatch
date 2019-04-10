@@ -7,9 +7,9 @@ open FcsWatch.Cli.Share
 [<EntryPoint>]
 let main argv =
 
-    let results = Binary.parser.Parse argv
+    let results = parser.Parse argv
 
-    let processResult = Binary.processParseResults Binary.parser.PrintUsage results
+    let processResult = processParseResults parser.PrintUsage results
 
     runFcsWatcher processResult.Config processResult.ProjectFile
 

@@ -6,6 +6,7 @@ open FcsWatch.Core.Compiler
 open FcsWatch.Core.FcsWatcher
 open System
 open Extensions
+open FSharp.Compiler.SourceCodeServices
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
@@ -40,6 +41,10 @@ with
 let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
     logger <- Logger.create config.LoggerLevel
 
+    let config = 
+        { config with 
+            WorkingDir = Path.GetFullPath(config.WorkingDir)}
+
     let compiler = 
         let summary projectPath dll elapsed =
             sprintf "Summary:
@@ -57,6 +62,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
         { LoggerLevel = config.LoggerLevel
           WorkingDir = config.WorkingDir
           NoBuild = config.NoBuild
+          OtherFlags = [||]
           UseEditFiles = config.UseEditFiles
           ActionAfterStoppingWatcher = fun cache ->
             match config.DevelopmentTarget with 
@@ -65,14 +71,26 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
             | _ -> ()
         }
 
+    let checker = FSharpChecker.Create()
+
     match config.DevelopmentTarget with 
     | DevelopmentTarget.AutoReload autoReload ->
         let compilerTmpEmitter = AutoReload.create autoReload
-        fcsWatcher compilerTmpEmitter compiler coreConfig entryProjectFile
+        let fcsWatcher =
+            fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
+            |> fst
+
+        let cache = fcsWatcher.PostAndReply FcsWatcherMsg.GetCache
+
+        AutoReload.CrackedFsproj.tryRun autoReload config.WorkingDir cache.EntryCrackedFsproj
+
+        fcsWatcher
 
     | DevelopmentTarget.Debuggable debuggable ->
         let compilerTmpEmitter = DebuggingServer.create debuggable
-        fcsWatcher compilerTmpEmitter compiler coreConfig entryProjectFile
+        let fcsWatcher, compilerTmpEmitterAgent = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
+        DebuggingServer.startServer config.WorkingDir compilerTmpEmitterAgent
+        fcsWatcher
 
 let runFcsWatcher (config: BinaryConfig) entryProjectFile =
     let binaryFcsWatcher = binaryFcsWatcher config entryProjectFile

@@ -6,7 +6,7 @@ open NUnit.Framework
 open FsUnit
 
 module Versions =
-    let FSharpCore = "4.5.2"
+    let FSharpCore = "4.6.2"
     let MicrosoftCSharp = "4.5.0"
     let NETStandardLibrary = "2.0.3"
     let SystemReflectionEmitILGeneration = "4.3.0"
@@ -181,17 +181,18 @@ module TestCode
         let args = 
             [| yield "dummy.exe"; 
                yield "--eval"; 
+               yield "--loggerlevel:2"
                if livechecks then yield "--livechecksonly"; 
                yield "@" + name + ".args.txt" |]
-        Assert.AreEqual(0, FsLive.Porta.ProcessCommandLine.ProcessCommandLine(args))
+        Assert.AreEqual(0, FsLive.Driver.main(args))
 
     let GeneralTestCase directory name code refs = GeneralTestCaseLiveChecks directory name code refs false
 
-    let internal SimpleTestCase name code = 
+    let SimpleTestCase name code = 
         let directory = __SOURCE_DIRECTORY__ + "/data"
         GeneralTestCase directory name code "" // no extra refs
 
-    let internal SimpleLiveCheckTestCase name code = 
+    let SimpleLiveCheckTestCase name code = 
         let directory = __SOURCE_DIRECTORY__ + "/data"
         GeneralTestCaseLiveChecks directory name code "" true // no extra refs
 

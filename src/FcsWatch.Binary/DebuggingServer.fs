@@ -11,7 +11,8 @@ open Suave
 open System.Net.Sockets
 open FcsWatch.Core.CompilerTmpEmitter
 open Extensions
-
+open FcsWatch.Core.Types
+open VscodeHelper
 
 type Plugin =
     { Load: unit -> unit
@@ -32,8 +33,8 @@ let private freePort() =
     listener.Stop()
     port
 
-let private generateCurlCache freePort workingDir =         
-    let cacheDir = workingDir </> ".fake" </> "fcswatch"
+let private generateCurlCache freePort root =         
+    let cacheDir = root </> ".fake" </> "fcswatch"
 
     let fileName = cacheDir </> "port.cache"
 
@@ -140,6 +141,35 @@ module internal TmpEmitterState =
                     CompilerTmpEmitterState.createEmpty [] cache
 
         | _ -> tmpEmitterState
+
+let startServer workingDir (compileTmpEmitterAgent: IMailboxProcessor<TmpEmitterMsg>) =
+    let root = 
+        File.tryFindRootUpByLaunchJson workingDir 
+        |> Option.defaultValue workingDir
+    
+    async {
+
+        let webApp =
+            let emitCompilerTmp: WebPart = 
+                fun (ctx : HttpContext) ->
+                    async {
+                        let! handler = 
+                            compileTmpEmitterAgent.PostAndAsyncReply TmpEmitterMsg
+                        return! handler ctx  
+                    }
+
+            choose [
+                path "/emitCompilerTmp" >=> emitCompilerTmp
+            ]
+        let config =
+            let freePort = freePort()
+            generateCurlCache freePort root 
+            let local = Suave.Http.HttpBinding.createSimple HTTP "127.0.0.1" freePort
+
+            { defaultConfig with bindings = [local] }
+
+        startWebServer config webApp
+    } |> Async.Start
 
 let create developmentTarget = 
     { new ICompilerTmpEmitter<_, _, CompilerResult> with 

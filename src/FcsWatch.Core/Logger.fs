@@ -58,7 +58,7 @@ module Logger =
         member x.ImportantLG format =
             Printf.ksprintf (_important Trace.log) format
 
-        member x.Important format = printfn format
+        member x.Important format =  Printf.ksprintf (_important (printfn "%s")) format
 
         member x.ImportantGreen format =
             Printf.ksprintf (_important Trace.trace) format

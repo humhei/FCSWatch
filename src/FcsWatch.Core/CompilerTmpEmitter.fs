@@ -1,5 +1,6 @@
 module FcsWatch.Core.CompilerTmpEmitter
 open Types
+open System.Threading
 
 
 [<RequireQualifiedAccess>]
@@ -33,6 +34,9 @@ module CompilerTmpEmitterMsg =
 
     let updateCache cache =
         (CompilerTmpEmitterMsg<_, _>.CommonMsg (CompilerTmpEmitterMsg<_>.UpdateCache cache))
+
+    let internal customMsg msg =
+        (CompilerTmpEmitterMsg<_, _>.CustomMsg msg)
 
 
     /// for blackbox test
@@ -76,14 +80,15 @@ module CompilerTmpEmitterState =
         { CommonState = createCommonEmpty cache
           CustomState = customState }
 
+
     let setCompilingNumber number state =
         { state with 
             CommonState =
                 {state.CommonState with CompilingNumber = number }}
 
 
-    let private tryReplyCompiled (state: CompilerTmpEmitterState<_>) =
-        if state.CompilingNumber = 0 
+    let internal tryReplyCompiled (state: CompilerTmpEmitterState<_>) =
+        if state.CompilingNumber = 0 && state.AccumWaitCompiledReplyChannels.Length > 0
         then 
             state.AccumWaitCompiledReplyChannels |> List.iter (fun replyChannel -> replyChannel.Reply state.LastestIncredNum)
             createCommonEmpty state.CrackerFsprojFileBundleCache
@@ -99,7 +104,7 @@ module CompilerTmpEmitterState =
                 let newState = {state with CompilingNumber = compilingNumber}
 
                 assert (newState.CompilingNumber >= 0)
-                tryReplyCompiled newState
+                newState
 
             | CompilerTmpEmitterMsg.IncrCompilingNum (number, replyChannel) -> 
                 let compilingNumber = state.CompilingNumber + number
@@ -148,18 +153,34 @@ let compilerTmpEmitterAgent workingDir (compilerTmpEmitter:  ICompilerTmpEmitter
             return! loop newState
         | CompilerTmpEmitterMsg.CommonMsg commonMsg ->
 
-            let newState = 
+            let commonProcessedState = 
                 { state with 
                     CommonState = CompilerTmpEmitterState.processMsg commonMsg state.CommonState }
 
             match commonMsg with 
             | CompilerTmpEmitterMsg.DecrCompilingNum _ ->
 
-                let newState = compilerTmpEmitter.TryEmit(workingDir, newState)
+                let resetWaitCompiled state =
+                    { state with 
+                        CommonState = 
+                            { state.CommonState
+                                with 
+                                    LastestIncredNum = commonProcessedState.CommonState.LastestIncredNum
+                                    AccumWaitCompiledReplyChannels = commonProcessedState.CommonState.AccumWaitCompiledReplyChannels } }
+
+                let replyWaitCompiled state =
+                    { state with 
+                        CommonState = CompilerTmpEmitterState.tryReplyCompiled state.CommonState }
+
+                let newState = 
+                    compilerTmpEmitter.TryEmit(workingDir, commonProcessedState)
+                    |> resetWaitCompiled
+                    |> replyWaitCompiled
+
 
                 return! loop newState    
 
-            | _ -> return! loop newState
+            | _ -> return! loop commonProcessedState
     }
     loop (CompilerTmpEmitterState.createEmpty compilerTmpEmitter.CustomInitialState initialCache) 
 )

@@ -22,27 +22,15 @@ type PluginDebugInfo =
 module PluginDebugInfo =
     open VscodeHelper
 
-    [<RequireQualifiedAccess>]
-    module private File =
-        let rec tryFindUntilRoot makePath dir =
-            let file = makePath dir
-            match file with 
-            | null -> None
-            | _ ->
-                if File.exists file 
-                then Some file
-                else tryFindUntilRoot makePath (Path.getDirectory dir)
 
-    let writePidForPlugin root (pluginDebugInfo: PluginDebugInfo) =
-        let makePath root = root </> ".vscode" </> "launch.json"
-        match File.tryFindUntilRoot makePath root with 
+    let writePidForPlugin workingDir (pluginDebugInfo: PluginDebugInfo) =
+        match File.tryFindLaunchJsonUp workingDir with 
         | Some file ->
 
             let launch = Launch.read file
             Launch.writePid pluginDebugInfo.VscodeLaunchConfigurationName pluginDebugInfo.Pid launch
             |> Launch.write file
         | None -> logger.Important "Doesn't exists .vscode/launch.json, If you want write attachable pid automatically to launch.json, Please write it first"
-
 
 
 [<RequireQualifiedAccess>]
@@ -69,7 +57,7 @@ module AutoReload =
     [<RequireQualifiedAccess>]
     module internal CrackedFsproj =
 
-        let dotnetTool = 
+        let private dotnetTool = 
             [DotNet.Options.Create().DotNetCliPath]
             |> Args.toWindowsCommandLine
 
@@ -119,9 +107,9 @@ module AutoReload =
                     if not proc.HasExited 
                     then 
                         proc.KillTree()
+                        logger.InfoGreen "Killed process %d" proc.Id
                 | false, _ -> 
                     failwithf "Cannot remove %s from running projects" crackedFsproj.ProjPath
-
 
 
     [<RequireQualifiedAccess>]
@@ -152,13 +140,7 @@ module AutoReload =
                     let allResults: CompilerResult list = lastTasks |> List.collect (fun task -> task.Task.Result)
 
                     match List.tryFind (fun (result: CompilerResult) -> result.ExitCode <> 0) allResults with 
-                    | Some result ->
-                        let errorText =  
-                            result.Errors 
-                            |> Seq.map (fun error -> error.ToString())
-                            |> String.concat "\n"
-
-                        state
+                    | Some result ->  state
 
                     | None ->
 

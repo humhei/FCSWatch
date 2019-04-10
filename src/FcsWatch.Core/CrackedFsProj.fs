@@ -13,6 +13,14 @@ type ICompilerOrCheckResult =
 
 
 module CrackedFsproj =
+
+    [<RequireQualifiedAccess>]
+    module private Array =
+        let keepOrAdd (keeper: string -> bool) added list =
+            match Array.tryFind keeper list with 
+            | Some _ -> list
+            | None -> Array.append [|added|] list
+
     let private frameworkValue (framework: string) =
         if framework.StartsWith "netcoreapp" 
         then (2,framework.Substring(10) |> Double.Parse)
@@ -30,8 +38,8 @@ module CrackedFsproj =
 
 
     [<RequireQualifiedAccess>]
-    module FSharpProjectOptions =
-        let mapOtherOptions mapping (fsharpProjectOptions: FSharpProjectOptions) =
+    module internal FSharpProjectOptions =
+        let mapOtherOption mapping (fsharpProjectOptions: FSharpProjectOptions) =
             { fsharpProjectOptions with
                 OtherOptions = fsharpProjectOptions.OtherOptions |> Array.map mapping }
 
@@ -80,9 +88,7 @@ module CrackedFsproj =
         member x.ObjTargetPdb = Path.changeExtension ".pdb" x.ObjTargetFile
 
         member x.SourceFiles =
-            x.FSharpProjectOptions.OtherOptions
-            |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
-            |> Array.map Path.getFullName
+            x.FSharpProjectOptions.SourceFiles
 
         member x.RefDlls =
             x.FSharpProjectOptions.OtherOptions
@@ -119,8 +125,23 @@ module CrackedFsproj =
         let mapProjOptions mapping (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
             { singleTargetCrackedFsproj with FSharpProjectOptions = mapping singleTargetCrackedFsproj.FSharpProjectOptions }
 
+        let mapProjOtherOptions mapping (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            mapProjOptions (fun projOptions ->
+                { projOptions with 
+                    OtherOptions = mapping projOptions.OtherOptions }
+            ) singleTargetCrackedFsproj
 
-    type CrackedFsproj = private CrackedFsproj of SingleTargetCrackedFsproj list
+        let mapProjOptionsDebuggable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            mapProjOtherOptions (fun ops ->
+                ops
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "-o:" || ops.StartsWith "--out:") ("-o:" + singleTargetCrackedFsproj.ObjTargetFile)
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--target:") ("--target:library")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug" || ops.StartsWith "-g") ("--debug:portable")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--optimize" || ops.StartsWith "-O") ("--optimize-")
+            ) singleTargetCrackedFsproj
+
+
+    type CrackedFsproj = internal CrackedFsproj of SingleTargetCrackedFsproj list
 
     with
         member x.AsList =
@@ -177,18 +198,18 @@ module CrackedFsproj =
         |> CrackedFsproj
 
 
-    let mapProjOtherOptions mapping =
+    let mapProjOtherOption mapping =
         mapProjOptions (fun projOptions ->
             { projOptions with
                 OtherOptions = projOptions.OtherOptions |> Array.map mapping  }
         )
 
-    let mapProjOtherOptionsObjRefOnly (crackedFsprojs: seq<CrackedFsproj>) =
-        crackedFsprojs
+    let internal mapProjOtherOptionsObjRefOnly (allCrackedFsprojs: seq<CrackedFsproj>) =
+        allCrackedFsprojs
         |> Seq.map (fun info ->
             let projRefs = info.ProjRefs |> List.map (fun ref ->
                 let refInfo =
-                    crackedFsprojs
+                    allCrackedFsprojs
                     |> Seq.find (fun otherInfo -> otherInfo.ProjPath = ref)
                 refInfo
             )
@@ -199,7 +220,7 @@ module CrackedFsproj =
                     crackedFsproj.AsList
                 )
 
-            mapProjOtherOptions (fun line ->
+            mapProjOtherOption (fun line ->
                 allRefProjInfos
                 |> List.tryFind (fun ref ->
                     "-r:" + ref.TargetPath = line)
@@ -208,3 +229,8 @@ module CrackedFsproj =
                     | None -> line
             ) info
         )
+
+    let mapProjOtherOptionsDebuggable (CrackedFsproj singleTargetCrackedFsprojs) =
+        singleTargetCrackedFsprojs
+        |> List.map SingleTargetCrackedFsproj.mapProjOptionsDebuggable 
+        |> CrackedFsproj

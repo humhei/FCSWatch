@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.6.6-alpha - tbd
+## 0.7.0-beta - tbd
+* Port FcsWatch.Core used by FcsWatch.Binary and FcsWatch.Prota
+* mark a lot unrelated types as internal and private
+
 
 ## 0.6.5 - 2019-03-24
 * Kill running project after watch mode is interrupt

@@ -91,3 +91,16 @@ module Extensions =
             crackedFsProj.AsList
             |> List.map (SingleTargetCrackedFsproj.compile checker)
             |> Async.Parallel
+
+[<AutoOpen>]
+module internal InternalExtensions =
+    [<RequireQualifiedAccess>]
+    module File =
+        let rec tryFindUntilRoot makePath dir =
+            let file = makePath dir
+            match file with 
+            | null -> None
+            | _ ->
+                if File.exists file 
+                then Some file
+                else tryFindUntilRoot makePath (Path.getDirectory dir)

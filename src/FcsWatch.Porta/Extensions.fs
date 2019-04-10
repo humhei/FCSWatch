@@ -1,15 +1,8 @@
-﻿module FcsWatch.Porta
+﻿namespace FcsWatch.Porta
 
 open System.IO
-open FcsWatch
 open Fake.IO
-open Fake.IO.FileSystemOperators
-open System.Collections.Generic
-open System.Xml
 open FcsWatch.Core.CrackedFsproj
-open System
-open Fake.DotNet
-open System.Threading.Tasks
 open FSharp.Compiler.SourceCodeServices
 open FcsWatch.Core
 open FcsWatch.Core.Types
@@ -34,10 +27,16 @@ module Extensions =
     [<RequireQualifiedAccess>]
     module SingleTargetCrackedFsproj =
 
+        let private mapProjOptionsWithoutSourceFiles (projOptions: FSharpProjectOptions) =
+            { projOptions with 
+                OtherOptions = 
+                    projOptions.OtherOptions
+                    |> Array.filter (fun (op: string) -> not (op.EndsWith ".fs" || op.EndsWith ".fsi" || op.EndsWith ".fsx"))
+            }
         let check useEditFiles liveCheckOnly (checker: FSharpChecker) (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) = async {
             let rec checkFile1 count sourceFile =         
                 try 
-                    let _, checkResults = checker.ParseAndCheckFileInProject(sourceFile, 0, FileSystem.readFile sourceFile useEditFiles, singleTargetCrackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
+                    let _, checkResults = checker.ParseAndCheckFileInProject(sourceFile, 0, FileSystem.readFile sourceFile useEditFiles, mapProjOptionsWithoutSourceFiles singleTargetCrackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
                     match checkResults with 
                     | FSharpCheckFileAnswer.Aborted -> 
                         logger.Important "aborted"
@@ -125,3 +124,4 @@ module Extensions =
 
         let check useEditFiles liveCheckOnly (checker: FSharpChecker) (crackedFsproj: CrackedFsproj) =
             SingleTargetCrackedFsproj.check useEditFiles liveCheckOnly checker crackedFsproj.PreferSingleTargetCrackedFsproj
+

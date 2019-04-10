@@ -15,7 +15,11 @@
     <Compile Include="FcsWatcher.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Dotnet.ProjInfo.Workspace.FCS" Version="0.33.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-18618-05" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Compiler.Service" Version="27.0.1" />
   </ItemGroup>
 
   <Import Project="..\..\.paket\Paket.Restore.targets" />

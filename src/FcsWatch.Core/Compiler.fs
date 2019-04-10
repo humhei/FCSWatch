@@ -22,7 +22,7 @@ type ICompiler<'Result when 'Result :> ICompilerOrCheckResult> =
     abstract member WarmCompile: bool 
     abstract member Summary: result: 'Result * elapsed: int64 -> string
 
-let compilerAgent (entryProjectFile) (compiler: ICompiler<'Result>) (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg<_, _>>) (initialCache: CrackedFsprojBundleCache) checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
+let compilerAgent (compiler: ICompiler<'Result>) (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg<_, _>>) (initialCache: CrackedFsprojBundleCache) checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
 
     let createCompileTask (crackedFsprojs: CrackedFsproj list) =
         crackedFsprojs
@@ -126,12 +126,13 @@ let compilerAgent (entryProjectFile) (compiler: ICompiler<'Result>) (compilerTmp
             return! loop { model with CrackerFsprojBundleCache = cache }
 
     }
-    let entryCrackedFsproj = initialCache.ProjectMap.[entryProjectFile]
+
+    let entryCrackedFsproj = initialCache.EntryCrackedFsproj
 
     if compiler.WarmCompile then 
-        inbox.PostAndReply (fun replyChannel ->
+        inbox.PostAndAsyncReply (fun replyChannel ->
             CompilerMsg.CompileProjects (WhyCompile.WarmCompile, [entryCrackedFsproj], replyChannel)
-        )
+        ) |> Async.Start
 
     loop { CrackerFsprojBundleCache = initialCache }
 )

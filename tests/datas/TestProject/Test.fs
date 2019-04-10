@@ -4,9 +4,19 @@ open System
 open System.Collections.Concurrent
 open System.Threading
 open TestLib2
+open FcsWatch.Porta.Client
+
+type Program() =
+    member x.Run() =
+        printfn "HEssssss222  910885966911000999                        %s" (Say.fromLib2)
+
 [<EntryPoint>]
 let main _ =
-    printfn "HELLO21999108859911000999  %s" (Say.fromLib2 )
+
+    let fsliveClient = FsLiveClient()
+    fsliveClient.Start()
+
+
     /// simulate server
     Console.ReadLine()
     |> ignore

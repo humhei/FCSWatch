@@ -12,5 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\fcswatch-cli\fcswatch-cli.fsproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Compiler.Service" Version="27.0.1" />
+  </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

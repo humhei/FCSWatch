@@ -18,7 +18,7 @@
         <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\..\src\FcsWatch.Porta\FcsWatch.Porta.fsproj" />
+      <PackageReference Update="FSharp.Core" Version="4.6.2" />
     </ItemGroup>
 
 </Project>

@@ -18,8 +18,8 @@ type PortaConfig =
       NoBuild: bool
       WorkingDir: string
       Webhook: string option
+      Watch: bool
       OtherFlags: string [] }
-
 
 
 
@@ -28,6 +28,8 @@ type PortaConfig =
 [<RequireQualifiedAccess>]
 module CompilerTmpEmitter =
     type TmpEmitterState = CompilerTmpEmitterState<int, CheckResult>
+
+    let mutable private count = 0
 
     [<RequireQualifiedAccess>]
     module CompilerTmpEmitterState =
@@ -47,7 +49,8 @@ module CompilerTmpEmitter =
                 // The default is to dump
                 if not config.Eval && config.Webhook.IsNone then 
                     let fileConvContents = jsonFiles config.Eval (Array.ofList result.Contents)
-                    printfn "%A" fileConvContents
+                    count <- count + 1
+                    logger.Info "%A\nCount:%d" fileConvContents count 
 
 
         let tryEmit (config: PortaConfig) (state: TmpEmitterState) =
@@ -99,7 +102,7 @@ module CompilerTmpEmitter =
 
                             processResult config correspondingResult.Fsproj.FSharpProjectOptions correspondingResult 
                         )
-                        CompilerTmpEmitterState.createEmpty 0 cache
+                        CompilerTmpEmitterState.createEmpty 0 cache 
             | _ -> state
 
 

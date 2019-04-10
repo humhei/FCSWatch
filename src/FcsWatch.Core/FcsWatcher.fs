@@ -11,6 +11,7 @@ open System.Threading
 open System.Timers
 
 
+
 [<RequireQualifiedAccess>]
 module private IntervalAccumMailBoxProcessor =
     type State<'accum> =
@@ -127,16 +128,19 @@ type Config =
       WorkingDir: string
       UseEditFiles: bool
       NoBuild: bool
+      OtherFlags: string []
       ActionAfterStoppingWatcher: CrackedFsprojBundleCache -> unit }
 
 
 [<RequireQualifiedAccess>]
 module Config =
 
-    let internal tryBuildProject entryProjectFile (config: Config) =
-        let workingDir = config.WorkingDir
-        if not config.NoBuild then dotnet "build" [entryProjectFile] workingDir
-
+    let internal tryBuildProject builder (config: Config) =
+        match builder with 
+        | FullCrackedFsprojBuilder.Project builder ->
+            let workingDir = config.WorkingDir
+            if not config.NoBuild then dotnet "build" [builder.File] workingDir
+        | _ -> ()
 
 module FcsWatcher =
 
@@ -147,8 +151,10 @@ module FcsWatcher =
     type FcsWatcherMsg =
         | DetectSourceFileChanges of fileChanges: FileChange list * incrCompilingNumberReplyChannel: AsyncReplyChannel<unit>
         | DetectProjectFileChanges of fileChanges: FileChange list
+        | GetCache of AsyncReplyChannel<CrackedFsprojBundleCache>
         | ActionAfterStoppedWatch of AsyncReplyChannel<unit>
         | WaitCompiled of AsyncReplyChannel<CompilerNumber>
+
 
     let inline (<!>) msg content =
         fun replyChannel ->
@@ -158,23 +164,40 @@ module FcsWatcher =
         { SourceFileWatcher: IDisposable
           CrackerFsprojBundleCache: CrackedFsprojBundleCache }
 
-
-    let fcsWatcher
+    /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then otherflags will be applied</param>
+    let fcsWatcherAndCompilerTmpAgent
+        checker
         compilerTmpEmitter
         compiler
         (config: Config)
-        (entryProjectFile: string) =
+        (entryFileOp: string option) =
 
-            let checker = FSharpChecker.Create()
-            let entryProjectFile = Path.getFullName entryProjectFile
+            let entryFileOp = entryFileOp |> Option.map Path.nomalizeToUnixCompatiable
 
-            let config = { config with WorkingDir = Path.getFullName config.WorkingDir }
+            let config = { config with WorkingDir = Path.nomalizeToUnixCompatiable config.WorkingDir }
 
             logger <- Logger.create (config.LoggerLevel)
 
-            Config.tryBuildProject entryProjectFile config
+            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config.WorkingDir config.UseEditFiles checker entryFileOp config.OtherFlags
+
+            Config.tryBuildProject fullCrackedFsprojBuilder config
+
+            logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
+            logger.Info "fcs watcher's working directory is %s" config.WorkingDir
+
+            let crackedProjectBundleAgent = crackedFsprojBundle config.UseEditFiles fullCrackedFsprojBuilder
+
+
+            let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
+
+            let compilerTmpEmitterAgent = compilerTmpEmitterAgent config.WorkingDir compilerTmpEmitter initialCache
+
+            let iCompilerTmpEmitterAgent = MailboxProcessor.toChildInterface CompilerTmpEmitterMsg.customMsg compilerTmpEmitterAgent
+
+            let compilerAgent = compilerAgent compiler compilerTmpEmitterAgent initialCache checker
 
             let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->
+
                 let newSourceFileWatcher cache =
                     let pattern =
                         let files = cache.EditSourceFileMap |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
@@ -186,16 +209,12 @@ module FcsWatcher =
                         inbox.PostAndReply (FcsWatcherMsg.DetectSourceFileChanges <!> (List.ofSeq changes))
                     )
 
-                logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
-                logger.Info "fcs watcher's working directory is %s" config.WorkingDir
 
-                let crackedProjectBundleAgent = crackedFsprojBundle config.UseEditFiles entryProjectFile
 
-                let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
 
                 let initialProjectMap = initialCache.ProjectMap
 
-                let entryCrackedFsproj = initialProjectMap.[entryProjectFile]
+                let entryCrackedFsproj = initialCache.EntryCrackedFsproj
 
                 let projectFilesWatcher =
                     let pattern =
@@ -210,10 +229,6 @@ module FcsWatcher =
                         inbox.Post(FcsWatcherMsg.DetectProjectFileChanges (List.ofSeq changes))
                     )
 
-
-                let compilerTmpEmitterAgent = compilerTmpEmitterAgent config.WorkingDir compilerTmpEmitter initialCache
-
-                let compilerAgent = compilerAgent entryProjectFile compiler compilerTmpEmitterAgent initialCache checker
 
                 let rec loop (state: FcsWatcherModel) = async {
                     let cache = state.CrackerFsprojBundleCache
@@ -263,6 +278,10 @@ module FcsWatcher =
                         compilerTmpEmitterAgent.Post(CompilerTmpEmitterMsg.updateCache newCache)
 
                         return! loop { state with SourceFileWatcher = newSourceFileWatcher; CrackerFsprojBundleCache = newCache }
+                    | FcsWatcherMsg.GetCache replyChannel ->
+                        replyChannel.Reply(cache)
+                        return! loop state
+
                     | FcsWatcherMsg.ActionAfterStoppedWatch replyChannel ->
                         config.ActionAfterStoppingWatcher cache
                         replyChannel.Reply()
@@ -272,6 +291,7 @@ module FcsWatcher =
                         let compilerNumber = compilerTmpEmitterAgent.PostAndReply CompilerTmpEmitterMsg.waitCompiled
                         replyChannel.Reply (CompilerNumber compilerNumber)
                         return! loop state
+
                 }
                 let sourceFileWatcher = newSourceFileWatcher initialCache
 
@@ -281,4 +301,4 @@ module FcsWatcher =
 
             )
 
-            agent
+            agent,iCompilerTmpEmitterAgent

@@ -10,7 +10,11 @@ open System
 open Fake.DotNet
 open System.Threading.Tasks
 open FSharp.Compiler.SourceCodeServices
+open Fake.IO.Globbing.Operators
 
+type IMailboxProcessor<'Msg> =
+    abstract member PostAndReply: buildMsg: (AsyncReplyChannel<'Reply> -> 'Msg) -> 'Reply
+    abstract member PostAndAsyncReply: buildMsg: (AsyncReplyChannel<'Reply> -> 'Msg) -> Async<'Reply>
 
 [<AutoOpen>]
 module internal Extensions =
@@ -18,7 +22,7 @@ module internal Extensions =
 
     [<RequireQualifiedAccess>]
     module internal Path =
-        let nomarlizeToUnixCompitiable path =
+        let nomalizeToUnixCompatiable path =
             let path = (Path.getFullName path).Replace('\\','/')
 
             let dir = Path.getDirectory path
@@ -42,6 +46,18 @@ module internal Extensions =
             (dictionary :> seq<_>)
             |> Seq.map (|KeyValue|)
             |> Map.ofSeq
+
+
+    [<RequireQualifiedAccess>]
+    module internal MailboxProcessor =
+        let toChildInterface (mapping: 'ChildMsg -> 'Msg) (agent: MailboxProcessor<'Msg>) =
+            { new IMailboxProcessor<'ChildMsg> with 
+                member x.PostAndReply buildMsg =
+                    agent.PostAndReply (fun replyChannel -> mapping (buildMsg replyChannel))
+
+                member x.PostAndAsyncReply buildMsg =
+                    agent.PostAndAsyncReply(fun replyChannel -> mapping (buildMsg replyChannel))
+            }
 
 
 [<AutoOpen>]
@@ -103,10 +119,79 @@ module internal ICompilerOrCheckResult =
         logger.ProcessCompileOrCheckResult (result.Errors,result.ExitCode)
 
 
+
+
+type NoFrameworkCrackedFsprojBuilder =
+    { OtherFlags: string [] 
+      UseEditFiles: bool
+      Checker: FSharpChecker }
+
+type ScriptCrackedFsprojBuilder =
+    { OtherFlags: string [] 
+      File: string 
+      Checker: FSharpChecker }
+
+type ProjectCrackedFsprojBuilder =
+    { OtherFlags: string [] 
+      File: string }
+
+[<RequireQualifiedAccess>]
+type FullCrackedFsprojBuilder =
+    | Script of ScriptCrackedFsprojBuilder
+    | Project of ProjectCrackedFsprojBuilder
+    | FSharpArgs of NoFrameworkCrackedFsprojBuilder
+
+
+
+[<RequireQualifiedAccess>]
+module FullCrackedFsprojBuilder =
+
+    /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then otherflags will be applied</param>
+    let create workingDir useEditFiles checker (entryFileOp: string option) (otherFlags: string []) =
+        let workingDir = Path.nomalizeToUnixCompatiable workingDir
+
+        let entryFileOp = 
+            match entryFileOp with 
+            | Some file -> Some (Path.nomalizeToUnixCompatiable file)
+            | None ->
+                !! (workingDir </> "*.fsproj")
+                |> List.ofSeq
+                |> function 
+                    | [ ] ->  None
+                    | [ file ] -> 
+                        logger.Important "using implicit project file '%s'" file
+                        Some file
+                    | file1 :: file2 :: _ -> 
+                        failwithf "multiple project files found, e.g. %s and %s" file1 file2 
+
+        match entryFileOp with 
+        | Some file ->
+            match file with 
+            | projectFile when projectFile.EndsWith ".fsproj" ->
+                { OtherFlags = otherFlags
+                  File = projectFile }
+                |> FullCrackedFsprojBuilder.Project
+
+            | scriptFile when file.EndsWith ".fs" || file.EndsWith ".fsx" || file.EndsWith ".fsi" ->
+                { OtherFlags = otherFlags
+                  File = scriptFile
+                  Checker = checker }
+                |> FullCrackedFsprojBuilder.Script
+
+            | _ -> failwithf "entry file %s should end with .fsproj;.fs;.fsx;.fsi;" file
+        | None ->
+            match otherFlags with 
+            | [||] -> failwithf "no project file found, no compilation arguments given and no project file found in \"%s\"" workingDir 
+            | _ ->
+                { OtherFlags = otherFlags
+                  UseEditFiles = useEditFiles 
+                  Checker = checker }
+                |> FullCrackedFsprojBuilder.FSharpArgs
+
+
 type FullCrackedFsproj =
     { Value: CrackedFsproj
       Refs: FullCrackedFsproj list }
-
 
 [<RequireQualifiedAccess>]
 module FullCrackedFsproj =
@@ -114,7 +199,7 @@ module FullCrackedFsproj =
         let values = new HashSet<string>()
         let add projectFile = values.Add projectFile |> ignore
         let rec loop (projectFile: string) =
-            let normarlizedPath = Path.nomarlizeToUnixCompitiable projectFile
+            let normarlizedPath = Path.nomalizeToUnixCompatiable projectFile
             add normarlizedPath
 
             let dir = Path.getDirectory projectFile
@@ -213,34 +298,126 @@ module FullCrackedFsproj =
             |> List.distinctBy (fun crackedFsproj -> crackedFsproj.ProjPath)
         )
 
+    let private getSourceFilesFromOtherOptions (otherOptions: string []) =
+        otherOptions
+        |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
+        |> Array.map Path.getFullName
 
-    let create projectFile = async {
-        logger.Infots "Begin crack project"
-        let projectMapsMutable = Dictionary<string,CrackedFsproj>()
+    /// if create with ProjectFullCrackedProjectBuilder, you may need dotnet restore first
 
-        let allCrackedFsprojsObjRefOnly =
-            let allCrackedFsprojs = getAllCrackedFsprojs projectFile |> Async.RunSynchronously
-            CrackedFsproj.mapProjOtherOptionsObjRefOnly allCrackedFsprojs
+    let create builder = async {
 
-        allCrackedFsprojsObjRefOnly |> Seq.iter (fun crakedFsproj -> projectMapsMutable.Add (crakedFsproj.ProjPath,crakedFsproj))
+        let noframwork fsharpProjectOptions (file: string) =
 
-        let rec loop projectFile =
-            let projectInfo = projectMapsMutable.[projectFile]
-            { Value = projectInfo
-              Refs = projectInfo.ProjRefs |> List.map loop }
+            let outputDll = 
+                let fileName = Path.GetFileNameWithoutExtension file
+                let dir = Path.getDirectory file
+                dir </> "bin/Debug/noframework" </> fileName + ".dll"
+                |> Path.nomalizeToUnixCompatiable
 
-        let project = loop projectFile
+            let props =
+                [ "TargetPath", outputDll
+                  "TargetFramework", "noframework"]
+                |> Map.ofList
 
-        let projectMap =
-            projectMapsMutable
-            |> Dictionary.toMap
+            let project = 
+                { Value = 
+                    { FSharpProjectOptions = fsharpProjectOptions
+                      ProjRefs = []
+                      Props = props
+                      ProjPath = fsharpProjectOptions.ProjectFileName }
+                    |> List.singleton
+                    |> CrackedFsproj.CrackedFsproj
 
-        logger.Infots "End crack project"
+                  Refs = [] }
+
+            logger.Infots "End crack project"
+            ( project, Map.ofList [fsharpProjectOptions.ProjectFileName, project.Value] )
 
 
+        match builder with
+        | FullCrackedFsprojBuilder.Project builder ->
+            logger.Infots "Begin crack project"
+            let projectMapsMutable = Dictionary<string,CrackedFsproj>()
+            let! allCrackedFsprojs = getAllCrackedFsprojs builder.File
 
-        return (project, projectMap)
+            let applyOtherFlagsToEntryProject (allCrackedFsprojs: seq<CrackedFsproj> ) =
+                allCrackedFsprojs |> Seq.map (fun crackedFsproj ->
+                    if crackedFsproj.ProjPath = builder.File then 
+                        CrackedFsproj.mapProjOptions (fun ops -> 
+                            { ops with 
+                                OtherOptions = 
+                                    [| yield! ops.OtherOptions; yield! builder.OtherFlags |]
+                                    |> Array.distinct }
+                        ) crackedFsproj
+                    else crackedFsproj
+                )
+
+
+            allCrackedFsprojs 
+            |> CrackedFsproj.mapProjOtherOptionsObjRefOnly 
+            |> Seq.map CrackedFsproj.mapProjOtherOptionsDebuggable
+            |> Seq.map (CrackedFsproj.mapProjOptions (fun ops ->
+                { ops with 
+                    SourceFiles = getSourceFilesFromOtherOptions ops.OtherOptions }
+            ))
+            |> applyOtherFlagsToEntryProject 
+            |> Seq.iter (fun crakedFsproj -> projectMapsMutable.Add (crakedFsproj.ProjPath,crakedFsproj))
+
+            let rec loop projectFile =
+                let projectInfo = projectMapsMutable.[projectFile]
+                { Value = projectInfo
+                  Refs = projectInfo.ProjRefs |> List.map loop }
+
+            let project = loop builder.File
+
+            let projectMap =
+                projectMapsMutable
+                |> Dictionary.toMap
+
+            logger.Infots "End crack project"
+            return (project, projectMap)
+
+        | FullCrackedFsprojBuilder.Script builder ->
+            let fsharpProjectOptions = 
+                ProjectCoreCracker.getProjectOptionsFromScript builder.Checker builder.File
+                    
+            let otherOptions = Array.append fsharpProjectOptions.OtherOptions builder.OtherFlags |> Array.distinct
+
+            let fsharpProjectOptions =
+                { fsharpProjectOptions with 
+                    OtherOptions = otherOptions
+                    SourceFiles = getSourceFilesFromOtherOptions otherOptions }
+
+            return noframwork fsharpProjectOptions builder.File
+
+        | FullCrackedFsprojBuilder.FSharpArgs builder -> 
+            let otherFlags = builder.OtherFlags
+            let useEditFiles = builder.UseEditFiles
+            let checker = builder.Checker
+
+            let sourceFiles, otherFlags2 = otherFlags |> Array.partition (fun arg -> arg.EndsWith(".fs") || arg.EndsWith(".fsi") || arg.EndsWith(".fsx"))
+            let sourceFiles = sourceFiles |> Array.map Path.nomalizeToUnixCompatiable
+
+            match sourceFiles with 
+            | [| script |] when script.EndsWith ".fsx" ->
+                let text = FileSystem.readFile script useEditFiles
+                let fsharpProjectOptions, errors = checker.GetProjectOptionsFromScript(script, text, otherFlags=otherFlags2) |> Async.RunSynchronously
+                if errors.Length > 0 then 
+                    failwithf "%A" errors
+
+                return noframwork fsharpProjectOptions script
+
+            | _ -> 
+                let fsproj = Path.GetTempFileName() |> Path.changeExtension ".fsproj"
+                let fsharpProjectOptions = checker.GetProjectOptionsFromCommandLineArgs(fsproj, otherFlags2)
+
+                let fsharpProjectOptions = 
+                    { fsharpProjectOptions with SourceFiles = sourceFiles }
+
+                return noframwork fsharpProjectOptions fsproj 
     }
+
 
 
 [<RequireQualifiedAccess>]
@@ -350,7 +527,7 @@ type CrackedFsprojBundleMsg =
     | GetCache of replyChannel: AsyncReplyChannel<CrackedFsprojBundleCache>
     | DetectProjectFileChanges of FileChange list * AsyncReplyChannel<CrackedFsprojBundleCache>
 
-let crackedFsprojBundle useEditFiles (projectFile: string) = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
+let crackedFsprojBundle useEditFiles builder = MailboxProcessor<CrackedFsprojBundleMsg>.Start(fun inbox ->
     let rec loop (entry: FullCrackedFsproj) cache = async {
         let! msg = inbox.Receive()
         match msg with
@@ -365,7 +542,13 @@ let crackedFsprojBundle useEditFiles (projectFile: string) = MailboxProcessor<Cr
             return! loop entry newCache
     }
 
-    let (project, cache) = FullCrackedFsproj.create projectFile |> Async.RunSynchronously
+    let (project, cache) = 
+        try 
+            FullCrackedFsproj.create builder |> Async.RunSynchronously
+        with ex ->
+            logger.Error "ERRORS: %A" ex
+            failwithf "ERRORS: %A" ex
+
     loop project (CrackedFsprojBundleCache.create useEditFiles project cache)
 )
 

@@ -1,6 +1,7 @@
 ﻿namespace FcsWatch.Binary
 open Fake.IO
 open FcsWatch.Core
+open Fake.IO.FileSystemOperators
 
 
 module internal VscodeHelper =
@@ -60,3 +61,17 @@ module internal VscodeHelper =
 
                     newConfigurations
             }
+
+    [<RequireQualifiedAccess>]
+    module File =
+        let tryFindLaunchJsonUp workingDir = 
+            let makePath root = root </> ".vscode" </> "launch.json"
+            File.tryFindUntilRoot makePath workingDir
+
+        let tryFindRootUpByLaunchJson workingDir = 
+            tryFindLaunchJsonUp workingDir
+            |> Option.map (fun path -> 
+                path
+                |> Path.getDirectory 
+                |> Path.getDirectory
+            )

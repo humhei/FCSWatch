@@ -129,7 +129,7 @@ let functionTests =
             /// "bin ref may be locked by program
             testCaseAsync "obj ref only" <| async {
                 let! fullCracekdFsproj, _  =
-                    FullCrackedFsproj.create entryProjPath
+                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath})
 
                 let otherOptions =
                     fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
