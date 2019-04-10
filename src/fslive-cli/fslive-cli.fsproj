@@ -13,7 +13,7 @@
   </ItemGroup>
   
   <PropertyGroup>
-    <PackageId>fslive-cli</PackageId>
+    <PackageId>fslive-cli-test</PackageId>
     <Description>.NET Core Global Tool for FsLive - allows to send files to Fabulous.LiveUpdate and more</Description>
     <PackageTags>Tool;CLI</PackageTags>
   </PropertyGroup>
