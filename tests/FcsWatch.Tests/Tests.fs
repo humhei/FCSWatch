@@ -1,15 +1,12 @@
 module FcsWatch.Tests.Tests
 open Expecto
-open FSharp.Compiler.SourceCodeServices
 open System.IO
-open FcsWatch
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open System.Threading
 open FcsWatch.Core.Types
 open FcsWatch.Core.FcsWatcher
 open FcsWatch.Tests.Types
-open Fake.DotNet
 open FcsWatch.Core
 open FcsWatch.Binary
 

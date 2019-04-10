@@ -18,6 +18,9 @@
         <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\..\src\fslive-cli\fslive-cli.fsproj" />
+    </ItemGroup>
+    <ItemGroup>
       <PackageReference Update="FSharp.Core" Version="4.6.2" />
     </ItemGroup>
 
