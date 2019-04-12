@@ -1,6 +1,8 @@
 ﻿# Release Notes
 
-## 0.7.0 - tbd
+## 0.7.1-alpha - tbd
+
+## 0.7.0 - 2019-04-12
 * Port out FcsWatch.Core used by FcsWatch.Binary and FcsWatch.Prota
 * Mark a lot unrelated types as internal and private
 * Shared file should trigger both projects compiling #11
