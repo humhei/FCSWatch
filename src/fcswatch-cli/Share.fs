@@ -29,7 +29,7 @@ type ProcessResult =
     { Config: BinaryConfig
       ProjectFile: string }
 
-let processParseResults usage (results: ParseResults<Arguments>) =
+let processParseResults additionalBinaryArgs usage (results: ParseResults<Arguments>) =
     try
         let execContext = Fake.Core.Context.FakeExecutionContext.Create false "generate.fsx" []
         Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake execContext)
@@ -63,13 +63,14 @@ let processParseResults usage (results: ParseResults<Arguments>) =
           Config =
             { BinaryConfig.DefaultValue with
                 WorkingDir = workingDir
-                DevelopmentTarget = 
+                DevelopmentTarget =
                     match results.TryGetResult Debuggable with
                     | Some _ -> DevelopmentTarget.debuggableProgram
                     | None -> DevelopmentTarget.autoReloadProgram
 
                 LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel)
-                NoBuild = noBuild } 
+                NoBuild = noBuild
+                AdditionalBinaryArgs = additionalBinaryArgs }
         }
     with ex ->
         let usage = usage()
@@ -78,5 +79,3 @@ let processParseResults usage (results: ParseResults<Arguments>) =
 
 
 let parser = ArgumentParser.Create<Arguments>(programName = "fcswatch.exe")
-
-

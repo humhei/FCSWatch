@@ -15,8 +15,8 @@ open Extensions
 open System.Threading
 
 type PluginDebugInfo =
-    { DebuggerAttachTimeDelay: int 
-      Pid: int 
+    { DebuggerAttachTimeDelay: int
+      Pid: int
       VscodeLaunchConfigurationName: string }
 
 [<RequireQualifiedAccess>]
@@ -25,7 +25,7 @@ module PluginDebugInfo =
 
 
     let writePidForPlugin workingDir (pluginDebugInfo: PluginDebugInfo) =
-        match File.tryFindLaunchJsonUp workingDir with 
+        match File.tryFindLaunchJsonUp workingDir with
         | Some file ->
 
             let launch = Launch.read file
@@ -59,30 +59,36 @@ module AutoReload =
     [<RequireQualifiedAccess>]
     module internal CrackedFsproj =
 
-        let private dotnetTool = 
+        let private dotnetTool =
             [DotNet.Options.Create().DotNetCliPath]
             |> Args.toWindowsCommandLine
 
         [<RequireQualifiedAccess>]
         module Process =
-            let start tool args workingDir = 
+            let start tool args workingDir =
                 let startInfo = new ProcessStartInfo();
                 let args = Args.toWindowsCommandLine args
                 startInfo.WorkingDirectory <- workingDir
                 startInfo.Arguments <- args
                 startInfo.FileName <- tool
-                logger.ImportantGreen "%s %s" tool args 
+                logger.ImportantGreen "%s %s" tool args
                 Process.Start(startInfo)
 
-        let tryRun developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
+        let tryRun additionalBinaryArgs developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
             match (developmentTarget: DevelopmentTarget) with
             | DevelopmentTarget.Program ->
-                match crackedFsproj.ProjectTarget with 
-                | ProjectTarget.Exe -> 
+                match crackedFsproj.ProjectTarget with
+                | ProjectTarget.Exe ->
+                    let dotnetArgs =
+                        [
+                            "run";"--project"; crackedFsproj.ProjPath; "--no-build"; "--no-restore"; "--framework"; crackedFsproj.PreferFramework; "--"
+                        ]
+
                     runningProjects.GetOrAdd (crackedFsproj.ProjPath,fun _ ->
-                        Process.start 
+                        Process.start
                             dotnetTool
-                            ["run";"--project"; crackedFsproj.ProjPath; "--no-build"; "--no-restore"; "--framework"; crackedFsproj.PreferFramework] workingDir
+                            (dotnetArgs @ additionalBinaryArgs)
+                            workingDir
                     )
                     |> ignore
 
@@ -92,22 +98,22 @@ module AutoReload =
                 plugin.Load()
 
         let tryReRun developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
-            tryRun developmentTarget workingDir (crackedFsproj: CrackedFsproj) 
+            tryRun [] developmentTarget workingDir (crackedFsproj: CrackedFsproj)
 
 
         let tryKill developmentTarget (crackedFsproj: CrackedFsproj) =
-            match developmentTarget with 
+            match developmentTarget with
             | DevelopmentTarget.Plugin plugin ->
                 plugin.Unload()
                 Thread.Sleep plugin.TimeDelayAfterUninstallPlugin
-            | DevelopmentTarget.Program -> 
+            | DevelopmentTarget.Program ->
                 match runningProjects.TryRemove (crackedFsproj.ProjPath) with
-                | true, proc -> 
-                    if not proc.HasExited 
-                    then 
+                | true, proc ->
+                    if not proc.HasExited
+                    then
                         proc.KillTree()
                         logger.InfoGreen "Killed process %d" proc.Id
-                | false, _ -> 
+                | false, _ ->
                     failwithf "Cannot remove %s from running projects" crackedFsproj.ProjPath
 
 
@@ -118,16 +124,16 @@ module AutoReload =
             let commonState = state.CommonState
             let cache = commonState.CrackerFsprojFileBundleCache
 
-            match commonState.CompilingNumber with 
+            match commonState.CompilingNumber with
             | 0 ->
 
                 logger.Info "Current cached compier task is %d" commonState.CachedCompilerTasks.Length
 
-                match commonState.CachedCompilerTasks with 
+                match commonState.CachedCompilerTasks with
                 | [task] when task.Why = WhyCompile.WarmCompile -> state
                 | _ ->
-                    let lastTasks = 
-                        commonState.CachedCompilerTasks 
+                    let lastTasks =
+                        commonState.CachedCompilerTasks
                         |> List.groupBy (fun compilerTask ->
                             compilerTask.Task.Result.[0].ProjPath
                         )
@@ -138,7 +144,7 @@ module AutoReload =
 
                     let allResults: CompilerResult list = lastTasks |> List.collect (fun task -> task.Task.Result)
 
-                    match List.tryFind (fun (result: CompilerResult) -> result.ExitCode <> 0) allResults with 
+                    match List.tryFind (fun (result: CompilerResult) -> result.ExitCode <> 0) allResults with
                     | Some result ->  state
 
                     | None ->
@@ -167,15 +173,14 @@ module AutoReload =
                         )
 
                         CrackedFsproj.tryReRun developmentTarget workingDir cache.EntryCrackedFsproj
-                    
+
                         CompilerTmpEmitterState.createEmpty 0 cache
-            | _ -> 
+            | _ ->
                 state
 
 
-    let create developmentTarget = 
-        { new ICompilerTmpEmitter<unit, int, CompilerResult> with 
+    let create developmentTarget =
+        { new ICompilerTmpEmitter<unit, int, CompilerResult> with
             member x.TryEmit(workingDir, state) = TmpEmitterState.tryEmit workingDir developmentTarget state
             member x.ProcessCustomMsg (_, state) = state
             member x.CustomInitialState = 0 }
-        

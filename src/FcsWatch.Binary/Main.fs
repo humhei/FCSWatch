@@ -22,14 +22,14 @@ module DevelopmentTarget =
     let autoReloadPlugin plugin = DevelopmentTarget.AutoReload (AutoReload.DevelopmentTarget.Plugin plugin)
     let debuggablePlugin plugin = DevelopmentTarget.Debuggable (DebuggingServer.DevelopmentTarget.Plugin plugin)
 
-    let (|Plugin|Program|) = function 
+    let (|Plugin|Program|) = function
         | DevelopmentTarget.AutoReload autoReload ->
-            match autoReload with 
+            match autoReload with
             | AutoReload.DevelopmentTarget.Plugin plugin -> Plugin plugin
             | AutoReload.DevelopmentTarget.Program _ -> Program
 
         | DevelopmentTarget.Debuggable debuggable ->
-            match debuggable with 
+            match debuggable with
             | DebuggingServer.DevelopmentTarget.Plugin plugin -> Plugin (DebuggingServer.Plugin.asAutoReloadPlugin plugin)
             | DebuggingServer.DevelopmentTarget.Program _ -> Program
 
@@ -40,23 +40,25 @@ type BinaryConfig =
       WorkingDir: string
       NoBuild: bool
       UseEditFiles: bool
-      WarmCompile: bool }
+      WarmCompile: bool
+      AdditionalBinaryArgs : string array }
 
-with 
+with
     static member DefaultValue =
-        { LoggerLevel = Logger.Level.Minimal 
-          DevelopmentTarget = DevelopmentTarget.autoReloadProgram 
-          WorkingDir = Directory.GetCurrentDirectory() 
+        { LoggerLevel = Logger.Level.Minimal
+          DevelopmentTarget = DevelopmentTarget.autoReloadProgram
+          WorkingDir = Directory.GetCurrentDirectory()
           NoBuild = false
           UseEditFiles = false
-          WarmCompile = true }
+          WarmCompile = true
+          AdditionalBinaryArgs = Array.empty }
 
 
 [<RequireQualifiedAccess>]
 module BinaryConfig =
     let tryBuildProject projectFile (config: BinaryConfig) =
         if not config.NoBuild then
-            match config.DevelopmentTarget with 
+            match config.DevelopmentTarget with
             | DevelopmentTarget.Program _ ->
                 dotnet "build" [projectFile] config.WorkingDir
 
@@ -68,11 +70,11 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
     logger <- Logger.create config.LoggerLevel
 
-    let config = 
-        { config with 
+    let config =
+        { config with
             WorkingDir = Path.GetFullPath(config.WorkingDir)}
 
-    let compiler = 
+    let compiler =
         let summary projectPath dll elapsed =
             sprintf "Summary:
         -- origin: %s
@@ -80,12 +82,12 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
         -- elapsed: %d milliseconds"
                 projectPath dll elapsed
 
-        { new ICompiler<CompilerResult> with 
+        { new ICompiler<CompilerResult> with
             member x.Compile(checker, crackedFsproj) = CrackedFsproj.compile checker crackedFsproj
             member x.WarmCompile = config.WarmCompile
             member x.Summary (result, elapsed) = summary result.ProjPath result.Dll elapsed}
 
-    let coreConfig: FcsWatch.Core.Config = 
+    let coreConfig: FcsWatch.Core.Config =
         { LoggerLevel = config.LoggerLevel
           WorkingDir = config.WorkingDir
           OtherFlags = [||]
@@ -95,7 +97,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
     BinaryConfig.tryBuildProject entryProjectFile config
 
-    match config.DevelopmentTarget with 
+    match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload ->
         let compilerTmpEmitter = AutoReload.create autoReload
 
@@ -105,7 +107,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
         let cache = fcsWatcher.PostAndReply FcsWatcherMsg.GetCache
 
-        AutoReload.CrackedFsproj.tryRun autoReload config.WorkingDir cache.EntryCrackedFsproj
+        AutoReload.CrackedFsproj.tryRun (Array.toList config.AdditionalBinaryArgs) autoReload config.WorkingDir cache.EntryCrackedFsproj
 
         fcsWatcher
 
@@ -119,8 +121,7 @@ let runFcsWatcher (config: BinaryConfig) entryProjectFile =
     let binaryFcsWatcher = binaryFcsWatcher config entryProjectFile
     Console.ReadLine() |> ignore
     let cache = binaryFcsWatcher.PostAndReply FcsWatcherMsg.GetCache
-    match config.DevelopmentTarget with 
+    match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload ->
         AutoReload.CrackedFsproj.tryKill autoReload cache.EntryCrackedFsproj
     | _ -> ()
-
