@@ -5,6 +5,8 @@ open Fake.IO.FileSystemOperators
 open FcsWatch.Core.CrackedFsproj
 open FSharp.Compiler.SourceCodeServices
 open FcsWatch.Core
+open Fake.DotNet
+open Fake.Core
 
 type CompilerResult =
     { Dll: string
@@ -20,8 +22,20 @@ with
         member x.ProjPath = x.ProjPath
 
 [<AutoOpen>]
-module Global =
+module internal Global =
     let mutable logger = Logger.create Logger.Level.Minimal
+
+    let private dotnetWith command args dir =
+        DotNet.exec
+            (fun ops -> {ops with WorkingDirectory = dir})
+            command
+            (Args.toWindowsCommandLine args)
+
+    let dotnet command args dir =
+        let result = dotnetWith command args dir
+        if result.ExitCode <> 0
+        then failwithf "Error while running %s with args %A" command (List.ofSeq args)
+
 
 module Extensions =
 

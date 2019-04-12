@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "fcswatch-cli-win": {
-      "commandName": "Project",
-      "commandLineArgs": "--working-dir \"D:\\VsCode\\Github\\CellScript\" --project-file \"D:\\VsCode\\Github\\CellScript\\tests\\CellScript.Client.Tests\\CellScript.Client.Tests.fsproj\" --exceldna --logger-level normal"
-    }
-  }
-}

@@ -127,20 +127,8 @@ type Config =
     { LoggerLevel: Logger.Level
       WorkingDir: string
       UseEditFiles: bool
-      NoBuild: bool
-      OtherFlags: string []
-      ActionAfterStoppingWatcher: CrackedFsprojBundleCache -> unit }
+      OtherFlags: string [] }
 
-
-[<RequireQualifiedAccess>]
-module Config =
-
-    let internal tryBuildProject builder (config: Config) =
-        match builder with 
-        | FullCrackedFsprojBuilder.Project builder ->
-            let workingDir = config.WorkingDir
-            if not config.NoBuild then dotnet "build" [builder.File] workingDir
-        | _ -> ()
 
 module FcsWatcher =
 
@@ -152,7 +140,6 @@ module FcsWatcher =
         | DetectSourceFileChanges of fileChanges: FileChange list * incrCompilingNumberReplyChannel: AsyncReplyChannel<unit>
         | DetectProjectFileChanges of fileChanges: FileChange list
         | GetCache of AsyncReplyChannel<CrackedFsprojBundleCache>
-        | ActionAfterStoppedWatch of AsyncReplyChannel<unit>
         | WaitCompiled of AsyncReplyChannel<CompilerNumber>
 
 
@@ -179,8 +166,6 @@ module FcsWatcher =
             logger <- Logger.create (config.LoggerLevel)
 
             let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config.WorkingDir config.UseEditFiles checker entryFileOp config.OtherFlags
-
-            Config.tryBuildProject fullCrackedFsprojBuilder config
 
             logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
             logger.Info "fcs watcher's working directory is %s" config.WorkingDir
@@ -280,11 +265,6 @@ module FcsWatcher =
                         return! loop { state with SourceFileWatcher = newSourceFileWatcher; CrackerFsprojBundleCache = newCache }
                     | FcsWatcherMsg.GetCache replyChannel ->
                         replyChannel.Reply(cache)
-                        return! loop state
-
-                    | FcsWatcherMsg.ActionAfterStoppedWatch replyChannel ->
-                        config.ActionAfterStoppingWatcher cache
-                        replyChannel.Reply()
                         return! loop state
 
                     | FcsWatcherMsg.WaitCompiled replyChannel ->

@@ -33,9 +33,7 @@ let runFcsWatcher (config: PortaConfig) =
     let coreConfig: FcsWatch.Core.Config = 
         { LoggerLevel = config.LoggerLevel
           WorkingDir = config.WorkingDir
-          NoBuild = config.NoBuild
           UseEditFiles = config.UseEditFiles
-          ActionAfterStoppingWatcher = ignore
           OtherFlags = config.OtherFlags }
 
     let checker = FSharpChecker.Create(keepAssemblyContents = true)

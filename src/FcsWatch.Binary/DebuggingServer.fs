@@ -18,7 +18,17 @@ type Plugin =
     { Load: unit -> unit
       Unload: unit -> unit
       Calculate: unit -> unit
+      TimeDelayAfterUninstallPlugin: int
       PluginDebugInfo: PluginDebugInfo }
+
+[<RequireQualifiedAccess>]
+module Plugin =
+    let asAutoReloadPlugin (plugin: Plugin): AutoReload.Plugin =
+        { Load = plugin.Load
+          Unload = plugin.Unload
+          Calculate = plugin.Calculate
+          TimeDelayAfterUninstallPlugin = plugin.TimeDelayAfterUninstallPlugin
+          PluginDebugInfo = Some plugin.PluginDebugInfo }
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
@@ -111,6 +121,7 @@ module internal TmpEmitterState =
                     match developmentTarget with 
                     | DevelopmentTarget.Plugin plugin ->
                         plugin.Unload()
+                        Thread.Sleep plugin.TimeDelayAfterUninstallPlugin
                     | _ -> ()
 
                     commonState.CompilerTmp

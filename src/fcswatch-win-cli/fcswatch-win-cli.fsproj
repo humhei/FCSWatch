@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="Argu" Version="5.2.0" />
+    <PackageReference Include="ExcelDna.Integration" Version="0.34.6" />
     <PackageReference Include="ExcelDna.Interop" Version="14.0.1" />
   </ItemGroup>
 
@@ -20,6 +21,8 @@
     <ProjectReference Include="..\FcsWatch.Binary\FcsWatch.Binary.fsproj" />
     <ProjectReference Include="..\FcsWatch.Core\FcsWatch.Core.fsproj" />
   </ItemGroup>
+
+
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.6.2" />

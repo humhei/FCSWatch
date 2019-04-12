@@ -12,6 +12,7 @@ open Fake.IO
 open Fake.IO.FileSystemOperators
 open FcsWatch.Core.CompilerTmpEmitter
 open Extensions
+open System.Threading
 
 type PluginDebugInfo =
     { DebuggerAttachTimeDelay: int 
@@ -43,6 +44,7 @@ module AutoReload =
         { Load: unit -> unit
           Unload: unit -> unit
           Calculate: unit -> unit
+          TimeDelayAfterUninstallPlugin: int
           /// sometimes i want work both in autoReload + debuggable
           PluginDebugInfo: PluginDebugInfo option }
 
@@ -91,16 +93,13 @@ module AutoReload =
 
         let tryReRun developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
             tryRun developmentTarget workingDir (crackedFsproj: CrackedFsproj) 
-            match developmentTarget with
-            | DevelopmentTarget.Plugin plugin ->
-                plugin.Calculate()
-            | _ -> ()
 
 
         let tryKill developmentTarget (crackedFsproj: CrackedFsproj) =
             match developmentTarget with 
             | DevelopmentTarget.Plugin plugin ->
                 plugin.Unload()
+                Thread.Sleep plugin.TimeDelayAfterUninstallPlugin
             | DevelopmentTarget.Program -> 
                 match runningProjects.TryRemove (crackedFsproj.ProjPath) with
                 | true, proc -> 
