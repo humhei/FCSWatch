@@ -105,6 +105,7 @@ let pluginTests =
                   Calculate = (fun _ ->
                     Thread.Sleep(100)
                     printf "Calculate" )
+                  TimeDelayAfterUninstallPlugin = 500
                   PluginDebugInfo = None }
 
             {BinaryConfig.DefaultValue with DevelopmentTarget = DevelopmentTarget.autoReloadPlugin plugin }
