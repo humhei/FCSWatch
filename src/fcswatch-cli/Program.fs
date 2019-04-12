@@ -1,6 +1,6 @@
 ﻿// Learn more about F# at http://fsharp.org
 module FcsWatch.Cli.Main
-open FcsWatch.FcsWatcher
+open FcsWatch.Binary
 open FcsWatch.Cli.Share
 
 

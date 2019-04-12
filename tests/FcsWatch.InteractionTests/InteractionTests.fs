@@ -2,7 +2,6 @@ module FcsWatch.InteractionTests.InteractionTests
 open Expecto
 open Fake.IO
 open Fake.IO.FileSystemOperators
-open FcsWatch.Types
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"
@@ -28,11 +27,15 @@ let testSourceFile1InTestLib = datas </> @"TestLib1/Library.fs"
 
 let interactionTests =
     testList "interaction tests" [
-        testCase "base interaction test" <| fun _ ->
-            FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath|]
+        testCase "manual reload test" <| fun _ ->
+            FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath;"--logger-level"; "normal"; "--debuggable" |]
             |> ignore
 
         ftestCase "auto reload test" <| fun _ ->
-            FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath; "--no-build"|]
+            FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath|]
+            |> ignore
+
+        testCase "fslive cli test" <| fun _ ->
+            FsLive.Driver.main [| entryProjPath; "--watch"; "--loggerlevel:2"; "--send"|]
             |> ignore
     ]

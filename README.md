@@ -46,15 +46,14 @@ OPTIONS:
 #r "paket:
 source https://api.nuget.org/v3/index.json
 nuget Fake.Core.Target = 5.12.0
-nuget FcsWatch //"
+nuget FcsWatch.Binary //"
 #load "./.fake/build.fsx/intellisense.fsx"
 
 // start build
 open Fake.Core
 open Fake.IO
-open Microsoft.FSharp.Compiler.SourceCodeServices
-open FcsWatch.FakeHelper
-open Fake.DotNet
+open FSharp.Compiler.SourceCodeServices
+open FcsWatch.Binary
 
 Target.create "FcsWatch" (fun _ ->
     /// replace it to your entry project file
@@ -68,19 +67,18 @@ Target.runOrDefault "FcsWatch"
 3. `fake build -t "FcsWatch"`
 4. `Change fs files in YourProject` and save it
 
+
+## Build From project
+* .paket/paket.exe install
+* dotnet build FCSWatch.sln
+
+
 ## Debug in vscode(only when AutoReload is false)
 
 ### Play around
-
-#### MiniSample
-https://github.com/humhei/FcsWatchMiniSample
-
 #### From source code interaction test
-
 * git clone https://github.com/humhei/FCSWatch.git
-* .paket/paket.exe install
-* cd tests/FcsWatch.InteractionTests/`
-* dotnet run
+* fcswatch --project-file "fullPath to \FCSWatch\tests\datas\TestProject\TestProject.fsproj"
 * modify fs files in any of TestProject,TestLib2,TestLib1
 * Set breakpoint in any of TestProject,TestLib2,TestLib1
 * F5 Debug `Launch TestProject`
@@ -126,16 +124,29 @@ vscode launch.json setting
       "type": "clr",
       "request": "attach",
       "preLaunchTask": "emitCompilerTmp",
+      /// should be write automatically by script
       "processId": 14876
     },
 ```
 
 build.fsx setting
 ```fsharp
+    open FcsWatch.Binary
+
+    let app =
+        Process.GetProcesses()
+        |> Array.tryFind (fun proc -> proc.ProcessName = "EXCEL")
+        |> function
+            | Some proc -> Marshal.GetActiveObject("Excel.Application")
+            | None ->
+                failwithf "Please manual open excel" projectName
+        :?> Application
+
+    let procId = User32.getPidFromHwnd app.Hwnd
+
     /// trigger when file changed was detected
     /// and (re)load debugger (after emit cache)
     let installPlugin() =
-        dotnet projectDir "msbuild" ["/t:ExcelDnaBuild;ExcelDnaPack"]
         addIn.Installed <- true
         Trace.trace "installed plugin"
 
@@ -150,14 +161,23 @@ build.fsx setting
         Trace.trace "calculate worksheet"
         worksheet.Calculate()
 
-    let plugin =
-        { Load = installPlugin
-          Unload = unInstall
-          Calculate = calculate
+
+    let pluginDebugInfo: PluginDebugInfo =
+        {
           /// Thread sleed to wait debugger attached.
           /// Trigger when file changed was not detected
           /// and reload debugger
-          DebuggerAttachTimeDelay = 1000 }
+          DebuggerAttachTimeDelay = 2000
+          // pid write to .vscode/launch.json
+          Pid = procId
+          VscodeLaunchConfigurationName = "Attach Excel" }
+
+    let plugin : DebuggingServer.Plugin =
+        { Load = install
+          Unload = unInstall
+          Calculate = calculate
+          TimeDelayAfterUninstallPlugin = 500
+          PluginDebugInfo = pluginDebugInfo }
 
     let config =
         {Config.DefaultValue with

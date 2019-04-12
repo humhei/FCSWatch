@@ -1,4 +1,4 @@
-namespace FcsWatch
+namespace FcsWatch.Core
 open System.IO
 open Fake.IO
 open Fake.IO.FileSystemOperators
@@ -6,16 +6,21 @@ open FSharp.Compiler.SourceCodeServices
 open System
 
 
-type CompilerResult =
-    { Dll: string
-      Errors: FSharpErrorInfo []
-      ExitCode: int
-      ProjPath: string }
+type ICompilerOrCheckResult =
+      abstract member Errors: FSharpErrorInfo []
+      abstract member ExitCode: int
+      abstract member ProjPath: string
 
-with
-    member x.Pdb = Path.changeExtension ".pdb" x.Dll
 
 module CrackedFsproj =
+
+    [<RequireQualifiedAccess>]
+    module private Array =
+        let keepOrAdd (keeper: string -> bool) added list =
+            match Array.tryFind keeper list with 
+            | Some _ -> list
+            | None -> Array.append [|added|] list
+
     let private frameworkValue (framework: string) =
         if framework.StartsWith "netcoreapp" 
         then (2,framework.Substring(10) |> Double.Parse)
@@ -33,8 +38,8 @@ module CrackedFsproj =
 
 
     [<RequireQualifiedAccess>]
-    module FSharpProjectOptions =
-        let mapOtherOptions mapping (fsharpProjectOptions: FSharpProjectOptions) =
+    module internal FSharpProjectOptions =
+        let mapOtherOption mapping (fsharpProjectOptions: FSharpProjectOptions) =
             { fsharpProjectOptions with
                 OtherOptions = fsharpProjectOptions.OtherOptions |> Array.map mapping }
 
@@ -44,7 +49,7 @@ module CrackedFsproj =
         | Library
 
     [<CustomComparison; CustomEquality>]
-    type CrackedFsprojSingleTarget =
+    type SingleTargetCrackedFsproj =
         { FSharpProjectOptions: FSharpProjectOptions
           ProjRefs: string list
           Props: Map<string,string>
@@ -82,6 +87,9 @@ module CrackedFsproj =
 
         member x.ObjTargetPdb = Path.changeExtension ".pdb" x.ObjTargetFile
 
+        member x.SourceFiles =
+            x.FSharpProjectOptions.SourceFiles
+
         member x.RefDlls =
             x.FSharpProjectOptions.OtherOptions
             |> Array.filter(fun op ->
@@ -92,7 +100,7 @@ module CrackedFsproj =
 
         override x.Equals(yobj) = 
             match yobj with
-            | :? CrackedFsprojSingleTarget as y -> 
+            | :? SingleTargetCrackedFsproj as y -> 
                 x.ProjPath = y.ProjPath
                 && x.ProjectTarget = y.ProjectTarget 
                 && (frameworkValue x.TargetFramework) = (frameworkValue y.TargetFramework)
@@ -102,7 +110,7 @@ module CrackedFsproj =
         interface System.IComparable with 
             member x.CompareTo yobj =
                 match yobj with 
-                | :? CrackedFsprojSingleTarget as y ->
+                | :? SingleTargetCrackedFsproj as y ->
                     match x.ProjectTarget, y.ProjectTarget with 
                     | ProjectTarget.Exe, ProjectTarget.Library -> 1
                     | _ ->
@@ -112,29 +120,28 @@ module CrackedFsproj =
             
 
     [<RequireQualifiedAccess>]
-    module CrackedFsprojSingleTarget =
+    module SingleTargetCrackedFsproj =
 
-        let compile (checker: FSharpChecker) (crackedProjectSingleTarget: CrackedFsprojSingleTarget) = async {
-            let tmpDll = crackedProjectSingleTarget.ObjTargetFile
+        let mapProjOptions mapping (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            { singleTargetCrackedFsproj with FSharpProjectOptions = mapping singleTargetCrackedFsproj.FSharpProjectOptions }
 
-            let baseOptions =
-                crackedProjectSingleTarget.FSharpProjectOptions.OtherOptions
-                |> Array.map (fun op -> if op.StartsWith "-o:" then "-o:" + tmpDll else op)
+        let mapProjOtherOptions mapping (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            mapProjOptions (fun projOptions ->
+                { projOptions with 
+                    OtherOptions = mapping projOptions.OtherOptions }
+            ) singleTargetCrackedFsproj
 
-            let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]]
-            let! errors,exitCode = checker.Compile(fscArgs)
-            return
-                { Errors = errors
-                  ExitCode = exitCode
-                  Dll = tmpDll
-                  ProjPath = crackedProjectSingleTarget.ProjPath }
-        }
-
-        let mapProjOptions mapping (crackedFsprojSingleTarget: CrackedFsprojSingleTarget) =
-            { crackedFsprojSingleTarget with FSharpProjectOptions = mapping crackedFsprojSingleTarget.FSharpProjectOptions }
+        let mapProjOptionsDebuggable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            mapProjOtherOptions (fun ops ->
+                ops
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "-o:" || ops.StartsWith "--out:") ("-o:" + singleTargetCrackedFsproj.ObjTargetFile)
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--target:") ("--target:library")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug" || ops.StartsWith "-g") ("--debug:portable")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--optimize" || ops.StartsWith "-O") ("--optimize-")
+            ) singleTargetCrackedFsproj
 
 
-    type CrackedFsproj = private CrackedFsproj of CrackedFsprojSingleTarget list
+    type CrackedFsproj = internal CrackedFsproj of SingleTargetCrackedFsproj list
 
     with
         member x.AsList =
@@ -155,13 +162,13 @@ module CrackedFsproj =
         member x.Name = Path.GetFileNameWithoutExtension x.ProjPath
 
         member x.SourceFiles =
-            x.AsList.[0].FSharpProjectOptions.OtherOptions
-            |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
-            |> Array.map Path.getFullName
+            x.AsList.[0].SourceFiles
 
         member x.PreferFramework =
             (List.max x.AsList).TargetFramework
 
+        member x.PreferSingleTargetCrackedFsproj =
+            x.AsList |> List.find (fun s -> s.TargetFramework = x.PreferFramework)
 
     [<RequireQualifiedAccess>]
     module CrackedFsproj =
@@ -187,27 +194,22 @@ module CrackedFsproj =
 
     let mapProjOptions mapping (crackedFsProj: CrackedFsproj) =
         crackedFsProj.AsList
-        |> List.map (CrackedFsprojSingleTarget.mapProjOptions mapping)
+        |> List.map (SingleTargetCrackedFsproj.mapProjOptions mapping)
         |> CrackedFsproj
 
 
-    let mapProjOtherOptions mapping =
+    let mapProjOtherOption mapping =
         mapProjOptions (fun projOptions ->
             { projOptions with
                 OtherOptions = projOptions.OtherOptions |> Array.map mapping  }
         )
 
-    let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsproj) =
-        crackedFsProj.AsList
-        |> List.map (CrackedFsprojSingleTarget.compile checker)
-        |> Async.Parallel
-
-    let mapProjOtherOptionsObjRefOnly (crackedFsprojs: seq<CrackedFsproj>) =
-        crackedFsprojs
+    let internal mapProjOtherOptionsObjRefOnly (allCrackedFsprojs: seq<CrackedFsproj>) =
+        allCrackedFsprojs
         |> Seq.map (fun info ->
             let projRefs = info.ProjRefs |> List.map (fun ref ->
                 let refInfo =
-                    crackedFsprojs
+                    allCrackedFsprojs
                     |> Seq.find (fun otherInfo -> otherInfo.ProjPath = ref)
                 refInfo
             )
@@ -218,7 +220,7 @@ module CrackedFsproj =
                     crackedFsproj.AsList
                 )
 
-            mapProjOtherOptions (fun line ->
+            mapProjOtherOption (fun line ->
                 allRefProjInfos
                 |> List.tryFind (fun ref ->
                     "-r:" + ref.TargetPath = line)
@@ -227,3 +229,8 @@ module CrackedFsproj =
                     | None -> line
             ) info
         )
+
+    let mapProjOtherOptionsDebuggable (CrackedFsproj singleTargetCrackedFsprojs) =
+        singleTargetCrackedFsprojs
+        |> List.map SingleTargetCrackedFsproj.mapProjOptionsDebuggable 
+        |> CrackedFsproj

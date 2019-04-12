@@ -2,34 +2,25 @@
   <PropertyGroup>
     <TargetFrameworks>net462;netstandard2.0</TargetFrameworks>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net462|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="ProjectCoreCracker.fs" />
     <Compile Include="CrackedFsProj.fs" />
     <Compile Include="Logger.fs" />
     <Compile Include="Types.fs" />
-    <Compile Include="AutoReload.fs" />
-    <Compile Include="DebuggingServer.fs" />
     <Compile Include="CompilerTmpEmitter.fs" />
     <Compile Include="Compiler.fs" />
     <Compile Include="FcsWatcher.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Dotnet.ProjInfo.Workspace.FCS" Version="0.33.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-18618-05" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FcsWatch.Helpers\FcsWatch.Helpers.csproj" PrivateAssets="All" />
+    <PackageReference Update="FSharp.Compiler.Service" Version="27.0.1" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProcessExtensions</TargetsForTfmSpecificBuildOutput>
-  </PropertyGroup>
-  <Target Name="IncludeProcessExtensions">
-    <ItemGroup>
-      <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Helpers.dll" />
-      <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Helpers.pdb" />
-
-    </ItemGroup>
-  </Target>
 
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

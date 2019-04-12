@@ -1,11 +1,12 @@
 ﻿/// Adapted from https://github.com/fsharp/FsAutoComplete/blob/45bf4a7255f8856b0164f722a82a17108ae64981/src/FsAutoComplete.Core/ProjectCoreCracker.fs
-module FcsWatch.ProjectCoreCracker
+module FcsWatch.Core.ProjectCoreCracker
 
 open System
 open System.IO
 open FSharp.Compiler.SourceCodeServices
 open System.Xml
 open Dotnet.ProjInfo.Workspace
+open Dotnet.ProjInfo.Workspace.FCS
 
 
 module MSBuildPrj = Dotnet.ProjInfo.Inspect
@@ -187,11 +188,16 @@ let getProjectOptionsFromProjectFile (file : string) = async {
         return result
 }
 
-let getProjectOptionsFromProjectFiles (projPaths : string list) = 
-    let config = 
-        let msbuildLocator = MSBuildLocator()
-        LoaderConfig.Default(msbuildLocator)
 
-    let loader = Loader.Create(config)
+let getProjectOptionsFromScript (checker: FSharpChecker) (scriptPath: string): FSharpProjectOptions = 
+    let msbuildLocator = MSBuildLocator()
 
-    loader.LoadProjects projPaths
+    let netFwInfo = 
+        NetFWInfoConfig.Default(msbuildLocator) |> NetFWInfo.Create
+
+    let fsxBinder = FsxBinder(netFwInfo, checker)
+
+    let tfm = netFwInfo.LatestVersion ()
+
+    fsxBinder.GetProjectOptionsFromScriptBy(tfm, scriptPath, File.ReadAllText scriptPath)
+    |> Async.RunSynchronously

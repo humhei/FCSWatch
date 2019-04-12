@@ -1,6 +1,11 @@
 ﻿# Release Notes
 
-## 0.6.6-alpha - tbd
+## 0.7.0 - tbd
+* Port out FcsWatch.Core used by FcsWatch.Binary and FcsWatch.Prota
+* Mark a lot unrelated types as internal and private
+* Shared file should trigger both projects compiling #11
+* Change Some Post to PostAndReply (more easy to test)
+* Try to add porta part to current solution
 
 ## 0.6.5 - 2019-03-24
 * Kill running project after watch mode is interrupt

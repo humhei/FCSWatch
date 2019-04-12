@@ -1,15 +1,14 @@
 module FcsWatch.Tests.Tests
 open Expecto
-open FSharp.Compiler.SourceCodeServices
 open System.IO
-open FcsWatch
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open System.Threading
-open FcsWatch.Types
-open FcsWatch.FcsWatcher
+open FcsWatch.Core.Types
+open FcsWatch.Core.FcsWatcher
 open FcsWatch.Tests.Types
-open Fake.DotNet
+open FcsWatch.Core
+open FcsWatch.Binary
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"
@@ -43,65 +42,53 @@ let makeFileChange fullPath : FileChange =
       Status = FileStatus.Changed }
 
 let makeSourceFileChanges fullPaths =
-    FcsWatcherMsg.DetectSourceFileChanges <!> List.map makeFileChange fullPaths
+    FcsWatcherMsg.DetectSourceFileChanges <!> (List.map makeFileChange fullPaths)
 
 let makeProjectFileChanges fullPaths =
-    FcsWatcherMsg.DetectProjectFileChanges <!> List.map makeFileChange fullPaths
+    FcsWatcherMsg.DetectProjectFileChanges (List.map makeFileChange fullPaths)
 
 
-let createWatcher config =
+let createWatcher (config: BinaryConfig) =
     lazy
         let config =
             { config with 
                 WorkingDir = root
-                LoggerLevel = Logger.Level.Normal }
+                LoggerLevel = Logger.Level.Normal
+                WarmCompile = false }
 
-        fcsWatcher config entryProjPath
+        binaryFcsWatcher config entryProjPath
 
-DotNet.build (fun ops ->
-    { ops with
-        Configuration = DotNet.BuildConfiguration.Debug }
-) entryProjDir
-
+let testSourceFilesChanged (watcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) sourceFiles expectedCompilerNumber  =
+    watcher.Value.PostAndReply (makeSourceFileChanges sourceFiles)
+    watcher.Value.PostAndReply FcsWatcherMsg.WaitCompiled
+    |> expectCompilerNumber expectedCompilerNumber
 
 let programTests =
-    let watcher = createWatcher { Config.DefaultValue with DevelopmentTarget = DevelopmentTarget.debuggableProgram }
+    let watcher = createWatcher { BinaryConfig.DefaultValue with DevelopmentTarget = DevelopmentTarget.debuggableProgram }
 
     testList "program tests" [
 
         testCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
-
-            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1])
-           /// (TestLib2/Library.fs)
-            |> expectCompilerNumber 1
+            /// TestLib2/Library.fs
+            testSourceFilesChanged watcher [testSourceFile1] 1
 
         testCase "change multiple file in TestLib2 will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
-
-            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1; testSourceFile2])
             /// (TestLib2/Library.fs + TestLib2/Library2.fs)
-            |> expectCompilerNumber 1
+            testSourceFilesChanged watcher [testSourceFile1; testSourceFile2] 1
 
         testCase "change file in TestLib1 and TestLib2 will trigger compiling" <| fun _ ->
-            // Modify fs files in TestLib2
-            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1; testSourceFile2; testSourceFile1InTestLib])
-            /// (TestLib2/*.fs) + (TestLib1/*.fs)
-            |> expectCompilerNumber 2
+            /// (TestLib2/*.fs) + (TestLib1/*.fs) 
+            testSourceFilesChanged watcher [testSourceFile1; testSourceFile2; testSourceFile1InTestLib] 2
 
         testCase "add fs file in fsproj will update watcher" <| fun _ ->
             try
                 Fsproj.addFileToProject "Added.fs" testProjPath
 
                 Thread.Sleep(1000)
-
-                watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFileAdded])
-                /// TestLib2/Added.fs
-                |> expectCompilerNumber 1
+                testSourceFilesChanged watcher [testSourceFileAdded] 1
 
             finally
                 Fsproj.removeFileFromProject "Added.fs" testProjPath
-
     ]
 
 
@@ -117,22 +104,22 @@ let pluginTests =
                   Unload = unInstallPlugin
                   Calculate = (fun _ ->
                     Thread.Sleep(100)
-                    printf "Calculate" ) }
+                    printf "Calculate" )
+                  TimeDelayAfterUninstallPlugin = 500
+                  PluginDebugInfo = None }
 
-            {Config.DefaultValue with DevelopmentTarget = DevelopmentTarget.autoReloadPlugin plugin }
+            {BinaryConfig.DefaultValue with DevelopmentTarget = DevelopmentTarget.autoReloadPlugin plugin }
 
         createWatcher config
 
 
     testList "plugin Tests" [
         testCase "in plugin mode " <| fun _ ->
-            // Modify fs files in TestLib2
-            watcher.Value.PostAndReply (makeSourceFileChanges [testSourceFile1])
             /// TestLib2/Library.fs
-            |> expectCompilerNumber 1
+            testSourceFilesChanged watcher [testSourceFile1] 1
     ]
 
-open FcsWatch.Tests
+
 let functionTests =
 
     testList "functionTests"
@@ -140,11 +127,11 @@ let functionTests =
             /// "bin ref may be locked by program
             testCaseAsync "obj ref only" <| async {
                 let! fullCracekdFsproj, _  =
-                    FullCrackedFsproj.create entryProjPath
+                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath})
 
                 let otherOptions =
-                    fullCracekdFsproj.Value.AsList |> Seq.collect (fun crackedFsprojSingleTarget ->
-                        crackedFsprojSingleTarget.FSharpProjectOptions.OtherOptions
+                    fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
+                        singleTargetCrackedFsproj.FSharpProjectOptions.OtherOptions
                     ) |> List.ofSeq
 
                 let p1 =
@@ -165,4 +152,5 @@ let functionTests =
                 if p1 && p2 then pass()
                 else fail()
             }
+
         ]

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace FcsWatch.Helpers
+namespace FcsWatch.Binary.Helpers
 {
     public static class PublicExtensions
     {

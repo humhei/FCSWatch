@@ -1,11 +1,13 @@
 ﻿module FcsWatch.Cli.Share
 
 open System
-open FcsWatch
+open FcsWatch.Core
+open FcsWatch.Binary
 open Argu
 open Fake.IO.Globbing.Operators
 open Fake.IO.FileSystemOperators
 open Fake.Core
+
 
 type Arguments =
     | Working_Dir of string
@@ -24,14 +26,14 @@ with
             | No_Build -> "--no-build"
 
 type ProcessResult =
-    { Config: Config
+    { Config: BinaryConfig
       ProjectFile: string }
 
 let processParseResults usage (results: ParseResults<Arguments>) =
     try
         let execContext = Fake.Core.Context.FakeExecutionContext.Create false "generate.fsx" []
         Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake execContext)
-        let defaultConfigValue = Config.DefaultValue
+        let defaultConfigValue = BinaryConfig.DefaultValue
 
         let workingDir = results.GetResult (Working_Dir,defaultConfigValue.WorkingDir)
 
@@ -59,7 +61,7 @@ let processParseResults usage (results: ParseResults<Arguments>) =
 
         { ProjectFile = projectFile
           Config =
-            { Config.DefaultValue with
+            { BinaryConfig.DefaultValue with
                 WorkingDir = workingDir
                 DevelopmentTarget = 
                     match results.TryGetResult Debuggable with
@@ -68,7 +70,6 @@ let processParseResults usage (results: ParseResults<Arguments>) =
 
                 LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel)
                 NoBuild = noBuild } 
-
         }
     with ex ->
         let usage = usage()
@@ -77,3 +78,5 @@ let processParseResults usage (results: ParseResults<Arguments>) =
 
 
 let parser = ArgumentParser.Create<Arguments>(programName = "fcswatch.exe")
+
+

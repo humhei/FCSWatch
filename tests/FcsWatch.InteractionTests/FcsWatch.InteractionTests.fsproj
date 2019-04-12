@@ -6,14 +6,15 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\fcswatch-cli\fcswatch-cli.fsproj" />
-    <ProjectReference Include="..\..\src\FcsWatch\FcsWatch.fsproj">
-      <Name>FcsWatch.fsproj</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\..\src\fslive-cli\fslive-cli.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Types.fs" />
     <Compile Include="InteractionTests.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Compiler.Service" Version="27.0.1" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 

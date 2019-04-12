@@ -3,7 +3,6 @@
 open Expecto.Logging
 open Expecto.Tests
 open FcsWatch.Tests.Tests
-open FcsWatch.Types
 
 let testConfig =  
     { Expecto.Tests.defaultConfig with 

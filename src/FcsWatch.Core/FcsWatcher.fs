@@ -1,25 +1,26 @@
-namespace FcsWatch
+namespace FcsWatch.Core
 open FSharp.Compiler.SourceCodeServices
-open FcsWatch.Types
+open FcsWatch.Core.Types
 open Fake.IO.Globbing
 open Fake.IO
-open FcsWatch.Compiler
-open FcsWatch.CompilerTmpEmitter
+open FcsWatch.Core.Compiler
+open FcsWatch.Core.CompilerTmpEmitter
 open System
 open System.IO
 open System.Threading
 open System.Timers
 
 
+
 [<RequireQualifiedAccess>]
-module IntervalAccumMailBoxProcessor =
+module private IntervalAccumMailBoxProcessor =
     type State<'accum> =
         { Timer: Timer option
           Accums: 'accum list }
 
     type Msg<'accum> =
         | Accum of 'accum
-        | IntervalUp 
+        | IntervalUp
 
     type IntervalAccumMailBoxProcessor<'accum> =
         { Agent: MailboxProcessor<'accum>
@@ -28,13 +29,13 @@ module IntervalAccumMailBoxProcessor =
     let create (onChange : 'accum seq -> unit) =
 
         let cancellationTokenSource = new CancellationTokenSource()
-        let agent = 
+        let agent =
             MailboxProcessor<Msg<'accum>>.Start ((fun inbox ->
 
                 let createTimer() =
                     let timer = new Timer(100.)
                     timer.Start()
-                    timer.Elapsed.Add (fun _ -> 
+                    timer.Elapsed.Add (fun _ ->
                         timer.Stop()
                         timer.Dispose()
                         inbox.Post IntervalUp
@@ -43,17 +44,17 @@ module IntervalAccumMailBoxProcessor =
 
                 let rec loop state = async {
                     let! msg = inbox.Receive()
-                    match msg with 
+                    match msg with
                     | Accum accum ->
-                        match state.Timer with 
-                        | Some timer -> 
+                        match state.Timer with
+                        | Some timer ->
                             timer.Stop()
                             timer.Dispose()
                         | None -> ()
-                    
-                        return! 
-                            loop 
-                                { state with 
+
+                        return!
+                            loop
+                                { state with
                                     Timer = Some (createTimer())
                                     Accums = accum :: state.Accums }
 
@@ -68,10 +69,10 @@ module IntervalAccumMailBoxProcessor =
         { CancellationTokenSource = cancellationTokenSource
           Agent = agent }
 
-    let accum value = Msg.Accum value 
+    let accum value = Msg.Accum value
 
 [<RequireQualifiedAccess>]
-module ChangeWatcher =
+module private ChangeWatcher =
 
     type Options = ChangeWatcher.Options
 
@@ -87,8 +88,8 @@ module ChangeWatcher =
 
         let intervalAccumAgent = IntervalAccumMailBoxProcessor.create onChange
 
-        let postFileChange (fileChange: FileChange) = 
-            if fileIncludes.IsMatch fileChange.FullPath 
+        let postFileChange (fileChange: FileChange) =
+            if fileIncludes.IsMatch fileChange.FullPath
             then intervalAccumAgent.Agent.Post (IntervalAccumMailBoxProcessor.accum fileChange)
 
         let watchers =
@@ -122,92 +123,83 @@ module ChangeWatcher =
     let run (onChange : FileChange seq -> unit) (fileIncludes : IGlobbingPattern) = runWithAgent id onChange fileIncludes
 
 
-
-
 type Config =
     { LoggerLevel: Logger.Level
       WorkingDir: string
-      DevelopmentTarget: DevelopmentTarget
-      NoBuild: bool }
-
-with 
-    static member DefaultValue =
-        { LoggerLevel = Logger.Level.Minimal
-          WorkingDir = Path.getFullName "./"
-          DevelopmentTarget = DevelopmentTarget.autoReloadProgram
-          NoBuild = false }
-
-[<RequireQualifiedAccess>]
-module Config =
-
-    let internal tryBuildProject entryProjectFile (config: Config) =
-        let workingDir = config.WorkingDir
-        if not config.NoBuild then dotnet "build" [entryProjectFile] workingDir
+      UseEditFiles: bool
+      OtherFlags: string [] }
 
 
 module FcsWatcher =
 
 
-
-    type ReplyData =
-        { AllCompilerTaskNumber: int 
-          CompilerTmp: Set<string> }
-
     type CompilerNumber = CompilerNumber of int
 
     [<RequireQualifiedAccess>]
     type FcsWatcherMsg =
-        | DetectSourceFileChanges of fileChanges: FileChange list * AsyncReplyChannel<CompilerNumber>
-        | DetectProjectFileChanges of fileChanges: FileChange list * AsyncReplyChannel<unit>
-        | TryKill of AsyncReplyChannel<unit>
+        | DetectSourceFileChanges of fileChanges: FileChange list * incrCompilingNumberReplyChannel: AsyncReplyChannel<unit>
+        | DetectProjectFileChanges of fileChanges: FileChange list
+        | GetCache of AsyncReplyChannel<CrackedFsprojBundleCache>
+        | WaitCompiled of AsyncReplyChannel<CompilerNumber>
 
-    let inline (<!>) msg content = 
+
+    let inline (<!>) msg content =
         fun replyChannel ->
             msg (content, replyChannel)
 
-    type FcsWatcherModel = 
+    type FcsWatcherModel =
         { SourceFileWatcher: IDisposable
           CrackerFsprojBundleCache: CrackedFsprojBundleCache }
 
-
-    let fcsWatcher 
+    /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then otherflags will be applied</param>
+    let fcsWatcherAndCompilerTmpAgent
+        checker
+        compilerTmpEmitter
+        compiler
         (config: Config)
-        (entryProjectFile: string) = 
+        (entryFileOp: string option) =
 
-            let checker = FSharpChecker.Create()
-            let entryProjectFile = Path.getFullName entryProjectFile
+            let entryFileOp = entryFileOp |> Option.map Path.nomalizeToUnixCompatiable
 
-            let config = { config with WorkingDir = Path.getFullName config.WorkingDir }        
+            let config = { config with WorkingDir = Path.nomalizeToUnixCompatiable config.WorkingDir }
 
             logger <- Logger.create (config.LoggerLevel)
 
-            Config.tryBuildProject entryProjectFile config
+            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config.WorkingDir config.UseEditFiles checker entryFileOp config.OtherFlags
+
+            logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
+            logger.Info "fcs watcher's working directory is %s" config.WorkingDir
+
+            let crackedProjectBundleAgent = crackedFsprojBundle config.UseEditFiles fullCrackedFsprojBuilder
+
+
+            let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
+
+            let compilerTmpEmitterAgent = compilerTmpEmitterAgent config.WorkingDir compilerTmpEmitter initialCache
+
+            let iCompilerTmpEmitterAgent = MailboxProcessor.toChildInterface CompilerTmpEmitterMsg.customMsg compilerTmpEmitterAgent
+
+            let compilerAgent = compilerAgent compiler compilerTmpEmitterAgent initialCache checker
 
             let agent = MailboxProcessor<FcsWatcherMsg>.Start(fun inbox ->
-                let newSourceFileWatcher cache = 
-                    let pattern = 
-                        let files = cache.SourceFileMap |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
+
+                let newSourceFileWatcher cache =
+                    let pattern =
+                        let files = cache.EditSourceFileMap |> Seq.map (fun pair -> pair.Key) |> List.ofSeq
                         { BaseDirectory = config.WorkingDir
                           Includes = files
                           Excludes = [] }
 
                     pattern |> ChangeWatcher.run (fun changes ->
                         inbox.PostAndReply (FcsWatcherMsg.DetectSourceFileChanges <!> (List.ofSeq changes))
-                        |> ignore
-                        ()
                     )
 
-                logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
-                logger.Info "fcs watcher's working directory is %s" config.WorkingDir
 
-                let crackedProjectBundleAgent = crackedFsprojBundle entryProjectFile
 
-                let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
 
                 let initialProjectMap = initialCache.ProjectMap
 
-                let entryCrackedFsproj = initialProjectMap.[entryProjectFile]
-
+                let entryCrackedFsproj = initialCache.EntryCrackedFsproj
 
                 let projectFilesWatcher =
                     let pattern =
@@ -217,91 +209,76 @@ module FcsWatcher =
                         { BaseDirectory = config.WorkingDir
                           Includes = files
                           Excludes = [] }
-                  
-                    pattern |> ChangeWatcher.run (fun changes ->
-                        inbox.PostAndReply(FcsWatcherMsg.DetectProjectFileChanges <!> (List.ofSeq changes))
-                    )        
-            
-                let compilerTmpEmitterAgent = CompilerTmpEmitter.create config.DevelopmentTarget initialCache config.WorkingDir
 
-                let compilerAgent = compiler entryProjectFile compilerTmpEmitterAgent initialCache config checker
+                    pattern |> ChangeWatcher.run (fun changes ->
+                        inbox.Post(FcsWatcherMsg.DetectProjectFileChanges (List.ofSeq changes))
+                    )
+
 
                 let rec loop (state: FcsWatcherModel) = async {
                     let cache = state.CrackerFsprojBundleCache
 
-                    let sourceFileMap = cache.SourceFileMap
+                    let editSourceFileMap = cache.EditSourceFileMap
 
                     let projectMap = cache.ProjectMap
 
                     let! msg = inbox.Receive()
 
-                    match msg with 
+                    match msg with
                     | FcsWatcherMsg.DetectSourceFileChanges (fileChanges, replyChannel) ->
 
-                        let projFiles = 
-                            fileChanges 
-                            |> List.distinctBy (fun fileChange -> fileChange.FullPath) 
-                            |> List.map (fun fileChange ->
+                        let projFiles =
+                            fileChanges
+                            |> List.distinctBy (fun fileChange -> fileChange.FullPath)
+                            |> List.collect (fun fileChange ->
                                 logger.ImportantGreen "detect file %s changed" fileChange.FullPath
-                                sourceFileMap.[fileChange.FullPath]
+                                editSourceFileMap.[fileChange.FullPath]
                             )
                             |> List.distinct
 
-                        let crackedFsprojs = projFiles |> List.map (fun projPath -> projectMap.[projPath] ) 
+                        let crackedFsprojs = projFiles |> List.map (fun projPath -> projectMap.[projPath] )
 
-                        replyChannel.Reply (CompilerNumber crackedFsprojs.Length)
+                        compilerAgent.PostAndReply(fun replyChannel ->
+                            CompilerMsg.CompileProjects (WhyCompile.DetectFileChange, crackedFsprojs, replyChannel)
+                        )
 
-                        compilerAgent.Post(CompilerMsg.CompilerProjects ("detect source file changes",crackedFsprojs))
+                        replyChannel.Reply()
 
-                        return! loop state  
+                        return! loop state
 
 
-                    | FcsWatcherMsg.DetectProjectFileChanges (fileChanges,replyChannel) ->
+                    | FcsWatcherMsg.DetectProjectFileChanges (fileChanges) ->
                         fileChanges |> List.iter (fun fileChange ->
                             logger.ImportantGreen "detect project file %s changed" fileChange.FullPath
                         )
 
                         let newCache = crackedProjectBundleAgent.PostAndReply (CrackedFsprojBundleMsg.DetectProjectFileChanges <!> fileChanges)
-                    
-                        let newSourceFileWatcher = 
+
+                        let newSourceFileWatcher =
                             state.SourceFileWatcher.Dispose()
                             newSourceFileWatcher newCache
 
                         compilerAgent.Post(CompilerMsg.UpdateCache newCache)
 
-                        compilerTmpEmitterAgent.Post(CommonTmpEmitterMsg.UpdateCache newCache)
-
-                        replyChannel.Reply()
+                        compilerTmpEmitterAgent.Post(CompilerTmpEmitterMsg.updateCache newCache)
 
                         return! loop { state with SourceFileWatcher = newSourceFileWatcher; CrackerFsprojBundleCache = newCache }
-                    
-                    | FcsWatcherMsg.TryKill replyChannel ->
-                        match config.DevelopmentTarget with 
-                        | DevelopmentTarget.AutoReload autoReload ->
-                            AutoReload.CrackedFsproj.tryKill autoReload entryCrackedFsproj
-                            replyChannel.Reply()
+                    | FcsWatcherMsg.GetCache replyChannel ->
+                        replyChannel.Reply(cache)
+                        return! loop state
 
-                        | DevelopmentTarget.Debuggable _ -> ()
+                    | FcsWatcherMsg.WaitCompiled replyChannel ->
+                        let compilerNumber = compilerTmpEmitterAgent.PostAndReply CompilerTmpEmitterMsg.waitCompiled
+                        replyChannel.Reply (CompilerNumber compilerNumber)
+                        return! loop state
 
                 }
                 let sourceFileWatcher = newSourceFileWatcher initialCache
 
                 logger.Important "Waiting for changes... press any key to exit"
-                
+
                 loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojBundleCache = initialCache }
 
             )
 
-            agent
-        
-
-
-    let runFcsWatcher 
-        (config: Config)
-        (entryProjectFile: string) = 
-            let watcher = fcsWatcher config entryProjectFile
-
-            Console.ReadLine() |> ignore
-            
-            watcher.PostAndReply FcsWatcherMsg.TryKill 
-        
+            agent,iCompilerTmpEmitterAgent
