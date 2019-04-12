@@ -2,7 +2,7 @@
 
 Stable | Prerelease
 --- | ---
-[![NuGet Badge](https://buildstats.info/nuget/FCSWatch)](https://www.nuget.org/packages/FCSWatch/) | [![NuGet Badge](https://buildstats.info/nuget/FCSWatch?includePreReleases=true)](https://www.nuget.org/packages/FCSWatch/)
+[![NuGet Badge](https://buildstats.info/nuget/FCSWatch.Binary)](https://www.nuget.org/packages/FCSWatch.Binary/) | [![NuGet Badge](https://buildstats.info/nuget/FCSWatch.Binary?includePreReleases=true)](https://www.nuget.org/packages/FCSWatch.Binary/)
 
 
 MacOS/Linux | Windows
