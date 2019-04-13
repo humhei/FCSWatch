@@ -99,7 +99,9 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
     match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload ->
-        let compilerTmpEmitter = AutoReload.create autoReload
+        let addtionalBinaryArgs = Array.toList config.AdditionalBinaryArgs
+
+        let compilerTmpEmitter = AutoReload.create addtionalBinaryArgs autoReload
 
         let fcsWatcher =
             fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
@@ -107,7 +109,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
         let cache = fcsWatcher.PostAndReply FcsWatcherMsg.GetCache
 
-        AutoReload.CrackedFsproj.tryRun (Array.toList config.AdditionalBinaryArgs) autoReload config.WorkingDir cache.EntryCrackedFsproj
+        AutoReload.CrackedFsproj.tryRun addtionalBinaryArgs autoReload config.WorkingDir cache.EntryCrackedFsproj
 
         fcsWatcher
 

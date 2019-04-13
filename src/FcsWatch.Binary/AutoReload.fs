@@ -97,8 +97,8 @@ module AutoReload =
             | DevelopmentTarget.Plugin plugin ->
                 plugin.Load()
 
-        let tryReRun developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
-            tryRun [] developmentTarget workingDir (crackedFsproj: CrackedFsproj)
+        let tryReRun addtionalBinaryArgs developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
+            tryRun addtionalBinaryArgs developmentTarget workingDir (crackedFsproj: CrackedFsproj)
 
 
         let tryKill developmentTarget (crackedFsproj: CrackedFsproj) =
@@ -120,7 +120,7 @@ module AutoReload =
     [<RequireQualifiedAccess>]
     module internal TmpEmitterState =
 
-        let tryEmit workingDir developmentTarget (state: TmpEmitterState) =
+        let tryEmit addtionalBinaryArgs workingDir developmentTarget (state: TmpEmitterState) =
             let commonState = state.CommonState
             let cache = commonState.CrackerFsprojFileBundleCache
 
@@ -172,15 +172,15 @@ module AutoReload =
                             |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin projPath)
                         )
 
-                        CrackedFsproj.tryReRun developmentTarget workingDir cache.EntryCrackedFsproj
+                        CrackedFsproj.tryReRun addtionalBinaryArgs developmentTarget workingDir cache.EntryCrackedFsproj
 
                         CompilerTmpEmitterState.createEmpty 0 cache
             | _ ->
                 state
 
 
-    let create developmentTarget =
+    let create addtionalBinaryArgs developmentTarget =
         { new ICompilerTmpEmitter<unit, int, CompilerResult> with
-            member x.TryEmit(workingDir, state) = TmpEmitterState.tryEmit workingDir developmentTarget state
+            member x.TryEmit(workingDir, state) = TmpEmitterState.tryEmit addtionalBinaryArgs workingDir developmentTarget state
             member x.ProcessCustomMsg (_, state) = state
             member x.CustomInitialState = 0 }
