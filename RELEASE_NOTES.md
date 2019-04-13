@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.7.1-alpha - tbd
+## 0.7.2-alpha - tbd
+
+## 0.7.1 - 2019-04-13
+* Allows passing arguments to binary through fcswatch tool #14
 
 ## 0.7.0 - 2019-04-12
 * Port out FcsWatch.Core used by FcsWatch.Binary and FcsWatch.Prota
