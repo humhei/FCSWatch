@@ -78,7 +78,7 @@ Target.runOrDefault "FcsWatch"
 ### Play around
 #### From source code interaction test
 * git clone https://github.com/humhei/FCSWatch.git
-* fcswatch --project-file "fullPath to \FCSWatch\tests\datas\TestProject\TestProject.fsproj"
+* fcswatch --project-file "fullPath to \FCSWatch\tests\datas\TestProject\TestProject.fsproj" --debuggable
 * modify fs files in any of TestProject,TestLib2,TestLib1
 * Set breakpoint in any of TestProject,TestLib2,TestLib1
 * F5 Debug `Launch TestProject`
