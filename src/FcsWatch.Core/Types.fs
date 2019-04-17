@@ -556,7 +556,7 @@ let crackedFsprojBundle useEditFiles builder = MailboxProcessor<CrackedFsprojBun
 [<RequireQualifiedAccess>]
 type WhyCompile =
     | WarmCompile
-    | DetectFileChange
+    | DetectFileChange of fileChanges: FileChange list
 
 type CompilerTask<'Result when 'Result :> ICompilerOrCheckResult> = CompilerTask of why:WhyCompile * startTime: DateTime * task: Task<'Result list>
 with 

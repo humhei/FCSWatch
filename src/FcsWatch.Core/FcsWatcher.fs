@@ -239,7 +239,7 @@ module FcsWatcher =
                         let crackedFsprojs = projFiles |> List.map (fun projPath -> projectMap.[projPath] )
 
                         compilerAgent.PostAndReply(fun replyChannel ->
-                            CompilerMsg.CompileProjects (WhyCompile.DetectFileChange, crackedFsprojs, replyChannel)
+                            CompilerMsg.CompileProjects (WhyCompile.DetectFileChange fileChanges, crackedFsprojs, replyChannel)
                         )
 
                         replyChannel.Reply()
