@@ -207,12 +207,7 @@ module AutoReload =
 
                         )
 
-                        let updatedDlls =
-                            commonState.CompilerTmp |> Seq.collect (fun projPath ->
-                                let currentCrackedFsproj = cache.ProjectMap.[projPath]
-                                currentCrackedFsproj.AsList |> List.map (fun singleTarget -> singleTarget.TargetPath))
-                            |> Seq.toList
-
+                        let updatedDlls = allResults |> List.map (fun r -> r.Dll)
                         CrackedFsproj.tryReRun args cache.EntryCrackedFsproj updatedDlls
 
                         CompilerTmpEmitterState.createEmpty 0 cache
