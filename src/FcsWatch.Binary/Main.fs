@@ -40,6 +40,7 @@ type BinaryConfig =
       WorkingDir: string
       NoBuild: bool
       UseEditFiles: bool
+      Webhook: string option
       WarmCompile: bool
       AdditionalBinaryArgs : string array }
 
@@ -51,6 +52,7 @@ with
           NoBuild = false
           UseEditFiles = false
           WarmCompile = true
+          Webhook = None
           AdditionalBinaryArgs = Array.empty }
 
 
@@ -101,7 +103,14 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
     | DevelopmentTarget.AutoReload autoReload ->
         let addtionalBinaryArgs = Array.toList config.AdditionalBinaryArgs
 
-        let compilerTmpEmitter = AutoReload.create addtionalBinaryArgs autoReload
+        let programRunningArgs: AutoReload.ProgramRunningArgs =
+            { AdditionalArgs = addtionalBinaryArgs 
+              Webhook = config.Webhook 
+              DevelopmentTarget = autoReload
+              WorkingDir = config.WorkingDir
+              WhyRun = WhyRun.Run }
+
+        let compilerTmpEmitter = AutoReload.create programRunningArgs
 
         let fcsWatcher =
             fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
@@ -109,7 +118,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
         let cache = fcsWatcher.PostAndReply FcsWatcherMsg.GetCache
 
-        AutoReload.CrackedFsproj.tryRun addtionalBinaryArgs autoReload config.WorkingDir cache.EntryCrackedFsproj
+        AutoReload.CrackedFsproj.tryRun programRunningArgs cache.EntryCrackedFsproj
 
         fcsWatcher
 
@@ -119,11 +128,13 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
         DebuggingServer.startServer config.WorkingDir compilerTmpEmitterAgent
         fcsWatcher
 
+let tryKill autoReloadDevelopmentTarget entryCrackedFsproj =
+    AutoReload.CrackedFsproj.tryKill autoReloadDevelopmentTarget entryCrackedFsproj
+
 let runFcsWatcher (config: BinaryConfig) entryProjectFile =
     let binaryFcsWatcher = binaryFcsWatcher config entryProjectFile
     Console.ReadLine() |> ignore
     let cache = binaryFcsWatcher.PostAndReply FcsWatcherMsg.GetCache
     match config.DevelopmentTarget with
-    | DevelopmentTarget.AutoReload autoReload ->
-        AutoReload.CrackedFsproj.tryKill autoReload cache.EntryCrackedFsproj
+    | DevelopmentTarget.AutoReload autoReload -> tryKill autoReload cache.EntryCrackedFsproj
     | _ -> ()

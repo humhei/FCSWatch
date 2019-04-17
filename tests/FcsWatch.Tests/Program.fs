@@ -13,6 +13,7 @@ let tests =
     testList "All tests" [ 
         programTests             
         pluginTests 
+        webhookTests
         functionTests           
     ] 
 // Create an interactive checker instance 
