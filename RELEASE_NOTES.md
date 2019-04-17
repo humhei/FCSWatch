@@ -3,7 +3,7 @@
 ## 0.7.4-alpha - tbd
 
 ## 0.7.3 - 2019-04-17
-* send web hook after program (re)run #18
+* Send web hook after program (re)run #18
 
 ## 0.7.2 - 2019-04-13
 * Refix Allows passing arguments to binary through fcswatch tool #14
