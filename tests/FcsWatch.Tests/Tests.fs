@@ -56,7 +56,7 @@ let createWatcher (config: BinaryConfig) =
         let config =
             { config with 
                 WorkingDir = root
-                LoggerLevel = Logger.Level.Normal
+                LoggerLevel = Logger.Level.Debug
                 WarmCompile = false }
 
         binaryFcsWatcher config entryProjPath

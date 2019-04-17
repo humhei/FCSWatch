@@ -11,6 +11,7 @@ module Logger =
         | Minimal
         | Normal
         | Quiet
+        | Debug
 
     type Logger internal (level) =
 
@@ -23,11 +24,20 @@ module Logger =
                 |> f
 
 
+        let _debug trace message =
+            match level with
+            | Level.Minimal -> ()
+            | Level.Normal -> ()
+            | Level.Quiet -> ()
+            | Level.Debug -> trace message
+
+
         let _info trace message =
             match level with
             | Level.Minimal -> ()
-            | Level.Normal -> trace message
+            | Level.Normal -> ()
             | Level.Quiet -> ()
+            | Level.Debug -> ()
 
         let _important trace message =
             match level with
@@ -40,6 +50,9 @@ module Logger =
 
         member x.Info format =
             Printf.ksprintf (_info Trace.log) format
+
+        member x.Debug format =
+            Printf.ksprintf (_debug Trace.log) format
 
         member x.InfoGreen format =
             Printf.ksprintf (_info Trace.trace) format

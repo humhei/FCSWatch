@@ -200,18 +200,18 @@ module FullCrackedFsproj =
         let add projectFile = values.Add projectFile |> ignore
         let rec loop (projectFile: string) =
             let normarlizedPath = 
-                logger.Info "before nomalizeToUnixCompatiable: %s" projectFile
+                logger.Debug "easyGetAllProjPaths: before nomalizeToUnixCompatiable: %s" projectFile
 
                 let path = Path.nomalizeToUnixCompatiable projectFile
 
-                logger.Info "after nomalizeToUnixCompatiable: %s" path
+                logger.Debug "easyGetAllProjPaths: after nomalizeToUnixCompatiable: %s" path
 
                 path
 
             add normarlizedPath
 
             let dir = Path.getDirectory normarlizedPath
-            logger.Info "directory is %s" dir
+            logger.Debug "easyGetAllProjPaths: directory is %s" dir
             let doc = new XmlDocument()
             doc.Load(normarlizedPath)
 
