@@ -195,7 +195,7 @@ type FullCrackedFsproj =
 
 [<RequireQualifiedAccess>]
 module FullCrackedFsproj =
-    let private easyGetAllProjPaths (entryProjectFile: string) =
+    let easyGetAllProjPaths (entryProjectFile: string) =
         let values = new HashSet<string>()
         let add projectFile = values.Add projectFile |> ignore
         let rec loop (projectFile: string) =

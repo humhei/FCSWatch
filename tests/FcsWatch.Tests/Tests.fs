@@ -71,7 +71,8 @@ let programTests =
 
     testList "program tests" [
 
-        testCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
+        ftestCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
+            let s = FullCrackedFsproj.easyGetAllProjPaths @"D:\Users\Jia\Downloads\repro-projects\repro-projects\src\Masse.API\Masse.API.fsproj"
             /// TestLib2/Library.fs
             testSourceFilesChanged watcher [testSourceFile1] 1
 
