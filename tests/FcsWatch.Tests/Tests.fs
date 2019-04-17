@@ -9,6 +9,9 @@ open FcsWatch.Core.FcsWatcher
 open FcsWatch.Tests.Types
 open FcsWatch.Core
 open FcsWatch.Binary
+open Suave
+open Suave.Operators
+open Suave.Filters
 
 let pass() = Expect.isTrue true "passed"
 let fail() = Expect.isTrue false "failed"
@@ -119,6 +122,47 @@ let pluginTests =
             testSourceFilesChanged watcher [testSourceFile1] 1
     ]
 
+
+let webhookTests =
+    let watcher =
+        createWatcher { 
+            BinaryConfig.DefaultValue with 
+                DevelopmentTarget = DevelopmentTarget.autoReloadProgram
+                Webhook = Some "http://localhost:9867/update" }
+
+    testList "webhook Tests" [
+        testCase "can send webhook and recieve it " <| fun _ ->
+            let cts = new CancellationTokenSource() 
+            let suaveConfig = 
+                { defaultConfig with
+                    bindings   = [ HttpBinding.createSimple HTTP "127.0.0.1" 9867 ]
+                    bufferSize = 2048
+                    cancellationToken = cts.Token }
+            
+            let mutable recieveAccount = 0
+
+            let webApp =
+                choose 
+                    [ path "/update" >=> 
+                        (fun ctx ->
+                            recieveAccount <- recieveAccount + 1
+                            Successful.OK "recieved web hook" ctx
+                        )
+                    ]
+
+            let listening, server = startWebServerAsync suaveConfig webApp
+            Async.Start server 
+
+            /// TestLib2/Library.fs
+            testSourceFilesChanged watcher [testSourceFile1] 1
+
+            let cache = watcher.Value.PostAndReply FcsWatcherMsg.GetCache
+
+            tryKill AutoReload.DevelopmentTarget.Program cache.EntryCrackedFsproj 
+            /// run + rerun
+            Expect.equal 2 recieveAccount "can send webhook and recieve it"
+
+    ]
 
 let functionTests =
 

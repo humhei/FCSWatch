@@ -9,10 +9,16 @@ open System.Collections.Concurrent
 open Fake.DotNet
 open FcsWatch.Binary.Helpers
 open Fake.IO
-open Fake.IO.FileSystemOperators
 open FcsWatch.Core.CompilerTmpEmitter
 open Extensions
 open System.Threading
+open System.Net
+open System.Text
+
+[<RequireQualifiedAccess>]
+type WhyRun =
+    | Rerun
+    | Run
 
 type PluginDebugInfo =
     { DebuggerAttachTimeDelay: int
@@ -34,11 +40,14 @@ module PluginDebugInfo =
         | None -> logger.Important "Doesn't exists .vscode/launch.json, If you want write attachable pid automatically to launch.json, Please write it first"
 
 
+
 [<RequireQualifiedAccess>]
 module AutoReload =
 
     type TmpEmitterMsg = unit
     type TmpEmitterState = CompilerTmpEmitterState<int, CompilerResult>
+
+
 
     type Plugin =
         { Load: unit -> unit
@@ -53,6 +62,13 @@ module AutoReload =
     type DevelopmentTarget =
         | Program
         | Plugin of Plugin
+
+    type ProgramRunningArgs =
+        { Webhook: string option
+          AdditionalArgs: string list 
+          DevelopmentTarget: DevelopmentTarget
+          WorkingDir: string
+          WhyRun: WhyRun }
 
     let private runningProjects = new ConcurrentDictionary<string,Process>()
 
@@ -74,8 +90,9 @@ module AutoReload =
                 logger.ImportantGreen "%s %s" tool args
                 Process.Start(startInfo)
 
-        let tryRun additionalBinaryArgs developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
-            match (developmentTarget: DevelopmentTarget) with
+        let tryRun (args: ProgramRunningArgs) (crackedFsproj: CrackedFsproj) =
+
+            match (args.DevelopmentTarget: DevelopmentTarget) with
             | DevelopmentTarget.Program ->
                 match crackedFsproj.ProjectTarget with
                 | ProjectTarget.Exe ->
@@ -85,10 +102,25 @@ module AutoReload =
                         ]
 
                     runningProjects.GetOrAdd (crackedFsproj.ProjPath,fun _ ->
-                        Process.start
-                            dotnetTool
-                            (dotnetArgs @ additionalBinaryArgs)
-                            workingDir
+                        let proc = 
+                            Process.start
+                                dotnetTool
+                                (dotnetArgs @ args.AdditionalArgs)
+                                args.WorkingDir
+
+                        match args.Webhook with 
+                        | Some webhook ->
+                            let json = Newtonsoft.Json.JsonConvert.SerializeObject args.WhyRun
+                            use webClient = new WebClient(Encoding = Encoding.UTF8)
+                            logger.Important "SENDING TO WEBHOOK... " // : <<<%s>>>... --> %s" json.[0 .. min (json.Length - 1) 100] hook
+                            let resp = webClient.UploadString (webhook,"Put",json)
+                            logger.Important "RESP FROM WEBHOOK: %s" resp
+
+                        | None -> ()
+
+                        proc 
+
+
                     )
                     |> ignore
 
@@ -97,8 +129,9 @@ module AutoReload =
             | DevelopmentTarget.Plugin plugin ->
                 plugin.Load()
 
-        let tryReRun addtionalBinaryArgs developmentTarget workingDir (crackedFsproj: CrackedFsproj) =
-            tryRun addtionalBinaryArgs developmentTarget workingDir (crackedFsproj: CrackedFsproj)
+        let tryReRun args (crackedFsproj: CrackedFsproj) =
+            let args = { args with WhyRun = WhyRun.Rerun }
+            tryRun args (crackedFsproj: CrackedFsproj)
 
 
         let tryKill developmentTarget (crackedFsproj: CrackedFsproj) =
@@ -120,7 +153,7 @@ module AutoReload =
     [<RequireQualifiedAccess>]
     module internal TmpEmitterState =
 
-        let tryEmit addtionalBinaryArgs workingDir developmentTarget (state: TmpEmitterState) =
+        let tryEmit args (state: TmpEmitterState) =
             let commonState = state.CommonState
             let cache = commonState.CrackerFsprojFileBundleCache
 
@@ -153,7 +186,7 @@ module AutoReload =
 
                         let projLevelMap = cache.ProjLevelMap
 
-                        CrackedFsproj.tryKill developmentTarget cache.EntryCrackedFsproj
+                        CrackedFsproj.tryKill args.DevelopmentTarget cache.EntryCrackedFsproj
 
                         commonState.CompilerTmp
                         |> Seq.sortByDescending (fun projPath ->
@@ -172,15 +205,15 @@ module AutoReload =
                             |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin projPath)
                         )
 
-                        CrackedFsproj.tryReRun addtionalBinaryArgs developmentTarget workingDir cache.EntryCrackedFsproj
+                        CrackedFsproj.tryReRun args cache.EntryCrackedFsproj
 
                         CompilerTmpEmitterState.createEmpty 0 cache
             | _ ->
                 state
 
 
-    let create addtionalBinaryArgs developmentTarget =
+    let create args =
         { new ICompilerTmpEmitter<unit, int, CompilerResult> with
-            member x.TryEmit(workingDir, state) = TmpEmitterState.tryEmit addtionalBinaryArgs workingDir developmentTarget state
+            member x.TryEmit(_, state) = TmpEmitterState.tryEmit args state
             member x.ProcessCustomMsg (_, state) = state
             member x.CustomInitialState = 0 }

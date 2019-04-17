@@ -8,6 +8,7 @@ open Fake.IO.Globbing.Operators
 open Fake.IO.FileSystemOperators
 open Fake.Core
 
+let private defaultUrl = "http://localhost:9867/update"
 
 type Arguments =
     | Working_Dir of string
@@ -15,6 +16,8 @@ type Arguments =
     | Debuggable
     | Logger_Level of Logger.Level
     | No_Build
+    | Webhook of string
+    | Send 
 with
     interface IArgParserTemplate with
         member x.Usage =
@@ -24,6 +27,8 @@ with
             | Debuggable _ -> "Enable debuggable in vscode, This will disable auto Reload"
             | Logger_Level _ -> "Default is Minimal"
             | No_Build -> "--no-build"
+            | Webhook _ -> "send a web hook when program (re)run"
+            | Send _ -> sprintf "Equivalent to --webhook %s" defaultUrl
 
 type ProcessResult =
     { Config: BinaryConfig
@@ -59,6 +64,12 @@ let processParseResults additionalBinaryArgs usage (results: ParseResults<Argume
             | None ->
                 false
 
+        let webhook = 
+            match results.TryGetResult Send, results.TryGetResult Webhook with 
+            | Some _, _ -> Some defaultUrl
+            | _, Some webhook -> Some webhook
+            | _ -> None
+
         { ProjectFile = projectFile
           Config =
             { BinaryConfig.DefaultValue with
@@ -70,6 +81,7 @@ let processParseResults additionalBinaryArgs usage (results: ParseResults<Argume
 
                 LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel)
                 NoBuild = noBuild
+                Webhook = webhook
                 AdditionalBinaryArgs = additionalBinaryArgs }
         }
     with ex ->

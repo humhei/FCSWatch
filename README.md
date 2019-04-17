@@ -36,6 +36,8 @@ OPTIONS:
     --logger-level <minimal|normal|quiet>
                           Default is Minimal
     --no-build            --no-build
+    --webhook <string>    send a web hook when program (re)run
+    --send                Equivalent to --webhook http://localhost:9867/update
     --help                display this list of options.
 ```
 
@@ -71,6 +73,21 @@ Target.runOrDefault "FcsWatch"
 ## Build From project
 * .paket/paket.exe install
 * dotnet build FCSWatch.sln
+
+## File structure
+### FcsWatch.Core
+The core library (Include a lots of common logic
+e.g `project cracker`, `file watcher`, mailbox group for concurrrent, and so on )
+
+### FcsWatch.Binary (Ref FcsWatch.Core)
+ It compile fsharp codes to .dll and .pdb (binary)
+**No** webhoook currrently supported(No reason to send a dll and pdb)
+Because it stop the whole application and replace the `.dll` and `.pdb` and then rerun application (This will make application debuggable and cross-projects compiling)
+
+### FcsWatch-Porta (Ref FcsWatch.Core)
+It is  ported from [FSharp.Compiler.PortaCode](https://github.com/fsprojects/FSharp.Compiler.PortaCode)
+It sends a webhook to the host program
+And then, the host program can replace its logic
 
 
 ## Debug in vscode(only when AutoReload is false)
