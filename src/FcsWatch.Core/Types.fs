@@ -210,7 +210,7 @@ module FullCrackedFsproj =
 
             add normarlizedPath
 
-            let dir = Path.getDirectory projectFile
+            let dir = Path.GetDirectoryName projectFile
             logger.Info "directory is %s" dir
             let doc = new XmlDocument()
             doc.Load(normarlizedPath)
