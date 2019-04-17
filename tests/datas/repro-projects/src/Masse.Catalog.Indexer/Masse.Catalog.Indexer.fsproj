@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AssemblyName>MasseCatalogIndexer</AssemblyName>
+    <AWSProjectType>Lambda</AWSProjectType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Query.fs" />
+    <Compile Include="Event.fs" />
+    <Compile Include="Helper.fs" />
+    <Compile Include="Snapshot.fs" />
+    <Compile Include="EventHandler.fs" />
+    <None Include="aws-lambda-tools-defaults.json" />
+    <None Include="appsettings.Development.json" />
+    <None Include="appsettings.json" />
+    <None Include="dev.serverless.template" />
+    <None Include="qa.serverless.template" />
+    <None Include="prod.serverless.template" />
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.Catalog.Search\Masse.Catalog.Search.fsproj" />
+    <ProjectReference Include="..\Masse.Catalog.Sql\Masse.Catalog.Sql.fsproj" />
+    <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.DynamoDb\Masse.AWS.DynamoDb.fsproj" />
+    <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj" />
+    <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="deploy-to-prod.sh" />
+    <Content Include="deploy-to-qa.sh" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

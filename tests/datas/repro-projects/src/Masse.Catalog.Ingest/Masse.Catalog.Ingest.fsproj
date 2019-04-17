@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Program.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="paket.references" />
+      <Content Include="build-docker-for-aws-dev.sh" />
+      <Content Include="Dockerfile">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <Content Include="build-docker-for-aws-prod.sh" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Masse.Catalog.Batch\Masse.Catalog.Batch.fsproj" />
+      <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+      <ProjectReference Include="..\Masse.Source\Masse.Source\Masse.Source.fsproj" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

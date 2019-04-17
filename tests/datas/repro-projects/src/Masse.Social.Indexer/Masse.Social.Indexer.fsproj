@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AssemblyName>MasseSocialIndexer</AssemblyName>
+    <AWSProjectType>Lambda</AWSProjectType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Query.fs" />
+    <Compile Include="Helper.fs" />
+    <Compile Include="EventHandler.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="aws-lambda-tools-defaults.json" />
+    <None Include="appsettings.Development.json" />
+    <None Include="appsettings.json" />
+    <None Include="dev.serverless.template" />
+    <None Include="qa.serverless.template" />
+    <None Include="prod.serverless.template" />
+    <None Include="stg.serverless.template" />
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.Catalog.Indexer\Masse.Catalog.Indexer.fsproj" />
+    <ProjectReference Include="..\Masse.Event\Masse.Event.fsproj" />
+    <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj" />
+    <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+    <ProjectReference Include="..\Masse.Telemetry\Masse.Telemetry.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="deploy-to-dev-cluster.sh" />
+    <Content Include="deploy-to-prod.sh" />
+    <Content Include="deploy-to-stg.sh" />
+    <Content Include="deploy-to-qa.sh" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

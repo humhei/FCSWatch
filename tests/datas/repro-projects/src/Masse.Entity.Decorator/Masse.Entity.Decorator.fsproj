@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Product.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+      <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="paket.references" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

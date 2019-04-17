@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+        <AssemblyName>MasseAdminTask</AssemblyName>
+        <AWSProjectType>Lambda</AWSProjectType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Constants.fs" />
+        <Compile Include="Command.fs" />
+        <Compile Include="Builder.fs" />
+        <Compile Include="Helper.fs" />
+        <Compile Include="TaskGenerator.fs" />
+        <None Include="paket.references" />
+        <None Include="aws-lambda-tools-defaults.json" />
+        <None Include="appsettings.Development.json" />
+        <None Include="appsettings.json" />
+        <None Include="dev.serverless.template" />
+        <None Include="prod.serverless.template" />
+        <Content Include="deploy-to-prod.sh" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+      <ProjectReference Include="..\Masse.Event\Masse.Event.fsproj" />
+      <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj" />
+      <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+      <ProjectReference Include="..\Masse.Social.Indexer\Masse.Social.Indexer.fsproj" />
+      <ProjectReference Include="..\Masse.Social.Sql\Masse.Social.Sql.fsproj" />
+      <ProjectReference Include="..\Masse.Sql\Masse.Sql.fsproj" />
+      <ProjectReference Include="..\Masse.Telemetry\Masse.Telemetry.fsproj" />
+    </ItemGroup>
+
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

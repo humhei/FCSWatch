@@ -199,7 +199,15 @@ module FullCrackedFsproj =
         let values = new HashSet<string>()
         let add projectFile = values.Add projectFile |> ignore
         let rec loop (projectFile: string) =
-            let normarlizedPath = Path.nomalizeToUnixCompatiable projectFile
+            let normarlizedPath = 
+                logger.Info "before nomalizeToUnixCompatiable: %s" projectFile
+
+                let path = Path.nomalizeToUnixCompatiable projectFile
+
+                logger.Info "after nomalizeToUnixCompatiable: %s" path
+
+                path
+
             add normarlizedPath
 
             let dir = Path.getDirectory projectFile

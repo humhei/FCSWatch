@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+        <AssemblyName>MasseAPIImage</AssemblyName>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <AWSProjectType>Lambda</AWSProjectType>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Include="Handler.fs" />
+      <Compile Include="RouteHandler.fs" />
+      <Compile Include="Startup.fs" />
+      <Compile Include="StartupLocal.fs" />
+      <None Include="paket.references" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Masse.API\Masse.API.fsproj" />
+    </ItemGroup>
+    
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

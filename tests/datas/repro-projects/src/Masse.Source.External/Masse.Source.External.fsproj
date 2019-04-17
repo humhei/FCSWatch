@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Journal.fs" />
+    <Compile Include="Whitelist.fs" />
+    <Compile Include="Filter.fs" />
+    <Compile Include="Parsers.fs" />
+    <Compile Include="PdpValidation.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.AWS.DynamoDb\Masse.AWS.DynamoDb.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.Ecommerce\Masse.AWS.Ecommerce.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.S3\Masse.AWS.S3.fsproj" />
+    <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+    <ProjectReference Include="..\Masse.Image\Masse.Image.fsproj" />
+    <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+    <ProjectReference Include="..\Masse.Source\Masse.Source\Masse.Source.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

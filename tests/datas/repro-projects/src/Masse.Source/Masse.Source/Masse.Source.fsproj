@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Sql.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Utils.fs" />
+    <Content Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Masse.Catalog.Sql\Masse.Catalog.Sql.fsproj" />
+    <ProjectReference Include="..\..\Masse.Common.JsonNet\Masse.Common.JsonNet.fsproj" />
+    <ProjectReference Include="..\..\Masse.Common\Masse.Common.fsproj" />
+    <ProjectReference Include="..\..\Masse.Image\Masse.Image.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
+</Project>

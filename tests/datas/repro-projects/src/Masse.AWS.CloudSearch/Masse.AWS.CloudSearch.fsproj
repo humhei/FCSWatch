@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Utils.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.AWS.SecretManager\Masse.AWS.SecretManager.fsproj" />
+    <ProjectReference Include="..\Masse.Common.JsonNet\Masse.Common.JsonNet.fsproj" />
+    <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+    <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

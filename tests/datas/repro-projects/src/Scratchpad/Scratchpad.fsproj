@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="rawHtml.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="regex.txt" />
+    <Content Include="shopstyle_categories.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <ProjectReference Include="../Masse.Common/Masse.Common.fsproj" />
+    <Content Include="CatTree.txt" />
+    <None Include="paket.references" />
+    <Compile Include="HandyScripts.fs" />
+    <Compile Include="Scratchpad.fs" />
+    <ProjectReference Include="..\Masse.Admin.Task\Masse.Admin.Task.fsproj" />
+    <ProjectReference Include="..\Masse.API\Masse.API.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.Ecommerce\Masse.AWS.Ecommerce.fsproj" />
+    <ProjectReference Include="..\Masse.Catalog.Indexer\Masse.Catalog.Indexer.fsproj" />
+    <ProjectReference Include="..\Masse.Catalog.Search\Masse.Catalog.Search.fsproj" />
+    <ProjectReference Include="..\Masse.Entity\Masse.Entity.fsproj" />
+    <ProjectReference Include="..\Masse.GraphDb\Masse.GraphDb.fsproj" />
+    <ProjectReference Include="..\Masse.Social.Sql\Masse.Social.Sql.fsproj" />
+    <ProjectReference Include="..\Masse.Source.External\Masse.Source.External.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Rakuten\Masse.Source.Rakuten.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Walmart\Masse.Source.Walmart.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

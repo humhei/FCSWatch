@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+        <AssemblyName>MasseSiftScience</AssemblyName>
+        <AWSProjectType>Lambda</AWSProjectType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Utils.fs" />
+        <Compile Include="Sql\Command.fs" />
+        <Compile Include="Sql\Helper.fs" />
+        <Compile Include="Api\RouteHandler.fs" />
+        <Compile Include="Api\Startup.fs" />
+        <Compile Include="Event\Events.fs" />
+        <Compile Include="Event\Helper.fs" />
+        <Compile Include="EventHandler.fs" />
+        <Compile Include="StartupLocal.fs" />
+        <None Include="paket.references" />
+        <None Include="aws-lambda-tools-defaults.json" />
+        <None Include="appsettings.Development.json" />
+        <None Include="appsettings.json" />
+        <None Include="dev.serverless.template" />
+        <None Include="qa.serverless.template" />
+        <None Include="prod.serverless.template" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Masse.API\Masse.API.fsproj" />
+      <ProjectReference Include="..\Masse.AWS.SecretManager\Masse.AWS.SecretManager.fsproj" />
+      <ProjectReference Include="..\Masse.Event\Masse.Event.fsproj" />
+      <ProjectReference Include="..\Masse.Image\Masse.Image.fsproj" />
+      <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+      <ProjectReference Include="..\Masse.Telemetry\Masse.Telemetry.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="deploy-to-prod.sh" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <Compile Include="Fixture.fs" />
+        <Compile Include="Program.fs" />
+        <None Include="paket.references" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+      <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+      <ProjectReference Include="..\Masse.Social.Sql\Masse.Social.Sql.fsproj" />
+    </ItemGroup>
+    
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+
+</Project>

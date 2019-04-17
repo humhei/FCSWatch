@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Journal.fs" />
+    <Compile Include="Feed.fs" />
+    <None Include="paket.references" />
+    <ProjectReference Include="..\Masse.AWS.DynamoDb\Masse.AWS.DynamoDb.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.S3\Masse.AWS.S3.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.SecretManager\Masse.AWS.SecretManager.fsproj" />
+    <ProjectReference Include="..\Masse.Common.JsonNet\Masse.Common.JsonNet.fsproj" />
+    <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+    <ProjectReference Include="..\Masse.Event\Masse.Event.fsproj" />
+    <ProjectReference Include="..\Masse.Source\Masse.Source\Masse.Source.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="everlane_categories.txt" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

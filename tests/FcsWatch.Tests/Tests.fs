@@ -71,8 +71,7 @@ let programTests =
 
     testList "program tests" [
 
-        ftestCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
-            let s = FullCrackedFsproj.easyGetAllProjPaths @"D:\Users\Jia\Downloads\repro-projects\repro-projects\src\Masse.API\Masse.API.fsproj"
+        testCase "change file in TestLib2/Library.fs will trigger compiling" <| fun _ ->
             /// TestLib2/Library.fs
             testSourceFilesChanged watcher [testSourceFile1] 1
 
@@ -198,4 +197,10 @@ let functionTests =
                 else fail()
             }
 
+            testCase "EasyGetAllFsProjects for complex projects" <| fun _ ->
+                /// no exception should be threw in unix
+                /// https://github.com/humhei/FCSWatch/issues/19
+                FullCrackedFsproj.easyGetAllProjPaths (datas </> "repro-projects\src\Masse.API\Masse.API.fsproj")
+                |> ignore
+                
         ]

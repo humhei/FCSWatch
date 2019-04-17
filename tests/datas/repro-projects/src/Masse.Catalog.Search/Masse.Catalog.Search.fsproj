@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AssemblyName>MasseCatalogSearch</AssemblyName>
+    <AWSProjectType>Lambda</AWSProjectType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="TypesHelper.fs" />
+    <Compile Include="Helper.fs" />
+    <Compile Include="Category.fs" />
+    <Compile Include="Product.fs" />
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.AWS.CloudSearch\Masse.AWS.CloudSearch.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.DynamoDb\Masse.AWS.DynamoDb.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.Ecommerce\Masse.AWS.Ecommerce.fsproj" />
+    <ProjectReference Include="..\Masse.Catalog.Sql\Masse.Catalog.Sql.fsproj" />
+    <ProjectReference Include="..\Masse.Entity.Decorator\Masse.Entity.Decorator.fsproj" />
+    <ProjectReference Include="..\Masse.Event\Masse.Event.fsproj" />
+    <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj" />
+    <ProjectReference Include="..\Masse.Telemetry\Masse.Telemetry.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

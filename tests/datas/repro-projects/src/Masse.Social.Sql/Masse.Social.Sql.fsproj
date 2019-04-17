@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Helper.fs" />
+        <Compile Include="Command.fs" />
+        <Compile Include="Product.fs" />
+        <Compile Include="Recommendation.fs" />
+        <Compile Include="RecommendationList.fs" />
+        <Compile Include="Story.fs" />
+        <Compile Include="Question.fs" />
+        <Compile Include="RecommendedProduct.fs" />
+        <Compile Include="SearchAnything.fs" />
+        <Compile Include="Contact.fs" />
+        <Compile Include="Nomination.fs" />
+        <Compile Include="EmailPreference.fs" />
+        <Compile Include="ProfileView.fs" />
+        <Compile Include="UserStats.fs" />
+        <Compile Include="User.fs" />
+        <Compile Include="Admin.fs" />
+        <Compile Include="CmsObject.fs" />
+        <None Include="paket.references" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+        <ProjectReference Include="..\Masse.Event\Masse.Event.fsproj" />
+        <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+        <ProjectReference Include="..\Masse.Social.Indexer\Masse.Social.Indexer.fsproj" />
+        <ProjectReference Include="..\Masse.Sql\Masse.Sql.fsproj" />
+        <ProjectReference Include="..\Masse.Telemetry\Masse.Telemetry.fsproj" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
