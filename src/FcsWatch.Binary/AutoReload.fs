@@ -17,7 +17,7 @@ open System.Text
 
 [<RequireQualifiedAccess>]
 type WhyRun =
-    | Rerun
+    | Rerun of dllUpdates: string list
     | Run
 
 type PluginDebugInfo =
@@ -129,8 +129,8 @@ module AutoReload =
             | DevelopmentTarget.Plugin plugin ->
                 plugin.Load()
 
-        let tryReRun args (crackedFsproj: CrackedFsproj) =
-            let args = { args with WhyRun = WhyRun.Rerun }
+        let tryReRun args (crackedFsproj: CrackedFsproj) (dllUpdates: string list) =
+            let args = { args with WhyRun = WhyRun.Rerun dllUpdates }
             tryRun args (crackedFsproj: CrackedFsproj)
 
 
@@ -203,9 +203,12 @@ module AutoReload =
                                 projLevelMap.[refCrackedFsproj.ProjPath]
                             )
                             |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin projPath)
+
+
                         )
 
-                        CrackedFsproj.tryReRun args cache.EntryCrackedFsproj
+                        let updatedDlls = allResults |> List.map (fun r -> r.Dll)
+                        CrackedFsproj.tryReRun args cache.EntryCrackedFsproj updatedDlls
 
                         CompilerTmpEmitterState.createEmpty 0 cache
             | _ ->
