@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.7.4-alpha - tbd
+## 0.7.5-alpha - tbd
+
+## 0.7.4 - 2019-04-18
+* UNIX: Fixed easyGetAllProjPaths #22
 
 ## 0.7.3 - 2019-04-17
 * Send web hook after program (re)run #18
