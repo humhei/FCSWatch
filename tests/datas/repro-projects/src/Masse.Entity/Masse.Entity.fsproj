@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="User.fs"/>
+        <Compile Include="Product.fs"/>
+        <Compile Include="Question.fs"/>
+        <Compile Include="CmsObject.fs"/>
+        <None Include="paket.references"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj"/>
+        <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj"/>
+        <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj"/>
+        <ProjectReference Include="..\Masse.Social.Sql\Masse.Social.Sql.fsproj"/>
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets"/>
+</Project>

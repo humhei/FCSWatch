@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Types.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Include="Utils.fs" />
+      <Content Include="paket.references" />
+      <EmbeddedResource Include="swagger-ui.zip" />
+    </ItemGroup>
+
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+
+</Project>

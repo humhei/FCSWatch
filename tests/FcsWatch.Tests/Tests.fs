@@ -56,7 +56,7 @@ let createWatcher (config: BinaryConfig) =
         let config =
             { config with 
                 WorkingDir = root
-                LoggerLevel = Logger.Level.Normal
+                LoggerLevel = Logger.Level.Debug
                 WarmCompile = false }
 
         binaryFcsWatcher config entryProjPath
@@ -197,4 +197,10 @@ let functionTests =
                 else fail()
             }
 
+            testCase "EasyGetAllFsProjects for complex projects" <| fun _ ->
+                /// no exception should be threw in unix
+                /// https://github.com/humhei/FCSWatch/issues/19
+                FullCrackedFsproj.easyGetAllProjPaths (datas </> "repro-projects\src\Masse.API\Masse.API.fsproj")
+                |> ignore
+                
         ]

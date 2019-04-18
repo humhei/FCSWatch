@@ -1,0 +1,97 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+        <AssemblyName>MasseAPI</AssemblyName>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <AWSProjectType>Lambda</AWSProjectType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Types.fs" />
+        <Compile Include="Helper.fs" />
+        <Compile Include="Notification.fs" />
+        <Compile Include="Validation.fs" />
+        <Compile Include="Handler\Admin.fs" />
+        <Compile Include="Handler\Agree.fs" />
+        <Compile Include="Handler\Brand.fs" />
+        <Compile Include="Handler\Category.fs" />
+        <Compile Include="Handler\Comment.fs" />
+        <Compile Include="Handler\CommitHash.fs" />
+        <Compile Include="Handler\ExternalProduct.fs" />
+        <Compile Include="Handler\HomeView.fs" />
+        <Compile Include="Handler\LegacyProduct.fs" />
+        <Compile Include="Handler\Product.fs" />
+        <Compile Include="Handler\ProfileView.fs" />
+        <Compile Include="Handler\Question.fs" />
+        <Compile Include="Handler\Recommendation.fs" />
+        <Compile Include="Handler\Story.fs" />
+        <Compile Include="Handler\RecommendationList.fs" />
+        <Compile Include="Handler\Search.fs" />
+        <Compile Include="Handler\Swagger.fs" />
+        <Compile Include="Handler\User.fs" />
+        <Compile Include="Handler\Nomination.fs" />
+        <Compile Include="Handler\EmailPreference.fs" />
+        <Compile Include="Handler\RecommendedSku.fs" />
+        <Compile Include="Handler\CmsObject.fs" />
+        <Compile Include="RouteHandler.fs" />
+        <Compile Include="Startup.fs" />
+        <Compile Include="StartupLocal.fs" />
+        <EmbeddedResource Include="commitHash.txt">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </EmbeddedResource>
+        <EmbeddedResource Include="parsePdpParameterBody.json" />
+        <EmbeddedResource Include="EndpointDocs\agreesResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\answerQuestionsResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\findProductsResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\homeProductsResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\homeRecommendationsResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\profileQuestionsResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\profileRecommendationsResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\recommendationCommentsResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\recommendationFindByUserAndProductResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\recommendationResponse.json" />
+        <EmbeddedResource Include="EndpointDocs\searchQuestionResponse.json" />
+        <None Include="aws-lambda-tools-defaults.json" />
+        <None Include="appsettings.Development.json" />
+        <None Include="appsettings.json" />
+        <None Include="dev1.serverless.template" />
+        <None Include="dev2.serverless.template" />
+        <None Include="dev3.serverless.template" />
+        <None Include="prod1.serverless.template" />
+        <None Include="prod2.serverless.template" />
+        <None Include="prod3.serverless.template" />
+        <None Include="paket.references" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Masse.Admin.Task\Masse.Admin.Task.fsproj" />
+        <ProjectReference Include="..\Masse.Analytics.Sql\Masse.Analytics.Sql.fsproj" />
+        <ProjectReference Include="..\Masse.AWS.SecretManager\Masse.AWS.SecretManager.fsproj" />
+        <ProjectReference Include="..\Masse.Catalog.Search\Masse.Catalog.Search.fsproj" />
+        <ProjectReference Include="..\Masse.Common.JsonNet\Masse.Common.JsonNet.fsproj" />
+        <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+        <ProjectReference Include="..\Masse.Entity\Masse.Entity.fsproj" />
+        <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj" />
+        <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+        <ProjectReference Include="..\Masse.Social.Search\Masse.Social.Search.fsproj" />
+        <ProjectReference Include="..\Masse.Social.Sql\Masse.Social.Sql.fsproj" />
+        <ProjectReference Include="..\Masse.Source.External\Masse.Source.External.fsproj" />
+        <ProjectReference Include="..\Masse.Swagger\Masse.Swagger.fsproj" />
+        <ProjectReference Include="..\Masse.Telemetry\Masse.Telemetry.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="deploy-to-dev1.sh" />
+      <Content Include="deploy-to-dev2.sh" />
+      <Content Include="deploy-to-dev3.sh" />
+      <Content Include="deploy-to-prod1.sh" />
+      <Content Include="deploy-to-prod2.sh" />
+      <Content Include="deploy-to-prod3.sh" />
+    </ItemGroup>
+    <Target Name="CommitHash" BeforeTargets="BeforeBuild">
+        <Exec Command="git rev-parse HEAD &gt; commitHash.txt" />
+    </Target>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

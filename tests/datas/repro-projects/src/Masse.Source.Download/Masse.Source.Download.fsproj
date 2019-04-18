@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+    <Content Include="build-docker-for-aws-dev.sh" />
+    <Content Include="build-docker-for-aws-qa.sh" />
+    <Content Include="build-docker-for-aws-prod.sh" />
+    <Content Include="Dockerfile">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.AWS.ECS\Masse.AWS.ECS.fsproj" />
+    <ProjectReference Include="..\Masse.Catalog.Batch\Masse.Catalog.Batch.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Everlane\Masse.Source.Everlane.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Farfetch\Masse.Source.Farfetch.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Glossier\Masse.Source.Glossier.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Maisonette\Masse.Source.Maisonette.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Rakuten\Masse.Source.Rakuten.fsproj" />
+    <ProjectReference Include="..\Masse.Source.ShopStyle\Masse.Source.ShopStyle.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Viglink\Masse.Source.Viglink.fsproj" />
+    <ProjectReference Include="..\Masse.Source.Walmart\Masse.Source.Walmart.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

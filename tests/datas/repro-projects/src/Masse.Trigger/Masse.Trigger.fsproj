@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+      <TargetFramework>netcoreapp2.1</TargetFramework>
+      <AWSProjectType>Lambda</AWSProjectType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="EventHandler.fs" />
+    <Content Include="deploy-to-qa.sh" />
+    <None Include="aws-lambda-tools-defaults.json" />
+    <None Include="appsettings.Development.json" />
+    <None Include="appsettings.json" />
+    <None Include="dev.serverless.template" />
+    <None Include="qa.serverless.template" />
+    <None Include="prod.serverless.template" />
+    <None Include="paket.references" />
+    <Content Include="deploy-to-prod.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.AWS.S3\Masse.AWS.S3.fsproj" />
+    <ProjectReference Include="..\Masse.AWS.SQS\Masse.AWS.SQS.fsproj" />
+    <ProjectReference Include="..\Masse.Common.JsonNet\Masse.Common.JsonNet.fsproj" />
+    <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+    <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

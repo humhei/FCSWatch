@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Helper.fs" />
+        <None Include="paket.references" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Masse.Catalog.Indexer\Masse.Catalog.Indexer.fsproj" />
+        <ProjectReference Include="..\Masse.Catalog.Sql\Masse.Catalog.Sql.fsproj" />
+        <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

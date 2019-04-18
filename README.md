@@ -33,7 +33,7 @@ OPTIONS:
     --project-file <string>
                           Entry project file, default is exact fsproj file in working dir
     --debuggable          Enable debuggable in vscode, This will disable auto Reload
-    --logger-level <minimal|normal|quiet>
+    --logger-level <minimal|normal|quiet|debug>
                           Default is Minimal
     --no-build            --no-build
     --webhook <string>    send a web hook when program (re)run

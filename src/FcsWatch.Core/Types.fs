@@ -195,14 +195,23 @@ type FullCrackedFsproj =
 
 [<RequireQualifiedAccess>]
 module FullCrackedFsproj =
-    let private easyGetAllProjPaths (entryProjectFile: string) =
+    let easyGetAllProjPaths (entryProjectFile: string) =
         let values = new HashSet<string>()
         let add projectFile = values.Add projectFile |> ignore
         let rec loop (projectFile: string) =
-            let normarlizedPath = Path.nomalizeToUnixCompatiable projectFile
+            let normarlizedPath = 
+                logger.Debug "easyGetAllProjPaths: before nomalizeToUnixCompatiable: %s" projectFile
+
+                let path = Path.nomalizeToUnixCompatiable projectFile
+
+                logger.Debug "easyGetAllProjPaths: after nomalizeToUnixCompatiable: %s" path
+
+                path
+
             add normarlizedPath
 
-            let dir = Path.getDirectory projectFile
+            let dir = Path.getDirectory normarlizedPath
+            logger.Debug "easyGetAllProjPaths: directory is %s" dir
             let doc = new XmlDocument()
             doc.Load(normarlizedPath)
 

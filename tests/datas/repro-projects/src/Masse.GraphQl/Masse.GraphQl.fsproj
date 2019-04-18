@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Types.fs" />
+        <Compile Include="Properties.fs" />
+        <Compile Include="Builder.fs" />
+        <Compile Include="Helper.fs" />
+        <Compile Include="Admin.Category.fs" />
+        <Compile Include="Admin.Product.fs" />
+        <Compile Include="Category.fs" />
+        <Compile Include="Question.fs" />
+        <Compile Include="User.fs" />
+        <Compile Include="Recommendation.fs" />
+        <Compile Include="RecommendationList.fs" />
+        <Compile Include="RecommendedSku.fs" />
+        <Compile Include="RecommendationHistory.fs" />
+        <Compile Include="Catalog.Product.fs" />
+        <Compile Include="Social.User.fs" />
+        <Compile Include="Social.Agrees.fs" />
+        <Compile Include="Social.Recommendation.fs" />
+        <Compile Include="Social.Question.fs" />
+        <Compile Include="Social.Comment.fs" />
+        <Compile Include="Social.Search.fs" />
+        <Compile Include="Social.HomeView.fs" />
+        <Compile Include="Social.ProfileView.fs" />
+        <Compile Include="Social.Nomination.fs" />
+        <None Include="paket.references" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Masse.Common\Masse.Common.fsproj" />
+        <ProjectReference Include="..\Masse.GraphDb\Masse.GraphDb.fsproj" />
+        <ProjectReference Include="..\Masse.Image\Masse.Image.fsproj" />
+        <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+        <ProjectReference Include="..\Masse.Telemetry\Masse.Telemetry.fsproj" />
+    </ItemGroup>
+
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

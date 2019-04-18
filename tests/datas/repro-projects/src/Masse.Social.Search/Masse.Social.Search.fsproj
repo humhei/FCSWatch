@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+        <AssemblyName>MasseSocialSearch</AssemblyName>
+        <AWSProjectType>Lambda</AWSProjectType>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Include="Constant.fs" />
+      <Compile Include="Question\Question.Types.fs" />
+      <Compile Include="Question\Question.Helper.fs" />
+      <Compile Include="Recommendation\Recommendation.Types.fs" />
+      <Compile Include="Recommendation\Recommendation.Helper.fs" />
+      <Compile Include="EventHandler.fs" />
+      <Compile Include="Program.fs" />
+      <None Include="aws-lambda-tools-defaults.json" />
+      <None Include="appsettings.Development.json" />
+      <None Include="appsettings.json" />
+      <None Include="dev.serverless.template" />
+      <None Include="qa.serverless.template" />
+      <None Include="prod.serverless.template" />
+      <None Include="paket.references" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Masse.AWS.CloudSearch\Masse.AWS.CloudSearch.fsproj" />
+      <ProjectReference Include="..\Masse.Catalog.Indexer\Masse.Catalog.Indexer.fsproj" />
+      <ProjectReference Include="..\Masse.GraphQl\Masse.GraphQl.fsproj" />
+      <ProjectReference Include="..\Masse.Social.Indexer\Masse.Social.Indexer.fsproj" />
+      <ProjectReference Include="..\Masse.Social.Sql\Masse.Social.Sql.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="deploy-to-prod.sh" />
+      <Content Include="deploy-to-qa.sh" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

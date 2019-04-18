@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Prelude.fs" />
+    <Compile Include="List.fs" />
+    <Compile Include="Async.fs" />
+    <Compile Include="Monad.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="DateTime.fs" />
+    <Compile Include="JsonValue.fs" />
+    <Compile Include="Http.fs" />
+    <Compile Include="File.fs" />
+    <Compile Include="Ftp.fs" />
+    <Compile Include="Sql.fs" />
+    <Compile Include="Environment.fs" />
+    <Compile Include="Gzip.fs" />
+    <Compile Include="Service.fs" />
+    <Compile Include="Hash.fs" />
+    <Compile Include="Normalizer.fs" />
+    <Compile Include="String.fs" />
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Masse.Logging\Masse.Logging.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
