@@ -34,10 +34,10 @@ module Logger =
 
         let _info trace message =
             match level with
-            | Level.Minimal -> ()
-            | Level.Normal -> ()
             | Level.Quiet -> ()
-            | Level.Debug -> ()
+            | Level.Minimal -> ()
+            | Level.Normal -> trace message
+            | Level.Debug -> trace message
 
         let _important trace message =
             match level with
