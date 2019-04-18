@@ -7,6 +7,7 @@
         "**/.vs": true,
         "**/bin": true,
         "**/obj": true,
+        "**/repro-projects": true,
     },
     "search.exclude": {
         "**/node_modules": true,
@@ -16,7 +17,8 @@
         "**/artifacts": true,
         "**/bundles.js": true,
         "**/bundles.js.map": true,
-        "**/temp": true
+        "**/temp": true,
+        "**/repro-projects": true,
     },
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true
