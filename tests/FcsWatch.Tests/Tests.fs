@@ -138,13 +138,19 @@ let webhookTests =
                     bindings   = [ HttpBinding.createSimple HTTP "127.0.0.1" 9867 ]
                     bufferSize = 2048
                     cancellationToken = cts.Token }
-            
+
+            let mutable runReasons = []
             let mutable recieveAccount = 0
 
             let webApp =
                 choose 
                     [ path "/update" >=> 
                         (fun ctx ->
+                            let whyRun =
+                               Newtonsoft.Json.JsonConvert.DeserializeObject<WhyRun>(
+                                   ctx.request.rawForm
+                                   |> System.Text.ASCIIEncoding.UTF8.GetString)
+                            runReasons <- runReasons @ [whyRun]
                             recieveAccount <- recieveAccount + 1
                             Successful.OK "recieved web hook" ctx
                         )
@@ -160,7 +166,20 @@ let webhookTests =
 
             tryKill AutoReload.DevelopmentTarget.Program cache.EntryCrackedFsproj 
             /// run + rerun
-            Expect.equal 2 recieveAccount "can send webhook and recieve it"
+            Expect.equal recieveAccount 2 "can send webhook and recieve it"
+
+            let [runReason; rerunReason] = runReasons
+            /// run
+            Expect.equal runReason WhyRun.Run "can receive \"Run\" reason"
+
+            let result =
+                match rerunReason with
+                | WhyRun.Run -> false
+                | WhyRun.Rerun [file] ->
+                    file.EndsWith("TestLib2.dll")
+                | _ -> false
+            Expect.isTrue result "can receive list of updated dlls"
+
 
     ]
 
