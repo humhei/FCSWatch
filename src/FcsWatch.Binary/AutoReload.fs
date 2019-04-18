@@ -17,7 +17,7 @@ open System.Text
 
 [<RequireQualifiedAccess>]
 type WhyRun =
-    | Rerun of fileChanges: string list
+    | Rerun of dllUpdates: string list
     | Run
 
 type PluginDebugInfo =
