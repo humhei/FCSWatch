@@ -68,6 +68,8 @@ module AutoReload =
           AdditionalArgs: string list 
           DevelopmentTarget: DevelopmentTarget
           WorkingDir: string
+          Framework: string option
+          Configuration: string option
           WhyRun: WhyRun }
 
     let private runningProjects = new ConcurrentDictionary<string,Process>()
@@ -96,10 +98,21 @@ module AutoReload =
             | DevelopmentTarget.Program ->
                 match crackedFsproj.ProjectTarget with
                 | ProjectTarget.Exe ->
+                    let framework =
+                        match args.Framework with
+                        | Some f -> ["--framework"; f]
+                        | None -> ["--framework"; crackedFsproj.PreferFramework]
+
+                    let configuration =
+                        match args.Configuration with
+                        | Some c -> ["--configuration"; c]
+                        | None -> []
+
                     let dotnetArgs =
-                        [
-                            "run";"--project"; crackedFsproj.ProjPath; "--no-build"; "--no-restore"; "--framework"; crackedFsproj.PreferFramework; "--"
-                        ]
+                        ["run";"--project"; crackedFsproj.ProjPath; "--no-build"; "--no-restore"]
+                        @ framework
+                        @ configuration
+                        @ ["--"]
 
                     runningProjects.GetOrAdd (crackedFsproj.ProjPath,fun _ ->
                         let proc = 

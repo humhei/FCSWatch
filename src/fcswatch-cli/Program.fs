@@ -16,12 +16,21 @@ let splitArgs args =
 
 [<EntryPoint>]
 let main argv =
+    try
 
-    let arguArgs, additionalArgs = splitArgs argv
-    let results = parser.Parse arguArgs
+        let arguArgs, additionalArgs = splitArgs argv
 
-    let processResult = processParseResults additionalArgs parser.PrintUsage results
+        let results = parser.Parse arguArgs
 
-    runFcsWatcher processResult.Config processResult.ProjectFile
+        let processResult = processParseResults additionalArgs parser.PrintUsage results
 
-    0 // return an integer exit code
+        runFcsWatcher processResult.Config processResult.ProjectFile
+
+        0
+
+    with :? Argu.ArguParseException as e ->
+        
+        stdout.WriteLine e.Message
+        
+        LanguagePrimitives.EnumToValue e.ErrorCode
+

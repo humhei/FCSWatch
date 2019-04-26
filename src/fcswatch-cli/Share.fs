@@ -17,7 +17,9 @@ type Arguments =
     | Logger_Level of Logger.Level
     | No_Build
     | Webhook of string
-    | Send 
+    | Send
+    | [<AltCommandLine("-f")>] Framework of string
+    | [<AltCommandLine("-c")>] Configuration of string
 with
     interface IArgParserTemplate with
         member x.Usage =
@@ -29,6 +31,8 @@ with
             | No_Build -> "--no-build"
             | Webhook _ -> "send a web hook when program (re)run"
             | Send _ -> sprintf "Equivalent to --webhook %s" defaultUrl
+            | Framework _ -> "The target framework to build for. The default to prefer netcore."
+            | Configuration _ -> "The configuration to use for building the project. The default is Debug."
 
 type ProcessResult =
     { Config: BinaryConfig
@@ -81,6 +85,8 @@ let processParseResults additionalBinaryArgs usage (results: ParseResults<Argume
 
                 LoggerLevel = results.GetResult(Logger_Level, defaultConfigValue.LoggerLevel)
                 NoBuild = noBuild
+                Framework = results.TryGetResult Framework
+                Configuration = results.TryGetResult Configuration
                 Webhook = webhook
                 AdditionalBinaryArgs = additionalBinaryArgs }
         }
