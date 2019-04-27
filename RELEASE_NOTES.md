@@ -1,6 +1,14 @@
 ﻿# Release Notes
 
-## 0.7.7 - tbd
+## 0.7.9-alpha - tbd
+
+## 0.7.8 - 2019-04-27
+* Some as 0.7.6
+
+## 0.7.7 - 2019-04-27
+* Some as 0.7.6
+
+## 0.7.6 - 2019-04-27
 * Added `--configuration release` and `--framework netframework`
 
 ## 0.7.5 - 2019-04-18
