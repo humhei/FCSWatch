@@ -39,6 +39,8 @@ type BinaryConfig =
       DevelopmentTarget: DevelopmentTarget
       WorkingDir: string
       NoBuild: bool
+      Framework: string option
+      Configuration: string option
       UseEditFiles: bool
       Webhook: string option
       WarmCompile: bool
@@ -50,6 +52,8 @@ with
           DevelopmentTarget = DevelopmentTarget.autoReloadProgram
           WorkingDir = Directory.GetCurrentDirectory()
           NoBuild = false
+          Framework = None
+          Configuration = None
           UseEditFiles = false
           WarmCompile = true
           Webhook = None
@@ -105,9 +109,11 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
         let programRunningArgs: AutoReload.ProgramRunningArgs =
             { AdditionalArgs = addtionalBinaryArgs 
-              Webhook = config.Webhook 
+              Webhook = config.Webhook
               DevelopmentTarget = autoReload
               WorkingDir = config.WorkingDir
+              Framework = config.Framework
+              Configuration = config.Configuration
               WhyRun = WhyRun.Run }
 
         let compilerTmpEmitter = AutoReload.create programRunningArgs
