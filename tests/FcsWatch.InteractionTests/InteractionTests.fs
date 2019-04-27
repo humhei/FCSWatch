@@ -31,8 +31,12 @@ let interactionTests =
             FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath;"--logger-level"; "normal"; "--debuggable" |]
             |> ignore
 
-        ftestCase "auto reload test" <| fun _ ->
+        testCase "auto reload test" <| fun _ ->
             FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath|]
+            |> ignore
+
+        testCase "auto reload release" <| fun _ ->
+            FcsWatch.Cli.Main.main [|"--project-file"; entryProjPath; "--configuration"; "release"|]
             |> ignore
 
         testCase "fslive cli test" <| fun _ ->

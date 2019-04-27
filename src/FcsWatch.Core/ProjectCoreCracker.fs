@@ -175,14 +175,14 @@ let private getFrameWork (projectFile: string) =
         let frameWorkNode = [ for node in frameWorkNodes do yield node ] |> List.exactlyOne
         FrameWork.SingleTarget frameWorkNode.InnerText
 
-let getProjectOptionsFromProjectFile (file : string) = async {
+let getProjectOptionsFromProjectFile configuration (file : string) = async {
     match getFrameWork file with
     | FrameWork.SingleTarget target ->
-        return projInfo ["TargetFramework",target] file |> Array.singleton
+        return projInfo ["TargetFramework",target; "Configuration", configuration] file |> Array.singleton
     | FrameWork.MultipleTarget targets ->
         let! result =
             targets |> Array.map (fun target -> async {
-                return projInfo ["TargetFramework",target] file
+                return projInfo ["TargetFramework",target; "Configuration", configuration] file
             })
             |> Async.Parallel
         return result

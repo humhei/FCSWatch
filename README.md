@@ -24,7 +24,8 @@ FcsWatch will load your project in autoReload mode by defalut
 
 ```
 USAGE: fcswatch.exe [--help] [--working-dir <string>] [--project-file <string>] [--debuggable]
-                    [--logger-level <minimal|normal|quiet>] [--no-build]
+                    [--logger-level <minimal|normal|quiet|debug>] [--no-build] [--webhook <string>] [--send]
+                    [--framework <string>] [--configuration <debug|release>]
 
 OPTIONS:
 
@@ -38,7 +39,13 @@ OPTIONS:
     --no-build            --no-build
     --webhook <string>    send a web hook when program (re)run
     --send                Equivalent to --webhook http://localhost:9867/update
+    --framework, -f <string>
+                          The target framework to build for. The default to prefer netcore.
+    --configuration, -c <debug|release>
+                          The configuration to use for building the project. The default is Debug.
     --help                display this list of options.
+
+    -- --your-custom-args value (pass Addtional args pass to application)
 ```
 
 ### From Fake
@@ -80,9 +87,8 @@ The core library (Include a lots of common logic
 e.g `project cracker`, `file watcher`, mailbox group for concurrrent, and so on )
 
 ### FcsWatch.Binary (Ref FcsWatch.Core)
- It compile fsharp codes to .dll and .pdb (binary)
-**No** webhoook currrently supported(No reason to send a dll and pdb)
-Because it stop the whole application and replace the `.dll` and `.pdb` and then rerun application (This will make application debuggable and cross-projects compiling)
+It compile fsharp codes to .dll and .pdb
+And then stop the whole application and replace the `.dll` and `.pdb` and then rerun application
 
 ### FcsWatch-Porta (Ref FcsWatch.Core)
 It is  ported from [FSharp.Compiler.PortaCode](https://github.com/fsprojects/FSharp.Compiler.PortaCode)

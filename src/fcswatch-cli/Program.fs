@@ -22,14 +22,13 @@ let main argv =
 
         let results = parser.Parse arguArgs
 
-        let processResult = processParseResults additionalArgs parser.PrintUsage results
+        let processResult = processParseResults additionalArgs results
 
         runFcsWatcher processResult.Config processResult.ProjectFile
 
         0
 
     with :? Argu.ArguParseException as e ->
-        
         stdout.WriteLine e.Message
         
         LanguagePrimitives.EnumToValue e.ErrorCode

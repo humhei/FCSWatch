@@ -127,7 +127,8 @@ type Config =
     { LoggerLevel: Logger.Level
       WorkingDir: string
       UseEditFiles: bool
-      OtherFlags: string [] }
+      OtherFlags: string []
+      Configuration: Configuration }
 
 
 module FcsWatcher =
@@ -165,7 +166,7 @@ module FcsWatcher =
 
             logger <- Logger.create (config.LoggerLevel)
 
-            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config.WorkingDir config.UseEditFiles checker entryFileOp config.OtherFlags
+            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config.WorkingDir config.Configuration config.UseEditFiles checker entryFileOp config.OtherFlags
 
             logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
             logger.Info "fcs watcher's working directory is %s" config.WorkingDir

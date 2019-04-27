@@ -37,6 +37,7 @@ let testSourceFile1InTestLib = datas </> @"TestLib1/Library.fs"
 let expectCompilerNumber excepted (CompilerNumber compilerNumber) =
     Expect.equal excepted compilerNumber (sprintf "expected compiler number %d,while current compiler number is %d" excepted compilerNumber)
 
+
 let makeFileChange fullPath : FileChange =
     let fullPath = Path.getFullName fullPath
 
@@ -123,14 +124,20 @@ let pluginTests =
     ]
 
 
+
 let webhookTests =
     let watcher =
         createWatcher { 
             BinaryConfig.DefaultValue with 
                 DevelopmentTarget = DevelopmentTarget.autoReloadProgram
+                Configuration = Configuration.Release
+
                 Webhook = Some "http://localhost:9867/update" }
 
-    testList "webhook Tests" [
+
+
+
+    testList "webhook tests" [
         testCase "can send webhook and recieve it " <| fun _ ->
             let cts = new CancellationTokenSource() 
             let suaveConfig = 
@@ -140,7 +147,6 @@ let webhookTests =
                     cancellationToken = cts.Token }
 
             let mutable runReasons = []
-            let mutable recieveAccount = 0
 
             let webApp =
                 choose 
@@ -151,7 +157,6 @@ let webhookTests =
                                    ctx.request.rawForm
                                    |> System.Text.ASCIIEncoding.UTF8.GetString)
                             runReasons <- runReasons @ [whyRun]
-                            recieveAccount <- recieveAccount + 1
                             Successful.OK "recieved web hook" ctx
                         )
                     ]
@@ -164,57 +169,63 @@ let webhookTests =
 
             let cache = watcher.Value.PostAndReply FcsWatcherMsg.GetCache
 
+            cts.Cancel()
             tryKill AutoReload.DevelopmentTarget.Program cache.EntryCrackedFsproj 
-            /// run + rerun
-            Expect.equal recieveAccount 2 "can send webhook and recieve it"
 
-            let [runReason; rerunReason] = runReasons
-            /// run
-            Expect.equal runReason WhyRun.Run "can receive \"Run\" reason"
+            match runReasons with 
+            | [runReason; rerunReason] ->
 
-            let result =
-                match rerunReason with
-                | WhyRun.Run -> false
-                | WhyRun.Rerun [file] ->
-                    file.EndsWith("TestLib2.dll")
-                | _ -> false
-            Expect.isTrue result "can receive list of updated dlls"
+                match runReason, rerunReason with
+                | WhyRun.Run, WhyRun.Rerun [file] -> 
+                    Expect.isTrue (file.EndsWith("TestLib2.dll")) "can receive list of updated dlls"
 
+                | _ -> failwith "expect (run + rerun) when recieve webhook"
 
+            | _ -> failwith "expect (run + rerun) when recieve webhook"
+        
+    
     ]
 
 let functionTests =
 
+    let testObjRefOnly configuration = async {
+        let! fullCracekdFsproj, _  =
+            FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Configuration = configuration})
+
+        let otherOptions =
+            fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
+                singleTargetCrackedFsproj.FSharpProjectOptions.OtherOptions
+            ) |> List.ofSeq
+
+        let configurationText = Configuration.name configuration
+
+        let p1 =
+            otherOptions
+            |> Seq.exists (fun option ->
+                option.Contains (sprintf @"\bin\%s\" configurationText)
+                || option.Contains (sprintf @"/bin/%s/" configurationText)
+            )
+            |> not
+
+        let p2 =
+            otherOptions
+            |> Seq.exists (fun option ->
+                option.Contains (sprintf @"\obj\%s\" configurationText)
+                || option.Contains (sprintf @"/obj/%s/" configurationText)
+            )
+
+        if p1 && p2 then pass()
+        else fail()
+    }
+
+
     testList "functionTests"
         [
             /// "bin ref may be locked by program
-            testCaseAsync "obj ref only" <| async {
-                let! fullCracekdFsproj, _  =
-                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath})
+            testCaseAsync "obj ref only when debug" <| (testObjRefOnly Configuration.Debug) 
 
-                let otherOptions =
-                    fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
-                        singleTargetCrackedFsproj.FSharpProjectOptions.OtherOptions
-                    ) |> List.ofSeq
-
-                let p1 =
-                    otherOptions
-                    |> Seq.exists (fun option ->
-                        option.Contains @"\bin\Debug\"
-                        || option.Contains @"/bin/Debug/"
-                    )
-                    |> not
-
-                let p2 =
-                    otherOptions
-                    |> Seq.exists (fun option ->
-                        option.Contains @"\obj\Debug\"
-                        || option.Contains @"/obj/Debug/"
-                    )
-
-                if p1 && p2 then pass()
-                else fail()
-            }
+            /// "bin ref may be locked by program
+            testCaseAsync "obj ref only when release" <| (testObjRefOnly Configuration.Release) 
 
             testCase "EasyGetAllFsProjects for complex projects" <| fun _ ->
                 /// no exception should be threw in unix

@@ -15,6 +15,7 @@ open System.Threading
 open System.Net
 open System.Text
 
+
 [<RequireQualifiedAccess>]
 type WhyRun =
     | Rerun of dllUpdates: string list
@@ -65,12 +66,29 @@ module AutoReload =
 
     type ProgramRunningArgs =
         { Webhook: string option
-          AdditionalArgs: string list 
+          AdditionalBuildArgs: string list
+          AdditionalSwitchArgs: string list 
           DevelopmentTarget: DevelopmentTarget
           WorkingDir: string
           Framework: string option
-          Configuration: string option
+          Configuration: Configuration
           WhyRun: WhyRun }
+
+    [<RequireQualifiedAccess>]
+    module ProgramRunningArgs =
+
+        let addtionalRunArgs (crackedFsproj: CrackedFsproj) (args: ProgramRunningArgs) =
+            let framework =
+                match args.Framework with
+                | Some f -> ["--framework"; f]
+                | None -> ["--framework"; crackedFsproj.PreferFramework]
+
+            if args.AdditionalSwitchArgs.Length = 0 
+            then
+                args.AdditionalBuildArgs @ framework
+            else 
+                args.AdditionalBuildArgs @ framework @ ["--"] @ args.AdditionalSwitchArgs
+
 
     let private runningProjects = new ConcurrentDictionary<string,Process>()
 
@@ -98,27 +116,16 @@ module AutoReload =
             | DevelopmentTarget.Program ->
                 match crackedFsproj.ProjectTarget with
                 | ProjectTarget.Exe ->
-                    let framework =
-                        match args.Framework with
-                        | Some f -> ["--framework"; f]
-                        | None -> ["--framework"; crackedFsproj.PreferFramework]
-
-                    let configuration =
-                        match args.Configuration with
-                        | Some c -> ["--configuration"; c]
-                        | None -> []
 
                     let dotnetArgs =
                         ["run";"--project"; crackedFsproj.ProjPath; "--no-build"; "--no-restore"]
-                        @ framework
-                        @ configuration
-                        @ ["--"]
+
 
                     runningProjects.GetOrAdd (crackedFsproj.ProjPath,fun _ ->
                         let proc = 
                             Process.start
                                 dotnetTool
-                                (dotnetArgs @ args.AdditionalArgs)
+                                (dotnetArgs @ (ProgramRunningArgs.addtionalRunArgs crackedFsproj args))
                                 args.WorkingDir
 
                         match args.Webhook with 
@@ -139,6 +146,7 @@ module AutoReload =
 
                 | ProjectTarget.Library ->
                     failwith "project is a library, autoReload is ture, development target is program;"
+
             | DevelopmentTarget.Plugin plugin ->
                 plugin.Load()
 
@@ -208,14 +216,14 @@ module AutoReload =
                         |> Seq.iter (fun projPath ->
                             let currentCrackedFsproj = cache.ProjectMap.[projPath]
 
-                            CrackedFsproj.copyObjToBin currentCrackedFsproj
+                            CrackedFsproj.copyObjToBin  args.Configuration currentCrackedFsproj
 
                             let refCrackedFsprojs = projRefersMap.[projPath]
 
                             refCrackedFsprojs |> Seq.sortByDescending (fun refCrackedFsproj ->
                                 projLevelMap.[refCrackedFsproj.ProjPath]
                             )
-                            |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin projPath)
+                            |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin args.Configuration projPath)
 
 
                         )

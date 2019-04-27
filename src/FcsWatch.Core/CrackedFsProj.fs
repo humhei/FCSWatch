@@ -135,9 +135,17 @@ module CrackedFsproj =
             mapProjOtherOptions (fun ops ->
                 ops
                 |> Array.keepOrAdd (fun ops -> ops.StartsWith "-o:" || ops.StartsWith "--out:") ("-o:" + singleTargetCrackedFsproj.ObjTargetFile)
-                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--target:") ("--target:library")
-                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug" || ops.StartsWith "-g") ("--debug:portable")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug:" || ops.StartsWith "-g:") ("--debug:portable")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug-" || ops.StartsWith "-g-") ("--debug+")
                 |> Array.keepOrAdd (fun ops -> ops.StartsWith "--optimize" || ops.StartsWith "-O") ("--optimize-")
+            ) singleTargetCrackedFsproj
+
+        let mapProjOptionsReleasable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            mapProjOtherOptions (fun ops ->
+                ops
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "-o:" || ops.StartsWith "--out:") ("-o:" + singleTargetCrackedFsproj.ObjTargetFile)
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug+" || ops.StartsWith "-g-") ("--debug-")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--optimize" || ops.StartsWith "-O") ("--optimize+")
             ) singleTargetCrackedFsproj
 
 
@@ -173,12 +181,13 @@ module CrackedFsproj =
     [<RequireQualifiedAccess>]
     module CrackedFsproj =
 
-        let create projectFile = async {
-            match! ProjectCoreCracker.getProjectOptionsFromProjectFile projectFile with
+        let create configuration projectFile = async {
+            match! ProjectCoreCracker.getProjectOptionsFromProjectFile configuration projectFile with
             | [|projOptions,projRefs,props|] ->
                 return
                     { FSharpProjectOptions = projOptions
-                      Props = props; ProjPath = projectFile
+                      Props = props
+                      ProjPath = projectFile
                       ProjRefs = projRefs }
                     |> List.singleton
                     |> CrackedFsproj
@@ -233,4 +242,10 @@ module CrackedFsproj =
     let mapProjOtherOptionsDebuggable (CrackedFsproj singleTargetCrackedFsprojs) =
         singleTargetCrackedFsprojs
         |> List.map SingleTargetCrackedFsproj.mapProjOptionsDebuggable 
+        |> CrackedFsproj
+
+
+    let mapProjOtherOptionsReleasable (CrackedFsproj singleTargetCrackedFsprojs) =
+        singleTargetCrackedFsprojs
+        |> List.map SingleTargetCrackedFsproj.mapProjOptionsReleasable
         |> CrackedFsproj
