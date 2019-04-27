@@ -1,6 +1,7 @@
 ﻿# Release Notes
 
-## 0.7.6-alpha - tbd
+## 0.7.6 - 2019-4-27
+* Added `--configuration release` and `--framework netframework`
 
 ## 0.7.5 - 2019-04-18
 * Refix Send web hook after program (re)run #18
