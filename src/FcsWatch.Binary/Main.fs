@@ -8,7 +8,7 @@ open System
 open Extensions
 open FSharp.Compiler.SourceCodeServices
 open Fake.IO.FileSystemOperators
-
+open FcsWatch.Core.Types
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
@@ -40,11 +40,11 @@ type BinaryConfig =
       WorkingDir: string
       NoBuild: bool
       Framework: string option
-      Configuration: string option
+      Configuration: Configuration
       UseEditFiles: bool
       Webhook: string option
       WarmCompile: bool
-      AdditionalBinaryArgs : string array }
+      AdditionalSwitchArgs : string array }
 
 with
     static member DefaultValue =
@@ -53,24 +53,43 @@ with
           WorkingDir = Directory.GetCurrentDirectory()
           NoBuild = false
           Framework = None
-          Configuration = None
+          Configuration = Configuration.Debug
           UseEditFiles = false
           WarmCompile = true
           Webhook = None
-          AdditionalBinaryArgs = Array.empty }
+          AdditionalSwitchArgs = Array.empty }
 
 
 [<RequireQualifiedAccess>]
 module BinaryConfig =
+
+    let additionalBuildArgs (config: BinaryConfig) =
+        match config.Configuration with 
+        | Configuration.Release -> ["--configuration"; "Release"]
+        | Configuration.Debug -> ["--configuration"; "Debug"]
+
+    let asAutoReloadProgramRunningArgs whyRun autoReloadDevelopmentTarget (config: BinaryConfig) : AutoReload.ProgramRunningArgs =
+        { AdditionalSwitchArgs = List.ofArray config.AdditionalSwitchArgs
+          Webhook = config.Webhook
+          DevelopmentTarget = autoReloadDevelopmentTarget
+          WorkingDir = config.WorkingDir
+          Framework = config.Framework
+          AdditionalBuildArgs = additionalBuildArgs config
+          Configuration = config.Configuration
+          WhyRun = whyRun }
+
+
     let tryBuildProject projectFile (config: BinaryConfig) =
         if not config.NoBuild then
+            let additionalBuildArgs = additionalBuildArgs config
+
             match config.DevelopmentTarget with
             | DevelopmentTarget.Program _ ->
-                dotnet "build" [projectFile] config.WorkingDir
+                dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
 
             | DevelopmentTarget.Plugin plugin ->
                 plugin.Unload()
-                dotnet "build" [projectFile] config.WorkingDir
+                dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
 
 let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
@@ -97,6 +116,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
         { LoggerLevel = config.LoggerLevel
           WorkingDir = config.WorkingDir
           OtherFlags = [||]
+          Configuration = config.Configuration
           UseEditFiles = config.UseEditFiles }
 
     let checker = FSharpChecker.Create()
@@ -105,16 +125,9 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
     match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload ->
-        let addtionalBinaryArgs = Array.toList config.AdditionalBinaryArgs
 
-        let programRunningArgs: AutoReload.ProgramRunningArgs =
-            { AdditionalArgs = addtionalBinaryArgs 
-              Webhook = config.Webhook
-              DevelopmentTarget = autoReload
-              WorkingDir = config.WorkingDir
-              Framework = config.Framework
-              Configuration = config.Configuration
-              WhyRun = WhyRun.Run }
+        let programRunningArgs: AutoReload.ProgramRunningArgs = 
+            BinaryConfig.asAutoReloadProgramRunningArgs WhyRun.Run autoReload config
 
         let compilerTmpEmitter = AutoReload.create programRunningArgs
 

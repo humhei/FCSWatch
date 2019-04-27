@@ -131,14 +131,14 @@ module internal TmpEmitterState =
                     |> Seq.iter (fun projPath ->
                         let currentCrackedFsproj = cache.ProjectMap.[projPath]
 
-                        CrackedFsproj.copyObjToBin currentCrackedFsproj
+                        CrackedFsproj.copyObjToBin Configuration.Debug currentCrackedFsproj
 
                         let refCrackedFsprojs = projRefersMap.[projPath]
 
                         refCrackedFsprojs |> Seq.sortByDescending (fun refCrackedFsproj ->
                             projLevelMap.[refCrackedFsproj.ProjPath]
                         )
-                        |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin projPath)
+                        |> Seq.iter (CrackedFsproj.copyFileFromRefDllToBin Configuration.Debug projPath)
                     )
 
                     replySuccess()

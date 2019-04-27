@@ -10,7 +10,7 @@ open FSharp.Compiler.SourceCodeServices
 open FcsWatch.Core.Compiler
 open FcsWatch.Core
 open FcsWatch.Core.FcsWatcher
-
+open FcsWatch.Core.Types
 open Extensions
 open Fake.IO
 open System.IO
@@ -34,7 +34,8 @@ let runFcsWatcher (config: PortaConfig) =
         { LoggerLevel = config.LoggerLevel
           WorkingDir = config.WorkingDir
           UseEditFiles = config.UseEditFiles
-          OtherFlags = config.OtherFlags }
+          OtherFlags = config.OtherFlags
+          Configuration = Configuration.Debug }
 
     let checker = FSharpChecker.Create(keepAssemblyContents = true)
 

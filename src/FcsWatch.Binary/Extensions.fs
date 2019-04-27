@@ -7,6 +7,7 @@ open FSharp.Compiler.SourceCodeServices
 open FcsWatch.Core
 open Fake.DotNet
 open Fake.Core
+open FcsWatch.Core.Types
 
 type CompilerResult =
     { Dll: string
@@ -45,9 +46,15 @@ module Extensions =
             File.Copy(src,dest,true)
             logger.Important "%s ->\n%s" src dest
 
+        /// In release configuration, still copy pdb
+        member x.CopyPdb _configuration src dest =
+            x.CopyFile src dest
+
     [<RequireQualifiedAccess>]
     module SingleTargetCrackedFsproj =
-        let copyFileFromRefDllToBin originProjectFile (destCrackedFsprojSingleTarget: SingleTargetCrackedFsproj) =
+
+
+        let copyFileFromRefDllToBin (configuration: Configuration) originProjectFile (destCrackedFsprojSingleTarget: SingleTargetCrackedFsproj) =
 
             let targetDir = destCrackedFsprojSingleTarget.TargetDir
 
@@ -63,16 +70,12 @@ module Extensions =
 
             logger.CopyFile originDll destDll
 
-            let originPdb = originDll |> Path.changeExtension ".pdb"
+            logger.CopyPdb configuration (Path.changeExtension ".pdb" originDll) (Path.changeExtension ".pdb" fileName)
 
-            let destPdb = targetDir </> (Path.changeExtension ".pdb" fileName)
-
-            logger.CopyFile originPdb destPdb
-
-        let copyObjToBin (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+        let copyObjToBin configuration (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
             logger.CopyFile singleTargetCrackedFsproj.ObjTargetFile singleTargetCrackedFsproj.TargetPath
-            logger.CopyFile singleTargetCrackedFsproj.ObjTargetPdb singleTargetCrackedFsproj.TargetPdbPath
 
+            logger.CopyPdb configuration singleTargetCrackedFsproj.ObjTargetPdb singleTargetCrackedFsproj.TargetPdbPath
 
         let compile (checker: FSharpChecker) (crackedProjectSingleTarget: SingleTargetCrackedFsproj) = async {
             let tmpDll = crackedProjectSingleTarget.ObjTargetFile
@@ -93,12 +96,12 @@ module Extensions =
     [<RequireQualifiedAccess>]
     module CrackedFsproj =
 
-        let copyFileFromRefDllToBin projectFile (destCrackedFsproj: CrackedFsproj) =
+        let copyFileFromRefDllToBin configuration projectFile (destCrackedFsproj: CrackedFsproj) =
             destCrackedFsproj.AsList
-            |> List.iter (SingleTargetCrackedFsproj.copyFileFromRefDllToBin projectFile)
+            |> List.iter (SingleTargetCrackedFsproj.copyFileFromRefDllToBin configuration projectFile)
 
-        let copyObjToBin (crackedFsproj: CrackedFsproj) =
-            crackedFsproj.AsList |> List.iter SingleTargetCrackedFsproj.copyObjToBin
+        let copyObjToBin configuration (crackedFsproj: CrackedFsproj) =
+            crackedFsproj.AsList |> List.iter (SingleTargetCrackedFsproj.copyObjToBin configuration)
 
 
         let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsproj) =

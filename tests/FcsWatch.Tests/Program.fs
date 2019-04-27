@@ -3,6 +3,7 @@
 open Expecto.Logging
 open Expecto.Tests
 open FcsWatch.Tests.Tests
+open System
 
 let testConfig =  
     { Expecto.Tests.defaultConfig with 
@@ -11,9 +12,9 @@ let testConfig =
 
 let tests = 
     testList "All tests" [ 
-        programTests             
-        pluginTests 
+        programTests     
         webhookTests
+        pluginTests 
         functionTests           
     ] 
 // Create an interactive checker instance 
