@@ -14,6 +14,11 @@ type ICompilerOrCheckResult =
 
 module CrackedFsproj =
 
+    let internal getSourceFilesFromOtherOptions (otherOptions: string []) =
+        otherOptions
+        |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
+        |> Array.map Path.getFullName
+
     [<RequireQualifiedAccess>]
     module private Array =
         let keepOrAdd (keeper: string -> bool) added list =
@@ -64,6 +69,8 @@ module CrackedFsproj =
                 | "--target:exe" -> ProjectTarget.Exe
                 | "--target:library" -> ProjectTarget.Library
                 | others -> failwithf "unknown target compile option %s" others
+
+        member x.ProjDir = Path.getDirectory x.ProjPath
 
         member x.TargetPath = x.Props.["TargetPath"]
 
@@ -131,7 +138,22 @@ module CrackedFsproj =
                     OtherOptions = mapping projOptions.OtherOptions }
             ) singleTargetCrackedFsproj
 
-        let mapProjOptionsDebuggable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+        let mapProjOtherOption mapping (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            mapProjOtherOptions (Array.map mapping) singleTargetCrackedFsproj
+
+        /// https://github.com/humhei/FCSWatch/issues/30
+        let mapOtherOptionDocToFullPath (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            mapProjOtherOption (fun ops ->
+                if ops.StartsWith "--doc:" 
+                then 
+                    let path = ops.Substring(6)
+                    if Path.IsPathRooted path 
+                    then ops
+                    else "--doc:" + Path.Combine(singleTargetCrackedFsproj.ProjDir, path)
+                else ops
+            ) singleTargetCrackedFsproj
+
+        let private mapProjOptionsDebuggable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
             mapProjOtherOptions (fun ops ->
                 ops
                 |> Array.keepOrAdd (fun ops -> ops.StartsWith "-o:" || ops.StartsWith "--out:") ("-o:" + singleTargetCrackedFsproj.ObjTargetFile)
@@ -140,13 +162,19 @@ module CrackedFsproj =
                 |> Array.keepOrAdd (fun ops -> ops.StartsWith "--optimize" || ops.StartsWith "-O") ("--optimize-")
             ) singleTargetCrackedFsproj
 
-        let mapProjOptionsReleasable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+        let private mapProjOptionsReleasable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
             mapProjOtherOptions (fun ops ->
                 ops
                 |> Array.keepOrAdd (fun ops -> ops.StartsWith "-o:" || ops.StartsWith "--out:") ("-o:" + singleTargetCrackedFsproj.ObjTargetFile)
-                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug+" || ops.StartsWith "-g-") ("--debug-")
+                |> Array.keepOrAdd (fun ops -> ops.StartsWith "--debug+" || ops.StartsWith "-g+") ("--debug-")
                 |> Array.keepOrAdd (fun ops -> ops.StartsWith "--optimize" || ops.StartsWith "-O") ("--optimize+")
             ) singleTargetCrackedFsproj
+
+
+        let mapProjOptionsByConfiguration (configuration: Configuration) (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            match configuration with 
+            | Configuration.Debug -> mapProjOptionsDebuggable singleTargetCrackedFsproj
+            | Configuration.Release -> mapProjOptionsReleasable singleTargetCrackedFsproj
 
 
     type CrackedFsproj = internal CrackedFsproj of SingleTargetCrackedFsproj list
@@ -183,20 +211,18 @@ module CrackedFsproj =
 
         let create configuration projectFile = async {
             match! ProjectCoreCracker.getProjectOptionsFromProjectFile configuration projectFile with
-            | [|projOptions,projRefs,props|] ->
-                return
-                    { FSharpProjectOptions = projOptions
-                      Props = props
-                      ProjPath = projectFile
-                      ProjRefs = projRefs }
-                    |> List.singleton
-                    |> CrackedFsproj
-
             | [||] -> return failwithf "no frameworks is found in project file %s" projectFile
             | results ->
                 return
                     results
-                    |> Array.map (fun (projOptions, projRefs ,props) -> { FSharpProjectOptions = projOptions; Props = props; ProjPath = projectFile; ProjRefs = projRefs })
+                    |> Array.map (fun (projOptions, projRefs ,props) -> 
+                        { FSharpProjectOptions = { projOptions with SourceFiles = getSourceFilesFromOtherOptions projOptions.OtherOptions }
+                          Props = props
+                          ProjPath = projectFile
+                          ProjRefs = projRefs }
+                        |> SingleTargetCrackedFsproj.mapOtherOptionDocToFullPath
+                        |> SingleTargetCrackedFsproj.mapProjOptionsByConfiguration configuration
+                    )
                     |> List.ofSeq
                     |> CrackedFsproj
         }
@@ -239,13 +265,3 @@ module CrackedFsproj =
             ) info
         )
 
-    let mapProjOtherOptionsDebuggable (CrackedFsproj singleTargetCrackedFsprojs) =
-        singleTargetCrackedFsprojs
-        |> List.map SingleTargetCrackedFsproj.mapProjOptionsDebuggable 
-        |> CrackedFsproj
-
-
-    let mapProjOtherOptionsReleasable (CrackedFsproj singleTargetCrackedFsprojs) =
-        singleTargetCrackedFsprojs
-        |> List.map SingleTargetCrackedFsproj.mapProjOptionsReleasable
-        |> CrackedFsproj
