@@ -233,4 +233,28 @@ let functionTests =
                 FullCrackedFsproj.easyGetAllProjPaths (datas </> "repro-projects\src\Masse.API\Masse.API.fsproj")
                 |> ignore
                 
+            /// https://github.com/humhei/FCSWatch/issues/30
+            testCaseAsync "Map project Other options --doc:path to --doc:fullPath and -o:path to -o:fullPath" <| async {
+                let! fullCracekdFsproj, _  =
+                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Configuration = Configuration.Debug})
+
+                let otherOptions =
+                    fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
+                        singleTargetCrackedFsproj.FSharpProjectOptions.OtherOptions
+                    ) |> List.ofSeq
+
+                let testByPrefix (prefix: string) =
+                    Expect.all otherOptions (fun ops -> 
+                        let index = ops.IndexOf prefix
+                        if index <> -1 then
+                            let path = ops.Substring(index + prefix.Length)
+                            Path.IsPathRooted path
+                        else true
+                    ) "pass"
+
+                testByPrefix "--doc:"
+                testByPrefix "-o:"
+                testByPrefix "-output:"
+            }
+
         ]

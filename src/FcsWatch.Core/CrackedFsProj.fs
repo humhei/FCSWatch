@@ -17,7 +17,6 @@ module CrackedFsproj =
     let internal getSourceFilesFromOtherOptions (otherOptions: string []) =
         otherOptions
         |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
-        |> Array.map Path.getFullName
 
     [<RequireQualifiedAccess>]
     module private Array =
@@ -142,16 +141,22 @@ module CrackedFsproj =
             mapProjOtherOptions (Array.map mapping) singleTargetCrackedFsproj
 
         /// https://github.com/humhei/FCSWatch/issues/30
-        let mapOtherOptionDocToFullPath (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+        let private mapOtherOptionToFullPathByPrefix prefix (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
             mapProjOtherOption (fun ops ->
-                if ops.StartsWith "--doc:" 
+                if ops.StartsWith prefix 
                 then 
-                    let path = ops.Substring(6)
+                    let path = ops.Substring(prefix.Length)
                     if Path.IsPathRooted path 
                     then ops
-                    else "--doc:" + Path.Combine(singleTargetCrackedFsproj.ProjDir, path)
+                    else prefix + Path.Combine(singleTargetCrackedFsproj.ProjDir, path)
                 else ops
             ) singleTargetCrackedFsproj
+
+        let mapOtherOptionToFullPath (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
+            singleTargetCrackedFsproj
+            |> mapOtherOptionToFullPathByPrefix "--doc:"
+            |> mapOtherOptionToFullPathByPrefix "-o:"
+            |> mapOtherOptionToFullPathByPrefix "--out:"
 
         let private mapProjOptionsDebuggable (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
             mapProjOtherOptions (fun ops ->
@@ -220,7 +225,7 @@ module CrackedFsproj =
                           Props = props
                           ProjPath = projectFile
                           ProjRefs = projRefs }
-                        |> SingleTargetCrackedFsproj.mapOtherOptionDocToFullPath
+                        |> SingleTargetCrackedFsproj.mapOtherOptionToFullPath
                         |> SingleTargetCrackedFsproj.mapProjOptionsByConfiguration configuration
                     )
                     |> List.ofSeq
