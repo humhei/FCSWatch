@@ -42,6 +42,7 @@ OPTIONS:
     --framework, -f <string>
                           The target framework to build for. The default to prefer netcore.
     --configuration, -c <debug|release>
+                          Has limitations; See #26 for detail
                           The configuration to use for building the project. The default is Debug.
     --help                display this list of options.
 

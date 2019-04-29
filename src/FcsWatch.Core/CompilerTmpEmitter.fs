@@ -143,6 +143,7 @@ type ICompilerTmpEmitter<'CustomMsg, 'CustomState,'Result when 'Result :> ICompi
     abstract member CustomInitialState: 'CustomState
 
 let compilerTmpEmitterAgent workingDir (compilerTmpEmitter:  ICompilerTmpEmitter<_, _, _>) (initialCache: CrackedFsprojBundleCache) = MailboxProcessor<CompilerTmpEmitterMsg<_, _>>.Start(fun inbox ->
+    inbox.Error.Add(fun error -> logger.Error "%A" error)
 
     let rec loop state = async {
 

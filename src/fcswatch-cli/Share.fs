@@ -33,7 +33,7 @@ with
             | Webhook _ -> "send a web hook when program (re)run"
             | Send _ -> sprintf "Equivalent to --webhook %s" defaultUrl
             | Framework _ -> "The target framework to build for. The default to prefer netcore."
-            | Configuration _ -> "The configuration to use for building the project. The default is Debug."
+            | Configuration _ -> "(experienment)The configuration to use for building the project. The default is Debug."
 
 type ProcessResult =
     { Config: BinaryConfig

@@ -23,6 +23,7 @@ type ICompiler<'Result when 'Result :> ICompilerOrCheckResult> =
     abstract member Summary: result: 'Result * elapsed: int64 -> string
 
 let compilerAgent (compiler: ICompiler<'Result>) (compilerTmpEmitterAgent: MailboxProcessor<CompilerTmpEmitterMsg<_, _>>) (initialCache: CrackedFsprojBundleCache) checker =  MailboxProcessor<CompilerMsg>.Start(fun inbox ->
+    inbox.Error.Add(fun error -> logger.Error "%A" error)
 
     let createCompileTask (crackedFsprojs: CrackedFsproj list) =
         crackedFsprojs

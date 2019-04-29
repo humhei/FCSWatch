@@ -3,7 +3,7 @@ storage: none
 nuget FSharp.Compiler.Service
 nuget Expecto
 nuget Dotnet.ProjInfo
-nuget Fake.DotNet.Cli
+nuget Fake.DotNet.Cli ~> 5.13.2
 nuget Suave
 nuget Dotnet.ProjInfo.Workspace
 github aspnet/AspNetCore:316fbbe9c42477b6c1d2088b5ef72f8ee3462186 src/Shared/Process/ProcessExtensions.cs
