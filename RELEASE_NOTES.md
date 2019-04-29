@@ -1,6 +1,8 @@
 ﻿# Release Notes
 
-## 0.7.9 - tbd
+## 0.7.10-alpha - tbd
+
+## 0.7.9 - 2019-04-29
 * Map project Other options --doc:path to --doc:fullPath #30 #31
 * Monitor error infos in MailBoxProcesser #16 #31
 
