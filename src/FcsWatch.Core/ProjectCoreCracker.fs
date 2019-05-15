@@ -77,7 +77,7 @@ module ProjectCoreCracker =
 
       let getFscArgs = Dotnet.ProjInfo.Inspect.getFscArgs
       let getP2PRefs = Dotnet.ProjInfo.Inspect.getResolvedP2PRefs
-      let gp () = Dotnet.ProjInfo.Inspect.getProperties (["TargetPath"; "IsCrossTargetingBuild"; "TargetFrameworks"; "TargetFramework"])
+      let gp () = Dotnet.ProjInfo.Inspect.getProperties (["TargetPath"; "IsCrossTargetingBuild"; "TargetFrameworks"; "TargetFramework"; "RunArguments"])
 
       let results =
           let runCmd exePath args = runProcess projDir exePath (args |> String.concat " ")
