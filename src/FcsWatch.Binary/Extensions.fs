@@ -70,12 +70,12 @@ module Extensions =
 
             logger.CopyFile originDll destDll
 
-            logger.CopyPdb configuration (Path.changeExtension ".pdb" originDll) (Path.changeExtension ".pdb" fileName)
+            logger.CopyPdb configuration (Path.changeExtension ".pdb" originDll) (Path.changeExtension ".pdb" destDll)
 
             destCrackedFsprojSingleTarget.AdditionalTargetDirs |> Seq.iter (fun targetDir ->
                 let destDll = targetDir </> fileName
                 logger.CopyFile originDll destDll
-                logger.CopyPdb configuration (Path.changeExtension ".pdb" originDll) (Path.changeExtension ".pdb" fileName))
+                logger.CopyPdb configuration (Path.changeExtension ".pdb" originDll) (Path.changeExtension ".pdb" destDll))
 
 
         let copyObjToBin configuration (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =

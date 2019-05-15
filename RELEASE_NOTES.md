@@ -1,6 +1,7 @@
 ﻿# Release Notes
 
-## 0.7.10-alpha - tbd
+## 0.7.10 - tbd
+* Add support for Bolero (detect "blazor serve" and copy dll to dist) #36
 
 ## 0.7.9 - 2019-04-29
 * Map project Other options --doc:path to --doc:fullPath #30 #31
