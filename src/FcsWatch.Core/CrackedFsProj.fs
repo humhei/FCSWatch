@@ -75,6 +75,12 @@ module CrackedFsproj =
 
         member x.TargetDir = Path.getDirectory x.TargetPath
 
+        member x.AdditionalTargetDirs =
+            x.Props |> Map.toSeq
+            |> Seq.choose (function
+                | "RunArguments", "blazor serve" -> Some(x.TargetDir </> "dist/_framework/_bin")
+                | _ -> None)
+
         member x.TargetFramework = x.Props.["TargetFramework"]
 
         member x.TargetPdbPath = Path.changeExtension ".pdb" x.TargetPath

@@ -72,10 +72,21 @@ module Extensions =
 
             logger.CopyPdb configuration (Path.changeExtension ".pdb" originDll) (Path.changeExtension ".pdb" fileName)
 
+            destCrackedFsprojSingleTarget.AdditionalTargetDirs |> Seq.iter (fun targetDir ->
+                let destDll = targetDir </> fileName
+                logger.CopyFile originDll destDll
+                logger.CopyPdb configuration (Path.changeExtension ".pdb" originDll) (Path.changeExtension ".pdb" fileName))
+
+
         let copyObjToBin configuration (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) =
             logger.CopyFile singleTargetCrackedFsproj.ObjTargetFile singleTargetCrackedFsproj.TargetPath
 
             logger.CopyPdb configuration singleTargetCrackedFsproj.ObjTargetPdb singleTargetCrackedFsproj.TargetPdbPath
+
+            singleTargetCrackedFsproj.AdditionalTargetDirs |> Seq.iter (fun targetDir ->
+                logger.CopyFile singleTargetCrackedFsproj.ObjTargetFile targetDir
+                logger.CopyPdb configuration singleTargetCrackedFsproj.ObjTargetPdb targetDir)
+
 
         let compile (checker: FSharpChecker) (crackedProjectSingleTarget: SingleTargetCrackedFsproj) = async {
             let tmpDll = crackedProjectSingleTarget.ObjTargetFile
