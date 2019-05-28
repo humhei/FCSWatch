@@ -893,6 +893,7 @@ type EvalContext (?assemblyResolver: (AssemblyName -> Assembly), ?sink: Sink)  =
         | RPrim_float -> Value (Convert.ToDouble argsV.[0])
         | RPrim_double -> Value (Convert.ToDouble argsV.[0])
         | RPrim_single -> Value (Convert.ToSingle argsV.[0])
+        | RPrim_float32 -> Value (Convert.ToSingle argsV.[0])
         | RPrim_int32 -> Value (Convert.ToInt32 argsV.[0])
         | RPrim_int16 -> Value (Convert.ToInt16 argsV.[0])
         | RPrim_int64 -> Value (Convert.ToInt64 argsV.[0])
