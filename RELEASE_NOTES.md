@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.7.11-alpha - tbd
+## 0.7.12-alpha - tbd
+
+## 0.7.11 - 2019-05-28
+* PORTA: Fixes missing RPrim_float32 #39 @7sharp9
 
 ## 0.7.10 - 2019-05-15
 * Add support for Bolero (detect "blazor serve" and copy dll to dist) #36
