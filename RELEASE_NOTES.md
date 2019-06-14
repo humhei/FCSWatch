@@ -2,7 +2,7 @@
 
 ## 0.7.13-alpha - tbd
 
-## 0.7.12 - tbd
+## 0.7.12 - 2019-6-14
 * Support watching additional content files #40 @ @tylerhartwig
 
 ## 0.7.11 - 2019-05-28
