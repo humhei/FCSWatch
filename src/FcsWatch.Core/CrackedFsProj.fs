@@ -3,7 +3,10 @@ open System.IO
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open FSharp.Compiler.SourceCodeServices
+open Fake.IO.Globbing.Operators
+open ProjectCoreCracker
 open System
+open System.Text.RegularExpressions
 
 
 type ICompilerOrCheckResult =
@@ -13,10 +16,21 @@ type ICompilerOrCheckResult =
 
 
 module CrackedFsproj =
+    let internal createRegexFromGlob glob =
+        Regex.Escape(glob).Replace(@"\*", ".*").Replace(@"\?", ".")
 
-    let internal getSourceFilesFromOtherOptions (otherOptions: string []) =
+    let internal getSourceFilesFromOtherOptions (otherOptions: string []) (additionalConfig: AdditionalProjInfoConfig ) projDirectory =
+        let includePaths = additionalConfig.IncludeGlobs |> Array.map (fun glob -> Path.Combine(projDirectory, glob))
+        let excludePaths = additionalConfig.ExcludeGlobs |> Array.map (fun glob -> Path.Combine(projDirectory, glob))
+
+        let includeGlob = includePaths |> Array.fold (fun globs s -> globs ++ s) (!! "")
+        let finalGlob = excludePaths |> Array.fold (fun globs s -> globs -- s) includeGlob
+        let extraSources = finalGlob |> Seq.toArray
+
         otherOptions
-        |> Array.filter(fun op -> op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs" )
+        |> Array.filter(fun op ->
+            (op.EndsWith ".fs" && not <| op.EndsWith "AssemblyInfo.fs"))
+        |> Array.append (Seq.toArray extraSources)
 
     [<RequireQualifiedAccess>]
     module private Array =
@@ -226,8 +240,8 @@ module CrackedFsproj =
             | results ->
                 return
                     results
-                    |> Array.map (fun (projOptions, projRefs ,props) -> 
-                        { FSharpProjectOptions = { projOptions with SourceFiles = getSourceFilesFromOtherOptions projOptions.OtherOptions }
+                    |> Array.map (fun (projOptions, projRefs, props, additionalConfig) ->
+                        { FSharpProjectOptions = { projOptions with SourceFiles = getSourceFilesFromOtherOptions projOptions.OtherOptions additionalConfig (Path.getDirectory(projectFile)) }
                           Props = props
                           ProjPath = projectFile
                           ProjRefs = projRefs }
