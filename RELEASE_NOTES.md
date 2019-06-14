@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.7.12-alpha - tbd
+## 0.7.13-alpha - tbd
+
+## 0.7.12 - tbd
+* Support watching additional content files #40 @ @tylerhartwig
 
 ## 0.7.11 - 2019-05-28
 * PORTA: Fixes missing RPrim_float32 #39 @7sharp9
