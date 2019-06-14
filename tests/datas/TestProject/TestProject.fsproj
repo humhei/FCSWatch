@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>netcoreapp2.2; net462</TargetFrameworks>
@@ -16,7 +16,12 @@
     <Compile Include="Test2.fs" />
     <Compile Include="Test.fs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Content.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <Watch Include="*.html" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>

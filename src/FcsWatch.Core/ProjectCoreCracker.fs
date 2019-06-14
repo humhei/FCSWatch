@@ -1,4 +1,5 @@
 ﻿namespace FcsWatch.Core 
+open System.Xml.Linq
 
 [<RequireQualifiedAccess>]
 type Configuration =
@@ -68,6 +69,33 @@ module ProjectCoreCracker =
       | MSBuildPrj.MSBuild.StringList list  -> list
       | _ -> []
 
+    type AdditionalProjInfoConfig =
+        {
+            IncludeGlobs : string []
+            ExcludeGlobs : string []
+        } with
+        static member Empty =
+            { IncludeGlobs = [|  |]; ExcludeGlobs = [|  |] }
+
+
+    let private parseAdditionalWatchGlobs (file: string) =
+        let document = XDocument.Load(file)
+        document.Descendants(XName.op_Implicit("Watch")) |> Seq.map (fun node -> {
+                    IncludeGlobs =
+                        node.Attributes(XName.op_Implicit("Include"))
+                            |> Seq.map (fun a -> a.Value.Split[| ';' |])
+                            |> Seq.fold (fun a b -> Array.concat [ a; b ]) [|  |]
+                    ExcludeGlobs =
+                        node.Attributes(XName.op_Implicit("Exclude"))
+                            |> Seq.map (fun a -> a.Value.Split[| ';' |])
+                            |> Seq.fold (fun a b -> Array.concat [ a ; b ]) [|  |]
+                }) |> Seq.fold (fun a b ->
+                {
+                    IncludeGlobs = Array.concat [ a.IncludeGlobs; b.IncludeGlobs ]
+                    ExcludeGlobs = Array.concat [ a.ExcludeGlobs; b.ExcludeGlobs ]
+                }) AdditionalProjInfoConfig.Empty
+
+
     let rec private projInfo additionalMSBuildProps (file: string) =
       let projDir = Path.GetDirectoryName file
 
@@ -78,6 +106,8 @@ module ProjectCoreCracker =
       let getFscArgs = Dotnet.ProjInfo.Inspect.getFscArgs
       let getP2PRefs = Dotnet.ProjInfo.Inspect.getResolvedP2PRefs
       let gp () = Dotnet.ProjInfo.Inspect.getProperties (["TargetPath"; "IsCrossTargetingBuild"; "TargetFrameworks"; "TargetFramework"; "RunArguments"])
+
+      let additionalConfig = parseAdditionalWatchGlobs file
 
       let results =
           let runCmd exePath args = runProcess projDir exePath (args |> String.concat " ")
@@ -165,7 +195,7 @@ module ProjectCoreCracker =
                   Stamp = None
               }
           let projRefs = p2ps |> List.map (fun p2p -> p2p.ProjectReferenceFullPath)
-          projOptions, projRefs, props
+          projOptions, projRefs, props, additionalConfig
 
     [<RequireQualifiedAccess>]
     type private FrameWork =

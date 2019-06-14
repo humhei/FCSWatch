@@ -34,6 +34,8 @@ let testSourceFileAdded = datas </> @"TestLib2/Added.fs"
 
 let testSourceFile1InTestLib = datas </> @"TestLib1/Library.fs"
 
+let testContentFile = datas </> @"TestProject/Content.html"
+
 let expectCompilerNumber excepted (CompilerNumber compilerNumber) =
     Expect.equal excepted compilerNumber (sprintf "expected compiler number %d,while current compiler number is %d" excepted compilerNumber)
 
@@ -93,6 +95,10 @@ let programTests =
 
             finally
                 Fsproj.removeFileFromProject "Added.fs" testProjPath
+
+        testCase "change html content file in TestProject will trigger compiling" <| fun _ ->
+            /// TestProject/Content.html
+            testSourceFilesChanged watcher [testContentFile] 1
     ]
 
 

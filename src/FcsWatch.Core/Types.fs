@@ -11,6 +11,7 @@ open Fake.DotNet
 open System.Threading.Tasks
 open FSharp.Compiler.SourceCodeServices
 open Fake.IO.Globbing.Operators
+open FcsWatch.Core.ProjectCoreCracker
 
 type IMailboxProcessor<'Msg> =
     abstract member PostAndReply: buildMsg: (AsyncReplyChannel<'Reply> -> 'Msg) -> 'Reply
@@ -392,7 +393,7 @@ module FullCrackedFsproj =
             let fsharpProjectOptions =
                 { fsharpProjectOptions with 
                     OtherOptions = otherOptions
-                    SourceFiles = getSourceFilesFromOtherOptions otherOptions }
+                    SourceFiles = getSourceFilesFromOtherOptions otherOptions AdditionalProjInfoConfig.Empty "" }
 
             return noframwork fsharpProjectOptions builder.File
 
