@@ -276,7 +276,7 @@ module FcsWatcher =
                 }
                 let sourceFileWatcher = newSourceFileWatcher initialCache
 
-                logger.Important "Waiting for changes... press any key to exit"
+                logger.Important "Waiting for changes... press CTRL+C to exit"
 
                 loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojBundleCache = initialCache }
 

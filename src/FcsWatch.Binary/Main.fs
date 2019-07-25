@@ -157,4 +157,6 @@ let runFcsWatcher (processExit : System.Threading.Tasks.Task<unit>) (config: Bin
     match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload -> tryKill autoReload cache.EntryCrackedFsproj
     | _ -> ()
+
+    logger.Info "Exited fcswatch.exe"
 }
