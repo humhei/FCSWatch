@@ -2,6 +2,7 @@
 module FcsWatch.Cli.Main
 open FcsWatch.Binary
 open FcsWatch.Cli.Share
+open System.Threading.Tasks
 
 
 let splitArgs args =
@@ -17,19 +18,28 @@ let splitArgs args =
 [<EntryPoint>]
 let main argv =
     try
+        let exited = TaskCompletionSource<unit>()
+        System.Console.CancelKeyPress.Add(fun _ ->
+            exited.TrySetResult ()
+            |> ignore
+        )
 
+        System.Runtime.Loader.AssemblyLoadContext.Default.add_Unloading(fun _ ->
+            exited.TrySetResult ()
+            |> ignore
+        )
         let arguArgs, additionalArgs = splitArgs argv
 
         let results = parser.Parse arguArgs
 
         let processResult = processParseResults additionalArgs results
 
-        runFcsWatcher processResult.Config processResult.ProjectFile
+        runFcsWatcher exited.Task processResult.Config processResult.ProjectFile
+        |> Async.RunSynchronously
 
         0
 
     with :? Argu.ArguParseException as e ->
         stdout.WriteLine e.Message
-        
-        LanguagePrimitives.EnumToValue e.ErrorCode
 
+        LanguagePrimitives.EnumToValue e.ErrorCode

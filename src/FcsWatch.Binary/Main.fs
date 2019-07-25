@@ -64,7 +64,7 @@ with
 module BinaryConfig =
 
     let additionalBuildArgs (config: BinaryConfig) =
-        match config.Configuration with 
+        match config.Configuration with
         | Configuration.Release -> ["--configuration"; "Release"]
         | Configuration.Debug -> ["--configuration"; "Debug"]
 
@@ -126,7 +126,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
     match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload ->
 
-        let programRunningArgs: AutoReload.ProgramRunningArgs = 
+        let programRunningArgs: AutoReload.ProgramRunningArgs =
             BinaryConfig.asAutoReloadProgramRunningArgs WhyRun.Run autoReload config
 
         let compilerTmpEmitter = AutoReload.create programRunningArgs
@@ -150,10 +150,11 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 let tryKill autoReloadDevelopmentTarget entryCrackedFsproj =
     AutoReload.CrackedFsproj.tryKill autoReloadDevelopmentTarget entryCrackedFsproj
 
-let runFcsWatcher (config: BinaryConfig) entryProjectFile =
+let runFcsWatcher (processExit : System.Threading.Tasks.Task<unit>) (config: BinaryConfig) entryProjectFile = async {
     let binaryFcsWatcher = binaryFcsWatcher config entryProjectFile
-    Console.ReadLine() |> ignore
+    do! processExit |> Async.AwaitTask
     let cache = binaryFcsWatcher.PostAndReply FcsWatcherMsg.GetCache
     match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload -> tryKill autoReload cache.EntryCrackedFsproj
     | _ -> ()
+}
