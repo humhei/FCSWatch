@@ -1,6 +1,11 @@
 ﻿# Release Notes
 
-## 0.7.13 - tbd
+## 0.7.15-alpha - tbd
+
+## 0.7.14 - 2019-07-26
+* using CTRL + C exit fcswatch-cli
+
+## 0.7.13 - 2019-6-14
 * Support watching additional content files #40 @ @tylerhartwig
 
 ## 0.7.12 - 2019-6-14
