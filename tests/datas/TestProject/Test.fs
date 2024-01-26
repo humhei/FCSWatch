@@ -25,7 +25,7 @@ let main _ =
 
     //printfn "Hell world from resource %s" resource
 
-    printfn "HEssssss222  9108 985966911 911000999                        %s" (Say.fromLib2)
+    printfn "HEsSSS  9108 985966911 91100099999ASASSASA" 
 
     /// simulate server
     Console.ReadLine()

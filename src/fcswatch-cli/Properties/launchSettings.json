@@ -1,7 +1,8 @@
 {
   "profiles": {
     "fcswatch-cli": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--project-file \"D:\\VsCode\\Workspace\\FCSWatch\\tests\\datas\\TestProject\\TestProject.fsproj\""
     }
   }
 }

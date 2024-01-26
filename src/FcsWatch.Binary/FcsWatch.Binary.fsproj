@@ -21,9 +21,7 @@
     <ProjectReference Include="..\FcsWatch.Core\FcsWatch.Core.fsproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.6.2" />
-  </ItemGroup>
+
   
   <PropertyGroup>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProcessExtensions</TargetsForTfmSpecificBuildOutput>

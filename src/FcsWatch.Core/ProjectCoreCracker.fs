@@ -97,13 +97,19 @@ module ProjectCoreCracker =
 
 
     let rec private projInfo additionalMSBuildProps (file: string) =
+      let additionalMSBuildProps = 
+        additionalMSBuildProps 
+        @ [ "CoreCompileDependsOn", "FindReferenceAssembliesForReferences"]
       let projDir = Path.GetDirectoryName file
 
       let projectAssetsJsonPath = Path.Combine(projDir, "obj", "project.assets.json")
       if not(File.Exists(projectAssetsJsonPath)) then
          failwithf "Cannot find restored info for project %s" file
 
-      let getFscArgs = Dotnet.ProjInfo.Inspect.getFscArgs
+      let getFscArgs() = 
+        let a, b, c = Dotnet.ProjInfo.Inspect.getFscArgs()
+        a, b, c
+
       let getP2PRefs = Dotnet.ProjInfo.Inspect.getResolvedP2PRefs
       let gp () = Dotnet.ProjInfo.Inspect.getProperties (["TargetPath"; "IsCrossTargetingBuild"; "TargetFrameworks"; "TargetFramework"; "RunArguments"])
 

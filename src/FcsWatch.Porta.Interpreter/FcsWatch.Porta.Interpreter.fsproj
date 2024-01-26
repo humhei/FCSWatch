@@ -10,11 +10,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Compiler.Service" Version="27.0.1" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.300" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.6.2" />
-  </ItemGroup>
+
 
 </Project>

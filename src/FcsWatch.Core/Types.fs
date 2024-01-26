@@ -7,6 +7,7 @@ open System.Collections.Generic
 open System.Xml
 open FcsWatch.Core.CrackedFsproj
 open System
+open Fake
 open Fake.DotNet
 open System.Threading.Tasks
 open FSharp.Compiler.SourceCodeServices
