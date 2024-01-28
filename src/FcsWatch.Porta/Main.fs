@@ -6,7 +6,7 @@
 module FcsWatch.Porta.Main
 
 open System
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open FcsWatch.Core.Compiler
 open FcsWatch.Core
 open FcsWatch.Core.FcsWatcher
@@ -35,11 +35,18 @@ let runFcsWatcher (config: PortaConfig) =
           WorkingDir = config.WorkingDir
           UseEditFiles = config.UseEditFiles
           OtherFlags = config.OtherFlags
-          Configuration = Configuration.Debug }
+          Configuration = Configuration.Debug
+          TargetFramework = None }
 
     let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
-    let fcsWatcher, _ = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig config.Fsproj
+    let fcsWatcher, _ = 
+        fcsWatcherAndCompilerTmpAgent 
+            checker 
+            compilerTmpEmitter 
+            compiler 
+            coreConfig 
+            (config.Fsproj |> Option.map EntryFile.Create)
 
     if config.Watch then
         Console.ReadLine() |> ignore
@@ -58,5 +65,6 @@ let runFcsWatcher (config: PortaConfig) =
 
         fcsWatcher.PostAndReply (makeSourceFileChanges [cache.EntryCrackedFsproj.SourceFiles.[0]])
 
+        // WaitCompiled here is WaitChecked
         fcsWatcher.PostAndReply FcsWatcherMsg.WaitCompiled
         |> ignore

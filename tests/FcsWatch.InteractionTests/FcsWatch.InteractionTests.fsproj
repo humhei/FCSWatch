@@ -2,18 +2,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>net7</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\fcswatch-cli\fcswatch-cli.fsproj" />
     <ProjectReference Include="..\..\src\fslive-cli\fslive-cli.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Tests.fsx" />
     <Compile Include="Types.fs" />
     <Compile Include="InteractionTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="FSharp.Compiler.Service" Version="43.7.300" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Expecto" Version="9.0.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="7.0.300" />
+    </ItemGroup>
+
 </Project>

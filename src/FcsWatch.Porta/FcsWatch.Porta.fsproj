@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net6</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +17,8 @@
     <ProjectReference Include="..\FcsWatch.Porta.Interpreter\FcsWatch.Porta.Interpreter.fsproj" />
   </ItemGroup>
 
-
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="7.0.300" />
+    </ItemGroup>
 
 </Project>

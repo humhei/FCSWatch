@@ -4,7 +4,7 @@ open FcsWatch.Core
 open Types
 open FcsWatch.Core.CrackedFsproj
 open FcsWatch.Core.CompilerTmpEmitter
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open FcsWatch.Porta.FromCompilerService
 open Extensions
 

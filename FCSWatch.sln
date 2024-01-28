@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.489
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3D12606D-9919-4874-A10C-E37F1CB84CBC}"
+	ProjectSection(SolutionItems) = preProject
+		src\FcsWatch.Core\Compiler.fs = src\FcsWatch.Core\Compiler.fs
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{43FBDDAF-4E0A-4D82-BCB2-002472E7F170}"
 EndProject

@@ -1,7 +1,7 @@
 ﻿namespace FcsWatch.Porta
 open Fake.Core
 open FcsWatch.Porta.CodeModel
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open FcsWatch.Porta.FromCompilerService
 open System.Net
 open System.Text
@@ -9,6 +9,7 @@ open System
 open Interpreter
 open System.Collections.Generic
 open System.IO
+open FSharp.Compiler.Symbols
 
 [<AutoOpen>]
 module internal FromProcessCommandLine =

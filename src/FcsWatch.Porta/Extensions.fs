@@ -3,13 +3,16 @@
 open System.IO
 open Fake.IO
 open FcsWatch.Core.CrackedFsproj
-open FSharp.Compiler.SourceCodeServices
 open FcsWatch.Core
 open FcsWatch.Core.Types
+open FSharp.Compiler.Diagnostics
+open FSharp.Compiler.Symbols
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.Text
 
 type CheckResult =
     { ExitCode: int 
-      Errors: FSharpErrorInfo [] 
+      Errors: FSharpDiagnostic [] 
       Fsproj: SingleTargetCrackedFsproj
       Contents: FSharpImplementationFileContents list }
 with 
@@ -36,7 +39,12 @@ module Extensions =
         let check useEditFiles liveCheckOnly (checker: FSharpChecker) (singleTargetCrackedFsproj: SingleTargetCrackedFsproj) = async {
             let rec checkFile1 count sourceFile =         
                 try 
-                    let _, checkResults = checker.ParseAndCheckFileInProject(sourceFile, 0, FileSystem.readFile sourceFile useEditFiles, mapProjOptionsWithoutSourceFiles singleTargetCrackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
+                    let _, checkResults =
+                        let sourceFileText = 
+                            FileSystem.readFile sourceFile useEditFiles
+                            |> SourceText.ofString
+                            
+                        checker.ParseAndCheckFileInProject(sourceFile, 0, sourceFileText , mapProjOptionsWithoutSourceFiles singleTargetCrackedFsproj.FSharpProjectOptions) |> Async.RunSynchronously  
                     match checkResults with 
                     | FSharpCheckFileAnswer.Aborted -> 
                         logger.Important "aborted"
@@ -44,12 +52,12 @@ module Extensions =
 
                     | FSharpCheckFileAnswer.Succeeded res -> 
                         let mutable hasErrors = false
-                        for error in res.Errors do 
-                            if error.Severity = FSharpErrorSeverity.Error then 
+                        for error in res.Diagnostics do 
+                            if error.Severity = FSharpDiagnosticSeverity.Error then 
                                 hasErrors <- true
 
                         if hasErrors then 
-                            Result.Error (res.ImplementationFile, res.Errors)
+                            Result.Error (res.ImplementationFile, res.Diagnostics)
                         else
                             Result.Ok res.ImplementationFile 
                 with 

@@ -6,7 +6,7 @@ open FcsWatch.Core.Compiler
 open FcsWatch.Core.FcsWatcher
 open System
 open Extensions
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open Fake.IO.FileSystemOperators
 open FcsWatch.Core.Types
 
@@ -33,6 +33,7 @@ module DevelopmentTarget =
             | DebuggingServer.DevelopmentTarget.Plugin plugin -> Plugin (DebuggingServer.Plugin.asAutoReloadPlugin plugin)
             | DebuggingServer.DevelopmentTarget.Program _ -> Program
 
+type ProjectFilePath = ProjectFilePath of string
 
 type BinaryConfig =
     { LoggerLevel: Logger.Level
@@ -59,6 +60,13 @@ with
           Webhook = None
           AdditionalSwitchArgs = Array.empty }
 
+    member config.ToCoreConfig() =
+        { LoggerLevel = config.LoggerLevel
+          WorkingDir = config.WorkingDir
+          OtherFlags = [||]
+          Configuration = config.Configuration
+          UseEditFiles = config.UseEditFiles
+          TargetFramework = config.Framework }
 
 [<RequireQualifiedAccess>]
 module BinaryConfig =
@@ -79,20 +87,24 @@ module BinaryConfig =
           WhyRun = whyRun }
 
 
+
     let tryBuildProject projectFile (config: BinaryConfig) =
-        if not config.NoBuild then
-            let additionalBuildArgs = additionalBuildArgs config
+        match projectFile with 
+        | EntryFile.ScriptingFile _ -> ()
+        | EntryFile.FsProj projectFile ->
+            if not config.NoBuild then
+                let additionalBuildArgs = additionalBuildArgs config
 
-            match config.DevelopmentTarget with
-            | DevelopmentTarget.Program _ ->
-                dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
+                match config.DevelopmentTarget with
+                | DevelopmentTarget.Program _ ->
+                    dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
 
-            | DevelopmentTarget.Plugin plugin ->
-                plugin.Unload()
-                dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
+                | DevelopmentTarget.Plugin plugin ->
+                    plugin.Unload()
+                    dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
 
 let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
-
+    
     logger <- Logger.create config.LoggerLevel
 
     let config =
@@ -112,14 +124,11 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
             member x.WarmCompile = config.WarmCompile
             member x.Summary (result, elapsed) = summary result.ProjPath result.Dll elapsed}
 
-    let coreConfig: FcsWatch.Core.Config =
-        { LoggerLevel = config.LoggerLevel
-          WorkingDir = config.WorkingDir
-          OtherFlags = [||]
-          Configuration = config.Configuration
-          UseEditFiles = config.UseEditFiles }
+    let coreConfig: FcsWatch.Core.Config = config.ToCoreConfig()
 
     let checker = FSharpChecker.Create()
+
+    let entryProjectFile = EntryFile.Create entryProjectFile
 
     BinaryConfig.tryBuildProject entryProjectFile config
 

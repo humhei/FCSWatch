@@ -1,5 +1,5 @@
 namespace FcsWatch.Core
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open FcsWatch.Core.Types
 open Fake.IO.Globbing
 open Fake.IO
@@ -123,12 +123,7 @@ module private ChangeWatcher =
     let run (onChange : FileChange seq -> unit) (fileIncludes : IGlobbingPattern) = runWithAgent id onChange fileIncludes
 
 
-type Config =
-    { LoggerLevel: Logger.Level
-      WorkingDir: string
-      UseEditFiles: bool
-      OtherFlags: string []
-      Configuration: Configuration }
+
 
 
 module FcsWatcher =
@@ -158,15 +153,13 @@ module FcsWatcher =
         compilerTmpEmitter
         compiler
         (config: Config)
-        (entryFileOp: string option) =
-
-            let entryFileOp = entryFileOp |> Option.map Path.nomalizeToUnixCompatiable
+        (entryFileOp: EntryFile option) =
 
             let config = { config with WorkingDir = Path.nomalizeToUnixCompatiable config.WorkingDir }
 
             logger <- Logger.create (config.LoggerLevel)
 
-            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config.WorkingDir config.Configuration config.UseEditFiles checker entryFileOp config.OtherFlags
+            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config checker entryFileOp
 
             logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
             logger.Info "fcs watcher's working directory is %s" config.WorkingDir

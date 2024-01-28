@@ -195,8 +195,16 @@ let webhookTests =
 let functionTests =
 
     let testObjRefOnly configuration = async {
-        let! fullCracekdFsproj, _  =
-            FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Configuration = configuration})
+        let config: Config =    
+            BinaryConfig.DefaultValue.ToCoreConfig()
+        let fullCracekdFsproj, _  =
+            FullCrackedFsproj.create 
+                (FullCrackedFsprojBuilder.Project 
+                    { OtherFlags = [||]
+                      File = entryProjPath
+                      Config = config
+                    }
+                )
 
         let otherOptions =
             fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
@@ -241,8 +249,11 @@ let functionTests =
                 
             /// https://github.com/humhei/FCSWatch/issues/30
             testCaseAsync "Map project Other options --doc:path to --doc:fullPath and -o:path to -o:fullPath" <| async {
-                let! fullCracekdFsproj, _  =
-                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Configuration = Configuration.Debug})
+                let fullCracekdFsproj, _  =
+                    let config: Config =    
+                        BinaryConfig.DefaultValue.ToCoreConfig()
+
+                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Config = config })
 
                 let otherOptions =
                     fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->

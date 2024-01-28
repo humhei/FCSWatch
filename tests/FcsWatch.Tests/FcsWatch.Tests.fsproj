@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
+    <TargetFrameworks>net7</TargetFrameworks>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
@@ -11,9 +11,12 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\fcswatch-cli\fcswatch-cli.fsproj" />
+    <PackageReference Include="Expecto" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Compiler.Service" Version="43.7.300" />
+    <ProjectReference Include="..\..\src\fcswatch-cli\fcswatch-cli.fsproj" />
   </ItemGroup>
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="7.0.300" />
+    </ItemGroup>
 </Project>
