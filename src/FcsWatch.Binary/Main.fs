@@ -45,7 +45,10 @@ type BinaryConfig =
       UseEditFiles: bool
       Webhook: string option
       WarmCompile: bool
-      AdditionalSwitchArgs : string array }
+      AdditionalSwitchArgs : string array
+      CustomPrefixBuildAction: option<BinaryConfig -> unit>
+      CustomFSharpChecker: RemotableFSharpChecker option
+      }
 
 with
     static member DefaultValue =
@@ -58,7 +61,9 @@ with
           UseEditFiles = false
           WarmCompile = true
           Webhook = None
-          AdditionalSwitchArgs = Array.empty }
+          AdditionalSwitchArgs = Array.empty
+          CustomPrefixBuildAction = None
+          CustomFSharpChecker = None }
 
     member config.ToCoreConfig() =
         { LoggerLevel = config.LoggerLevel
@@ -94,14 +99,20 @@ module BinaryConfig =
         | EntryFile.FsProj projectFile ->
             if not config.NoBuild then
                 let additionalBuildArgs = additionalBuildArgs config
+                let build() =
+                    match config.CustomPrefixBuildAction with 
+                    | None -> 
+                        dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
+
+                    | Some action -> action { config with CustomPrefixBuildAction = None }
 
                 match config.DevelopmentTarget with
                 | DevelopmentTarget.Program _ ->
-                    dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
+                    build()
 
                 | DevelopmentTarget.Plugin plugin ->
                     plugin.Unload()
-                    dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
+                    build()
 
 let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
     
@@ -126,7 +137,13 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
     let coreConfig: FcsWatch.Core.Config = config.ToCoreConfig()
 
-    let checker = FSharpChecker.Create()
+    let checker = 
+        match config.CustomFSharpChecker with 
+        | None -> 
+            FSharpChecker.Create()
+            |> RemotableFSharpChecker.FSharpChecker
+
+        | Some checker -> checker
 
     let entryProjectFile = EntryFile.Create entryProjectFile
 

@@ -16,7 +16,7 @@ open FSharp.Compiler.Text
 
 type CompilerResult =
     { Dll: string
-      Errors: FSharpDiagnostic []
+      Errors: SerializableFSharpDiagnostic []
       ExitCode: int
       ProjPath: string }
 with
@@ -108,7 +108,7 @@ module Extensions =
                 logger.CopyPdb configuration singleTargetCrackedFsproj.ObjTargetPdb targetDir)
 
 
-        let compile (checker: FSharpChecker) (crackedProjectSingleTarget: SingleTargetCrackedFsproj) = async {
+        let compile (checker: RemotableFSharpChecker) (crackedProjectSingleTarget: SingleTargetCrackedFsproj) = async {
             let tmpDll = crackedProjectSingleTarget.ObjTargetFile
 
             let baseOptions =
@@ -116,7 +116,7 @@ module Extensions =
                 |> Array.map (fun op -> if op.StartsWith "-o:" then "-o:" + tmpDll else op)
 
             let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]]
-            let! errors, exitCode = checker.Compile(fscArgs)
+            let! errors, exitCode = checker.Compile_Serializable(fscArgs)
             return
                 { Errors = errors
                   ExitCode = exitCode
@@ -135,7 +135,7 @@ module Extensions =
             crackedFsproj.AsList |> List.iter (SingleTargetCrackedFsproj.copyObjToBin configuration)
 
 
-        let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsproj) =
+        let compile (checker) (crackedFsProj: CrackedFsproj) =
             crackedFsProj.AsList
             |> List.map (SingleTargetCrackedFsproj.compile checker)
             |> Async.Parallel

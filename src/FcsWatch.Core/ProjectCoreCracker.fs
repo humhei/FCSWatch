@@ -15,13 +15,12 @@ module ProjectCoreCracker =
     open Ionide.ProjInfo
 
 
-    let getProjectOptionsFromScript (checker: FSharpChecker) (scriptPath: string): FSharpProjectOptions = 
+    let getProjectOptionsFromScript (checker: RemotableFSharpChecker) (scriptPath: string): FSharpProjectOptions = 
         let r = 
             let sourceText = 
                 File.ReadAllText(scriptPath)
-                |> SourceText.ofString
 
-            checker.GetProjectOptionsFromScript(scriptPath, sourceText)
+            checker.GetProjectOptionsFromScript_Serializable(scriptPath, sourceText)
             |> Async.RunSynchronously
 
         fst r

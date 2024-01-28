@@ -13,7 +13,7 @@ open FSharp.Compiler.Diagnostics
 
 
 type ICompilerOrCheckResult =
-      abstract member Errors: FSharpDiagnostic []
+      abstract member Errors: SerializableFSharpDiagnostic []
       abstract member ExitCode: int
       abstract member ProjPath: string
 

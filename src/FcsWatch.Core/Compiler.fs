@@ -19,7 +19,7 @@ type CompilerModel =
 
 
 type ICompiler<'Result when 'Result :> ICompilerOrCheckResult> =
-    abstract member Compile : checker: FSharpChecker * proejct: CrackedFsproj -> Async<'Result []>
+    abstract member Compile : checker: RemotableFSharpChecker * proejct: CrackedFsproj -> Async<'Result []>
     abstract member WarmCompile: bool 
     abstract member Summary: result: 'Result * elapsed: int64 -> string
 

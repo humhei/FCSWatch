@@ -18,7 +18,7 @@ type CheckResult =
 with 
     interface ICompilerOrCheckResult with
         member x.ExitCode = x.ExitCode
-        member x.Errors = x.Errors
+        member x.Errors = Array.map SerializableFSharpDiagnostic.ofFSharpDiagnostic x.Errors
         member x.ProjPath = x.Fsproj.ProjPath
 
 [<AutoOpen>]

@@ -26,28 +26,16 @@ module internal ICompilerOrCheckResult =
 type NoFrameworkCrackedFsprojBuilder =
     { OtherFlags: string [] 
       UseEditFiles: bool
-      Checker: FSharpChecker
+      Checker: RemotableFSharpChecker
       Config: Config  }
 with 
-    member x.Configuration = x.Checker.CheckFileInProject
-
-type IRemoteFSharpChecker =
-    abstract member Compile_Serializable: argv: string [] * ?userOpName: string -> Async<SerializableFSharpDiagnostic [] * int>
-    abstract member ParseAndCheckFileInProject_Serializable:     
-        fileName: string 
-        * fileVersion: int
-        * sourceText: string
-        * options: FSharpProjectOptions
-        * ?userOpName: string -> Async<SerializableFSharpCheckFileAnswer>
-            
-
-
+    member x.Configuration = x.Config.Configuration
 
 
 type ScriptCrackedFsprojBuilder =
     { OtherFlags: string [] 
       File: string 
-      Checker: FSharpChecker
+      Checker: RemotableFSharpChecker
       Config: Config }
 
 
@@ -367,9 +355,8 @@ module FullCrackedFsproj =
             | [| script |] when script.EndsWith ".fsx" ->
                 let text = 
                     FileSystem.readFile script useEditFiles
-                    |> SourceText.ofString
 
-                let fsharpProjectOptions, errors = checker.GetProjectOptionsFromScript(script, text, otherFlags=otherFlags2) |> Async.RunSynchronously
+                let fsharpProjectOptions, errors = checker.GetProjectOptionsFromScript_Serializable(script, text, otherFlags=otherFlags2) |> Async.RunSynchronously
                 if errors.Length > 0 then 
                     failwithf "%A" errors
 

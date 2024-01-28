@@ -20,8 +20,13 @@ let runFcsWatcher (config: PortaConfig) =
     let compiler =
         { new ICompiler<CheckResult> with 
             member x.Compile(checker, crackedFsproj) = async {
-                let! result = CrackedFsproj.check config.UseEditFiles config.LiveCheckOnly checker crackedFsproj
-                return [|result|]
+                match checker with 
+                | RemotableFSharpChecker.FSharpChecker checker ->
+                    let! result = CrackedFsproj.check config.UseEditFiles config.LiveCheckOnly checker crackedFsproj
+                    return [|result|]
+
+                | RemotableFSharpChecker.Remote _ -> 
+                    return failwith "Invalid token, FSharpChecker cannot be remote here"
             }
             member x.WarmCompile = true
             member x.Summary (_, _) = ""
@@ -42,7 +47,7 @@ let runFcsWatcher (config: PortaConfig) =
 
     let fcsWatcher, _ = 
         fcsWatcherAndCompilerTmpAgent 
-            checker 
+            (RemotableFSharpChecker.FSharpChecker checker) 
             compilerTmpEmitter 
             compiler 
             coreConfig 
