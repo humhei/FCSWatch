@@ -45,13 +45,16 @@ let runFcsWatcher (config: PortaConfig) =
 
     let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
-    let fcsWatcher, _ = 
+    let fcsWatcher = 
         fcsWatcherAndCompilerTmpAgent 
             (RemotableFSharpChecker.FSharpChecker checker) 
             compilerTmpEmitter 
             compiler 
             coreConfig 
             (config.Fsproj |> Option.map EntryFile.Create)
+            ignore
+        |> fun fcsWatcher -> fcsWatcher.Agent
+
 
     if config.Watch then
         Console.ReadLine() |> ignore

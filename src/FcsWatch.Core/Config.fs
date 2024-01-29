@@ -101,7 +101,8 @@ module Configuration =
     let name = function 
         | Configuration.Debug -> "Debug"
         | Configuration.Release -> "Release"
-        
+
+
 
 type Config =
     { LoggerLevel: Logger.Level
@@ -109,4 +110,5 @@ type Config =
       UseEditFiles: bool
       OtherFlags: string []
       TargetFramework: string option
-      Configuration: Configuration }
+      Configuration: Configuration
+    }

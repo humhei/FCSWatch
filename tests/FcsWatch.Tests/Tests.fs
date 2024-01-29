@@ -62,7 +62,7 @@ let createWatcher (config: BinaryConfig) =
                 LoggerLevel = Logger.Level.Debug
                 WarmCompile = false }
 
-        binaryFcsWatcher config entryProjPath
+        (binaryFcsWatcher config entryProjPath).Agent
 
 let testSourceFilesChanged (watcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) sourceFiles expectedCompilerNumber  =
     watcher.Value.PostAndReply (makeSourceFileChanges sourceFiles)
@@ -70,7 +70,9 @@ let testSourceFilesChanged (watcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) sour
     |> expectCompilerNumber expectedCompilerNumber
 
 let programTests =
-    let watcher = createWatcher { BinaryConfig.DefaultValue with DevelopmentTarget = DevelopmentTarget.debuggableProgram }
+    let watcher = 
+        createWatcher { BinaryConfig.DefaultValue with DevelopmentTarget = DevelopmentTarget.debuggableProgram }
+
 
     testList "program tests" [
 

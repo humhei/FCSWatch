@@ -218,8 +218,10 @@ with
 
 
 type IMailboxProcessor<'Msg> =
+    inherit System.IDisposable
     abstract member PostAndReply: buildMsg: (AsyncReplyChannel<'Reply> -> 'Msg) -> 'Reply
     abstract member PostAndAsyncReply: buildMsg: (AsyncReplyChannel<'Reply> -> 'Msg) -> Async<'Reply>
+
 
 [<AutoOpen>]
 module internal Extensions =
@@ -262,6 +264,8 @@ module internal Extensions =
 
                 member x.PostAndAsyncReply buildMsg =
                     agent.PostAndAsyncReply(fun replyChannel -> mapping (buildMsg replyChannel))
+
+                member x.Dispose() = agent.Dispose()
             }
 
 

@@ -158,20 +158,19 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
         let compilerTmpEmitter = AutoReload.create programRunningArgs
 
         let fcsWatcher =
-            fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
-            |> fst
+            fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) ignore
 
-        let cache = fcsWatcher.PostAndReply FcsWatcherMsg.GetCache
+        let cache = fcsWatcher.GetCache()
 
         AutoReload.CrackedFsproj.tryRun programRunningArgs cache.EntryCrackedFsproj
 
-        fcsWatcher
+        fcsWatcher :> IFcsWatcherAndCompilerTmpAgent
 
     | DevelopmentTarget.Debuggable debuggable ->
         let compilerTmpEmitter = DebuggingServer.create debuggable
-        let fcsWatcher, compilerTmpEmitterAgent = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
-        DebuggingServer.startServer config.WorkingDir compilerTmpEmitterAgent
-        fcsWatcher
+        let fcsWatcher = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) ignore
+        DebuggingServer.startServer config.WorkingDir fcsWatcher.CompilerTmpEmitterAgent
+        fcsWatcher :> IFcsWatcherAndCompilerTmpAgent
 
 let tryKill autoReloadDevelopmentTarget entryCrackedFsproj =
     AutoReload.CrackedFsproj.tryKill autoReloadDevelopmentTarget entryCrackedFsproj
@@ -179,7 +178,7 @@ let tryKill autoReloadDevelopmentTarget entryCrackedFsproj =
 let runFcsWatcher (processExit : System.Threading.Tasks.Task<unit>) (config: BinaryConfig) entryProjectFile = async {
     let binaryFcsWatcher = binaryFcsWatcher config entryProjectFile
     do! processExit |> Async.AwaitTask
-    let cache = binaryFcsWatcher.PostAndReply FcsWatcherMsg.GetCache
+    let cache = binaryFcsWatcher.GetCache()
     match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload -> tryKill autoReload cache.EntryCrackedFsproj
     | _ -> ()
