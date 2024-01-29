@@ -4,7 +4,7 @@ open System.IO
 open Fake.IO
 open FcsWatch.Core.CrackedFsproj
 open FcsWatch.Core
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open FSharp.Compiler.Diagnostics
 open FSharp.Compiler.Symbols
 open FSharp.Compiler.CodeAnalysis

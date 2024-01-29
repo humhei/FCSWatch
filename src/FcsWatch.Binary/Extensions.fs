@@ -5,7 +5,7 @@ open Fake.IO.FileSystemOperators
 open FcsWatch.Core.CrackedFsproj
 open FcsWatch.Core
 open Fake.Core
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Diagnostics
 open System.Diagnostics
@@ -31,11 +31,16 @@ with
 module internal Global =
     let mutable logger = Logger.create Logger.Level.Minimal
 
+    let platformTool tool =
+        tool
+        |> ProcessUtils.tryFindFileOnPath
+        |> function Some t -> t | _ -> failwithf "%s not found" tool
+
     let internal dotnet command args (cwd: string) =
         let args = command :: args
         let info = ProcessStartInfo()
         info.WorkingDirectory <- cwd
-        info.FileName <- "dotnet"
+        info.FileName <- platformTool "dotnet"
 
         for arg in args do
             info.ArgumentList.Add arg

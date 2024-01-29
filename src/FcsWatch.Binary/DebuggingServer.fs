@@ -11,7 +11,7 @@ open Suave
 open System.Net.Sockets
 open FcsWatch.Core.CompilerTmpEmitter
 open Extensions
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open VscodeHelper
 
 type Plugin =

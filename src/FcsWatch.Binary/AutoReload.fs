@@ -2,7 +2,7 @@
 namespace FcsWatch.Binary
 open Fake.Core
 open FcsWatch.Core
-open Types
+open FullCrackedFsproj
 open FcsWatch.Core.CrackedFsproj
 open System.Diagnostics
 open System.Collections.Concurrent

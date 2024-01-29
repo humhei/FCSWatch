@@ -16,7 +16,9 @@
   <ItemGroup>
     <PackageReference Include="Argu" Version="5.2.0" />
   </ItemGroup>
-
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="7.0.300" />
+    </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FcsWatch.Binary\FcsWatch.Binary.fsproj" />
   </ItemGroup>

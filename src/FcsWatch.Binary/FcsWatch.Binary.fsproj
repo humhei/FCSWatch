@@ -36,5 +36,6 @@
       <BuildOutputInPackage Include="$(MSBuildProjectDirectory)/$(OutputPath)FcsWatch.Binary.Helpers.pdb" />
 
     </ItemGroup>
+      
   </Target>
 </Project>

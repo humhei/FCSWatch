@@ -1,6 +1,6 @@
 namespace FcsWatch.Core
 open FSharp.Compiler.CodeAnalysis
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open Fake.IO.Globbing
 open Fake.IO
 open FcsWatch.Core.Compiler

@@ -8,7 +8,7 @@ open System
 open Extensions
 open FSharp.Compiler.CodeAnalysis
 open Fake.IO.FileSystemOperators
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =

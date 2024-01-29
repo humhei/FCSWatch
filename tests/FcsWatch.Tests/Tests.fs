@@ -4,7 +4,7 @@ open System.IO
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open System.Threading
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open FcsWatch.Core.FcsWatcher
 open FcsWatch.Tests.Types
 open FcsWatch.Core

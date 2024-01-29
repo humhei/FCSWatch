@@ -1,5 +1,5 @@
 module FcsWatch.Core.Compiler
-open Types
+open FcsWatch.Core.FullCrackedFsproj
 open System.Diagnostics
 open FcsWatch.Core.CompilerTmpEmitter
 open System

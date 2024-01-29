@@ -10,7 +10,7 @@ open FSharp.Compiler.CodeAnalysis
 open FcsWatch.Core.Compiler
 open FcsWatch.Core
 open FcsWatch.Core.FcsWatcher
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open Extensions
 open Fake.IO
 open System.IO

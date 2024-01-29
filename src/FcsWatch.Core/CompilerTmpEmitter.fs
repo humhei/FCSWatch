@@ -1,5 +1,5 @@
 module FcsWatch.Core.CompilerTmpEmitter
-open Types
+open FcsWatch.Core.FullCrackedFsproj
 open System.Threading
 
 

@@ -7,7 +7,7 @@
     <Compile Include="Library2.fs" />
     <Compile Include="Added.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.6.2" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="7.0.300" />
+    </ItemGroup>
 </Project>

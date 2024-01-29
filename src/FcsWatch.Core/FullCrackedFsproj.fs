@@ -1,4 +1,4 @@
-module FcsWatch.Core.Types
+module FcsWatch.Core.FullCrackedFsproj
 open System.IO
 open FcsWatch
 open Fake.IO

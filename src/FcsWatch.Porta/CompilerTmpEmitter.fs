@@ -1,7 +1,7 @@
 ﻿namespace FcsWatch.Porta
 open Fake.Core
 open FcsWatch.Core
-open Types
+open FullCrackedFsproj
 open FcsWatch.Core.CrackedFsproj
 open FcsWatch.Core.CompilerTmpEmitter
 open FSharp.Compiler.CodeAnalysis
