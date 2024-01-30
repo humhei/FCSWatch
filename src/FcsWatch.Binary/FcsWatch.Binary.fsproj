@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">TargetFramework Condition
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net6</TargetFrameworks>
