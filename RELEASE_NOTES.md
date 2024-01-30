@@ -1,6 +1,9 @@
 ﻿# Release Notes
 
-## 0.7.15-alpha - tbd
+## 0.8.0-alpha.1
+* using Ionide.ProjInfo
+* update to net6
+
 
 ## 0.7.14 - 2019-07-26
 * using CTRL + C exit fcswatch-cli

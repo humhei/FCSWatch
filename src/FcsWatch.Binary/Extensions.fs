@@ -3,15 +3,20 @@ open System.IO
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open FcsWatch.Core.CrackedFsproj
-open FSharp.Compiler.SourceCodeServices
 open FcsWatch.Core
-open Fake.DotNet
 open Fake.Core
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.Diagnostics
+open System.Diagnostics
+open FSharp.Compiler.Text
+
+
+
 
 type CompilerResult =
     { Dll: string
-      Errors: FSharpErrorInfo []
+      Errors: SerializableFSharpDiagnostic []
       ExitCode: int
       ProjPath: string }
 with
@@ -26,16 +31,39 @@ with
 module internal Global =
     let mutable logger = Logger.create Logger.Level.Minimal
 
-    let private dotnetWith command args dir =
-        DotNet.exec
-            (fun ops -> {ops with WorkingDirectory = dir})
-            command
-            (Args.toWindowsCommandLine args)
 
-    let dotnet command args dir =
-        let result = dotnetWith command args dir
-        if result.ExitCode <> 0
-        then failwithf "Error while running %s with args %A" command (List.ofSeq args)
+
+module PlatformTool =
+    let platformTool tool =
+        tool
+        |> ProcessUtils.tryFindFileOnPath
+        |> function Some t -> t | _ -> failwithf "%s not found" tool
+
+    let dotnet command args (cwd: string) =
+        let args = command :: args
+        let info = ProcessStartInfo()
+        info.WorkingDirectory <- cwd
+        info.FileName <- platformTool "dotnet"
+
+        for arg in args do
+            info.ArgumentList.Add arg
+
+        info.RedirectStandardOutput <- true
+        use p = System.Diagnostics.Process.Start(info)
+
+        let output =
+            seq {
+                while not p.StandardOutput.EndOfStream do
+                    yield p.StandardOutput.ReadLine()
+            }
+            |> Seq.toArray
+
+        p.WaitForExit()
+        output
+        |> Array.iter(fun m ->
+            logger.InfoGreents "%s" m
+        )
+
 
 
 module Extensions =
@@ -54,7 +82,7 @@ module Extensions =
     module SingleTargetCrackedFsproj =
 
 
-        let copyFileFromRefDllToBin (configuration: Configuration) originProjectFile (destCrackedFsprojSingleTarget: SingleTargetCrackedFsproj) =
+        let copyFileFromRefDllToBin (configuration: Configuration) (originProjectFile: string) (destCrackedFsprojSingleTarget: SingleTargetCrackedFsproj) =
 
             let targetDir = destCrackedFsprojSingleTarget.TargetDir
 
@@ -88,7 +116,7 @@ module Extensions =
                 logger.CopyPdb configuration singleTargetCrackedFsproj.ObjTargetPdb targetDir)
 
 
-        let compile (checker: FSharpChecker) (crackedProjectSingleTarget: SingleTargetCrackedFsproj) = async {
+        let compile (checker: RemotableFSharpChecker) (crackedProjectSingleTarget: SingleTargetCrackedFsproj) = async {
             let tmpDll = crackedProjectSingleTarget.ObjTargetFile
 
             let baseOptions =
@@ -96,7 +124,7 @@ module Extensions =
                 |> Array.map (fun op -> if op.StartsWith "-o:" then "-o:" + tmpDll else op)
 
             let fscArgs = Array.concat [[|"fsc.exe"|]; baseOptions;[|"--nowin32manifest"|]]
-            let! errors,exitCode = checker.Compile(fscArgs)
+            let! errors, exitCode = checker.Compile_Serializable(fscArgs)
             return
                 { Errors = errors
                   ExitCode = exitCode
@@ -115,7 +143,7 @@ module Extensions =
             crackedFsproj.AsList |> List.iter (SingleTargetCrackedFsproj.copyObjToBin configuration)
 
 
-        let compile (checker: FSharpChecker) (crackedFsProj: CrackedFsproj) =
+        let compile (checker) (crackedFsProj: CrackedFsproj) =
             crackedFsProj.AsList
             |> List.map (SingleTargetCrackedFsproj.compile checker)
             |> Async.Parallel

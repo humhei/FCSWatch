@@ -2,11 +2,10 @@
 namespace FcsWatch.Binary
 open Fake.Core
 open FcsWatch.Core
-open Types
+open FullCrackedFsproj
 open FcsWatch.Core.CrackedFsproj
 open System.Diagnostics
 open System.Collections.Concurrent
-open Fake.DotNet
 open FcsWatch.Binary.Helpers
 open Fake.IO
 open FcsWatch.Core.CompilerTmpEmitter
@@ -95,10 +94,6 @@ module AutoReload =
     [<RequireQualifiedAccess>]
     module internal CrackedFsproj =
 
-        let private dotnetTool =
-            [DotNet.Options.Create().DotNetCliPath]
-            |> Args.toWindowsCommandLine
-
         [<RequireQualifiedAccess>]
         module Process =
             let start tool args workingDir =
@@ -124,7 +119,7 @@ module AutoReload =
                     runningProjects.GetOrAdd (crackedFsproj.ProjPath,fun _ ->
                         let proc = 
                             Process.start
-                                dotnetTool
+                                "dotnet"
                                 (dotnetArgs @ (ProgramRunningArgs.addtionalRunArgs crackedFsproj args))
                                 args.WorkingDir
 

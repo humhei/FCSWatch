@@ -3,6 +3,7 @@ module FcsWatch.Cli.Main
 open FcsWatch.Binary
 open FcsWatch.Cli.Share
 open System.Threading.Tasks
+open Ionide.ProjInfo
 
 
 let splitArgs args =
@@ -17,6 +18,17 @@ let splitArgs args =
 
 [<EntryPoint>]
 let main argv =
+    //let projectFile = @"D:\VsCode\Github\FCSWatch\tests\datas\TestProject\TestProject.fsproj"
+    //let cwd =
+    //    System.IO.Path.GetDirectoryName projectFile
+    //    |> System.IO.DirectoryInfo
+    
+    //let toolsPath = Ionide.ProjInfo.Init.init cwd None
+    //let loaderError =
+    //    ProjectLoader.loadProject projectFile BinaryLogGeneration.Off []
+    //printfn "Hello from F#"
+    
+    
     try
         let exited = TaskCompletionSource<unit>()
         System.Console.CancelKeyPress.Add(fun _ ->

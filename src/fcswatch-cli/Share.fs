@@ -7,7 +7,7 @@ open Argu
 open Fake.IO.Globbing.Operators
 open Fake.IO.FileSystemOperators
 open Fake.Core
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 
 let private defaultUrl = "http://localhost:9867/update"
 

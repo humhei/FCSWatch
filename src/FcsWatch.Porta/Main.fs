@@ -6,11 +6,11 @@
 module FcsWatch.Porta.Main
 
 open System
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open FcsWatch.Core.Compiler
 open FcsWatch.Core
 open FcsWatch.Core.FcsWatcher
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open Extensions
 open Fake.IO
 open System.IO
@@ -20,8 +20,13 @@ let runFcsWatcher (config: PortaConfig) =
     let compiler =
         { new ICompiler<CheckResult> with 
             member x.Compile(checker, crackedFsproj) = async {
-                let! result = CrackedFsproj.check config.UseEditFiles config.LiveCheckOnly checker crackedFsproj
-                return [|result|]
+                match checker with 
+                | RemotableFSharpChecker.FSharpChecker checker ->
+                    let! result = CrackedFsproj.check config.UseEditFiles config.LiveCheckOnly checker crackedFsproj
+                    return [|result|]
+
+                | RemotableFSharpChecker.Remote _ -> 
+                    return failwith "Invalid token, FSharpChecker cannot be remote here"
             }
             member x.WarmCompile = true
             member x.Summary (_, _) = ""
@@ -35,11 +40,21 @@ let runFcsWatcher (config: PortaConfig) =
           WorkingDir = config.WorkingDir
           UseEditFiles = config.UseEditFiles
           OtherFlags = config.OtherFlags
-          Configuration = Configuration.Debug }
+          Configuration = Configuration.Debug
+          TargetFramework = None }
 
     let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
-    let fcsWatcher, _ = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig config.Fsproj
+    let fcsWatcher = 
+        fcsWatcherAndCompilerTmpAgent 
+            (RemotableFSharpChecker.FSharpChecker checker) 
+            compilerTmpEmitter 
+            compiler 
+            coreConfig 
+            (config.Fsproj |> Option.map EntryFile.Create)
+            ignore
+        |> fun fcsWatcher -> fcsWatcher.Agent
+
 
     if config.Watch then
         Console.ReadLine() |> ignore
@@ -58,5 +73,6 @@ let runFcsWatcher (config: PortaConfig) =
 
         fcsWatcher.PostAndReply (makeSourceFileChanges [cache.EntryCrackedFsproj.SourceFiles.[0]])
 
+        // WaitCompiled here is WaitChecked
         fcsWatcher.PostAndReply FcsWatcherMsg.WaitCompiled
         |> ignore

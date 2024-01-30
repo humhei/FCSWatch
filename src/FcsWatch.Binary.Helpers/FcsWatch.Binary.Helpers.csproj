@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net6</TargetFrameworks>
+      <TargetFrameworks Condition="'$(BuildNet8)' == 'true'">$(TargetFrameworks); net8</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\paket-files\aspnet\AspNetCore\src\Shared\Process\ProcessExtensions.cs" />

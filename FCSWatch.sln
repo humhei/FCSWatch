@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.489
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3D12606D-9919-4874-A10C-E37F1CB84CBC}"
+	ProjectSection(SolutionItems) = preProject
+		src\FcsWatch.Core\Compiler.fs = src\FcsWatch.Core\Compiler.fs
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{43FBDDAF-4E0A-4D82-BCB2-002472E7F170}"
 EndProject
@@ -34,6 +37,8 @@ EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FcsWatch.Porta.Interpreter", "src\FcsWatch.Porta.Interpreter\FcsWatch.Porta.Interpreter.fsproj", "{2293B396-5FB6-4BDD-9F68-18CAB7209E58}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FcsWatch.Binary.Helpers", "src\FcsWatch.Binary.Helpers\FcsWatch.Binary.Helpers.csproj", "{D3ACBC2F-7BF6-4032-8359-838F5DA4818D}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FCSWatch.Core.Types", "src\FCSWatch.Core.Types\FCSWatch.Core.Types.fsproj", "{D4024E06-CDEF-481F-A516-88D81DA066A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -201,6 +206,18 @@ Global
 		{D3ACBC2F-7BF6-4032-8359-838F5DA4818D}.Release|x64.Build.0 = Release|Any CPU
 		{D3ACBC2F-7BF6-4032-8359-838F5DA4818D}.Release|x86.ActiveCfg = Release|Any CPU
 		{D3ACBC2F-7BF6-4032-8359-838F5DA4818D}.Release|x86.Build.0 = Release|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Debug|x64.Build.0 = Debug|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Debug|x86.Build.0 = Debug|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Release|x64.ActiveCfg = Release|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Release|x64.Build.0 = Release|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Release|x86.ActiveCfg = Release|Any CPU
+		{D4024E06-CDEF-481F-A516-88D81DA066A3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -220,6 +237,7 @@ Global
 		{6D9717E8-B721-4D30-B2B7-F0267C85AD4A} = {3D12606D-9919-4874-A10C-E37F1CB84CBC}
 		{2293B396-5FB6-4BDD-9F68-18CAB7209E58} = {3D12606D-9919-4874-A10C-E37F1CB84CBC}
 		{D3ACBC2F-7BF6-4032-8359-838F5DA4818D} = {3D12606D-9919-4874-A10C-E37F1CB84CBC}
+		{D4024E06-CDEF-481F-A516-88D81DA066A3} = {3D12606D-9919-4874-A10C-E37F1CB84CBC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4BFB89E1-195E-46FB-8AB6-7632542E82D5}

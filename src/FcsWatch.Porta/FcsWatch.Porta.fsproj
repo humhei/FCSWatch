@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net6</TargetFrameworks>
+      <TargetFrameworks Condition="'$(BuildNet8)' == 'true'">$(TargetFrameworks); net8</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +18,8 @@
     <ProjectReference Include="..\FcsWatch.Porta.Interpreter\FcsWatch.Porta.Interpreter.fsproj" />
   </ItemGroup>
 
-
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="7.0.400" />
+    </ItemGroup>
 
 </Project>

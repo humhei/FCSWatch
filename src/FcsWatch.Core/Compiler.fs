@@ -1,10 +1,10 @@
 module FcsWatch.Core.Compiler
-open Types
+open FcsWatch.Core.FullCrackedFsproj
 open System.Diagnostics
 open FcsWatch.Core.CompilerTmpEmitter
 open System
 open FcsWatch.Core.CrackedFsproj
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 
 
 
@@ -17,8 +17,9 @@ type CompilerModel =
     { CrackerFsprojBundleCache: CrackedFsprojBundleCache }
 
 
+
 type ICompiler<'Result when 'Result :> ICompilerOrCheckResult> =
-    abstract member Compile : checker: FSharpChecker * proejct: CrackedFsproj -> Async<'Result []>
+    abstract member Compile : checker: RemotableFSharpChecker * proejct: CrackedFsproj -> Async<'Result []>
     abstract member WarmCompile: bool 
     abstract member Summary: result: 'Result * elapsed: int64 -> string
 
@@ -64,10 +65,6 @@ let compilerAgent (compiler: ICompiler<'Result>) (compilerTmpEmitterAgent: Mailb
             replyChannel.Reply()
 
             let projPaths = crackedFsprojs |> List.map (fun crackedFsproj -> crackedFsproj.ProjPath)
-            let m = crackedFsprojs.[0].AsList.[1].FSharpProjectOptions
-            let p = 
-                m.OtherOptions
-                |> String.concat "\n"
             /// from top to bottom
             let rec compileByLevel accResults (projLevelMap: Map<string,int>) = async {
                 match projLevelMap.IsEmpty with

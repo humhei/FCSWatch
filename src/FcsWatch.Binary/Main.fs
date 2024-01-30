@@ -4,11 +4,12 @@ open FcsWatch.Core
 open System.IO
 open FcsWatch.Core.Compiler
 open FcsWatch.Core.FcsWatcher
+open PlatformTool
 open System
 open Extensions
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open Fake.IO.FileSystemOperators
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 
 [<RequireQualifiedAccess>]
 type DevelopmentTarget =
@@ -33,6 +34,7 @@ module DevelopmentTarget =
             | DebuggingServer.DevelopmentTarget.Plugin plugin -> Plugin (DebuggingServer.Plugin.asAutoReloadPlugin plugin)
             | DebuggingServer.DevelopmentTarget.Program _ -> Program
 
+type ProjectFilePath = ProjectFilePath of string
 
 type BinaryConfig =
     { LoggerLevel: Logger.Level
@@ -44,7 +46,11 @@ type BinaryConfig =
       UseEditFiles: bool
       Webhook: string option
       WarmCompile: bool
-      AdditionalSwitchArgs : string array }
+      AdditionalSwitchArgs : string array
+      CustomPrefixBuildAction: option<BinaryConfig -> unit>
+      CustomFSharpChecker: RemotableFSharpChecker option
+      ProjectFileChangedEventHandle: IFcsWatcherAndCompilerTmpAgent -> unit
+    }
 
 with
     static member DefaultValue =
@@ -57,8 +63,18 @@ with
           UseEditFiles = false
           WarmCompile = true
           Webhook = None
-          AdditionalSwitchArgs = Array.empty }
+          AdditionalSwitchArgs = Array.empty
+          CustomPrefixBuildAction = None
+          CustomFSharpChecker = None
+          ProjectFileChangedEventHandle = ignore }
 
+    member config.ToCoreConfig() =
+        { LoggerLevel = config.LoggerLevel
+          WorkingDir = config.WorkingDir
+          OtherFlags = [||]
+          Configuration = config.Configuration
+          UseEditFiles = config.UseEditFiles
+          TargetFramework = config.Framework }
 
 [<RequireQualifiedAccess>]
 module BinaryConfig =
@@ -79,20 +95,30 @@ module BinaryConfig =
           WhyRun = whyRun }
 
 
+
     let tryBuildProject projectFile (config: BinaryConfig) =
-        if not config.NoBuild then
-            let additionalBuildArgs = additionalBuildArgs config
+        match projectFile with 
+        | EntryFile.ScriptingFile _ -> ()
+        | EntryFile.FsProj projectFile ->
+            if not config.NoBuild then
+                let additionalBuildArgs = additionalBuildArgs config
+                let build() =
+                    match config.CustomPrefixBuildAction with 
+                    | None -> 
+                        dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
 
-            match config.DevelopmentTarget with
-            | DevelopmentTarget.Program _ ->
-                dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
+                    | Some action -> action { config with CustomPrefixBuildAction = None }
 
-            | DevelopmentTarget.Plugin plugin ->
-                plugin.Unload()
-                dotnet "build" ([projectFile] @ additionalBuildArgs) config.WorkingDir
+                match config.DevelopmentTarget with
+                | DevelopmentTarget.Program _ ->
+                    build()
+
+                | DevelopmentTarget.Plugin plugin ->
+                    plugin.Unload()
+                    build()
 
 let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
-
+    
     logger <- Logger.create config.LoggerLevel
 
     let config =
@@ -112,14 +138,17 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
             member x.WarmCompile = config.WarmCompile
             member x.Summary (result, elapsed) = summary result.ProjPath result.Dll elapsed}
 
-    let coreConfig: FcsWatch.Core.Config =
-        { LoggerLevel = config.LoggerLevel
-          WorkingDir = config.WorkingDir
-          OtherFlags = [||]
-          Configuration = config.Configuration
-          UseEditFiles = config.UseEditFiles }
+    let coreConfig: FcsWatch.Core.Config = config.ToCoreConfig()
 
-    let checker = FSharpChecker.Create()
+    let checker = 
+        match config.CustomFSharpChecker with 
+        | None -> 
+            FSharpChecker.Create()
+            |> RemotableFSharpChecker.FSharpChecker
+
+        | Some checker -> checker
+
+    let entryProjectFile = EntryFile.Create entryProjectFile
 
     BinaryConfig.tryBuildProject entryProjectFile config
 
@@ -132,20 +161,19 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
         let compilerTmpEmitter = AutoReload.create programRunningArgs
 
         let fcsWatcher =
-            fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
-            |> fst
+            fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) config.ProjectFileChangedEventHandle
 
-        let cache = fcsWatcher.PostAndReply FcsWatcherMsg.GetCache
+        let cache = fcsWatcher.GetCache()
 
         AutoReload.CrackedFsproj.tryRun programRunningArgs cache.EntryCrackedFsproj
 
-        fcsWatcher
+        fcsWatcher :> IFcsWatcherAndCompilerTmpAgent
 
     | DevelopmentTarget.Debuggable debuggable ->
         let compilerTmpEmitter = DebuggingServer.create debuggable
-        let fcsWatcher, compilerTmpEmitterAgent = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile)
-        DebuggingServer.startServer config.WorkingDir compilerTmpEmitterAgent
-        fcsWatcher
+        let fcsWatcher = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) config.ProjectFileChangedEventHandle
+        DebuggingServer.startServer config.WorkingDir fcsWatcher.CompilerTmpEmitterAgent
+        fcsWatcher :> IFcsWatcherAndCompilerTmpAgent
 
 let tryKill autoReloadDevelopmentTarget entryCrackedFsproj =
     AutoReload.CrackedFsproj.tryKill autoReloadDevelopmentTarget entryCrackedFsproj
@@ -153,7 +181,7 @@ let tryKill autoReloadDevelopmentTarget entryCrackedFsproj =
 let runFcsWatcher (processExit : System.Threading.Tasks.Task<unit>) (config: BinaryConfig) entryProjectFile = async {
     let binaryFcsWatcher = binaryFcsWatcher config entryProjectFile
     do! processExit |> Async.AwaitTask
-    let cache = binaryFcsWatcher.PostAndReply FcsWatcherMsg.GetCache
+    let cache = binaryFcsWatcher.GetCache()
     match config.DevelopmentTarget with
     | DevelopmentTarget.AutoReload autoReload -> tryKill autoReload cache.EntryCrackedFsproj
     | _ -> ()

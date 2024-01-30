@@ -1,6 +1,6 @@
 namespace FcsWatch.Core
-open FSharp.Compiler.SourceCodeServices
-open FcsWatch.Core.Types
+open FSharp.Compiler.CodeAnalysis
+open FcsWatch.Core.FullCrackedFsproj
 open Fake.IO.Globbing
 open Fake.IO
 open FcsWatch.Core.Compiler
@@ -123,12 +123,7 @@ module private ChangeWatcher =
     let run (onChange : FileChange seq -> unit) (fileIncludes : IGlobbingPattern) = runWithAgent id onChange fileIncludes
 
 
-type Config =
-    { LoggerLevel: Logger.Level
-      WorkingDir: string
-      UseEditFiles: bool
-      OtherFlags: string []
-      Configuration: Configuration }
+
 
 
 module FcsWatcher =
@@ -142,7 +137,8 @@ module FcsWatcher =
         | DetectProjectFileChanges of fileChanges: FileChange list
         | GetCache of AsyncReplyChannel<CrackedFsprojBundleCache>
         | WaitCompiled of AsyncReplyChannel<CompilerNumber>
-
+        | Dispose of AsyncReplyChannel<unit>
+        
 
     let inline (<!>) msg content =
         fun replyChannel ->
@@ -150,29 +146,37 @@ module FcsWatcher =
 
     type FcsWatcherModel =
         { SourceFileWatcher: IDisposable
-          CrackerFsprojBundleCache: CrackedFsprojBundleCache }
+          CrackerFsprojBundleCache: CrackedFsprojBundleCache
+          ProjectFilesWatcher: IDisposable }
+
+    type IFcsWatcherAndCompilerTmpAgent =
+        inherit System.IDisposable
+        abstract member Checker: RemotableFSharpChecker
+        abstract member GetCache: unit -> CrackedFsprojBundleCache
+        abstract member WaitCompiled: unit -> CompilerNumber
+        abstract member Agent: MailboxProcessor<FcsWatcherMsg>
+        abstract member IsClosed: bool
 
     /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then otherflags will be applied</param>
-    let fcsWatcherAndCompilerTmpAgent
-        checker
-        compilerTmpEmitter
-        compiler
-        (config: Config)
-        (entryFileOp: string option) =
-
-            let entryFileOp = entryFileOp |> Option.map Path.nomalizeToUnixCompatiable
-
+    type FcsWatcherAndCompilerTmpAgent<'CompilerTmpEmitterCustomMsg, 'CompilerTmpEmitterCustomState,'CompilerOrCheckResult when 'CompilerOrCheckResult :> ICompilerOrCheckResult>(
+        checker,
+        compilerTmpEmitter: ICompilerTmpEmitter<'CompilerTmpEmitterCustomMsg, 'CompilerTmpEmitterCustomState,'CompilerOrCheckResult>,
+        compiler: ICompiler<'CompilerOrCheckResult>,
+        config: Config,
+        entryFileOp: EntryFile option,
+        projectFileChangedListener
+        ) as this =
             let config = { config with WorkingDir = Path.nomalizeToUnixCompatiable config.WorkingDir }
+            let mutable isClosed = false
 
-            logger <- Logger.create (config.LoggerLevel)
+            do logger <- Logger.create (config.LoggerLevel)
 
-            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config.WorkingDir config.Configuration config.UseEditFiles checker entryFileOp config.OtherFlags
+            let fullCrackedFsprojBuilder = FullCrackedFsprojBuilder.create config checker entryFileOp
 
-            logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
-            logger.Info "fcs watcher's working directory is %s" config.WorkingDir
+            do logger.Info "fcs watcher is running in logger level %A" config.LoggerLevel
+            do logger.Info "fcs watcher's working directory is %s" config.WorkingDir
 
             let crackedProjectBundleAgent = crackedFsprojBundle config.UseEditFiles fullCrackedFsprojBuilder
-
 
             let initialCache = crackedProjectBundleAgent.PostAndReply CrackedFsprojBundleMsg.GetCache
 
@@ -197,15 +201,10 @@ module FcsWatcher =
 
 
 
-
-                let initialProjectMap = initialCache.ProjectMap
-
-                let entryCrackedFsproj = initialCache.EntryCrackedFsproj
-
-                let projectFilesWatcher =
+                let createProjectFilesWatcher (projectFiles: string seq) =
                     let pattern =
 
-                        let files = initialCache.AllProjectFiles |> List.ofSeq
+                        let files = projectFiles |> List.ofSeq
 
                         { BaseDirectory = config.WorkingDir
                           Includes = files
@@ -259,11 +258,22 @@ module FcsWatcher =
                             state.SourceFileWatcher.Dispose()
                             newSourceFileWatcher newCache
 
+                        let newProjectFilesWatcher =
+                            state.ProjectFilesWatcher.Dispose()
+                            createProjectFilesWatcher newCache.AllProjectFiles
+
                         compilerAgent.Post(CompilerMsg.UpdateCache newCache)
 
                         compilerTmpEmitterAgent.Post(CompilerTmpEmitterMsg.updateCache newCache)
 
-                        return! loop { state with SourceFileWatcher = newSourceFileWatcher; CrackerFsprojBundleCache = newCache }
+                        let newState =
+                            { state with 
+                                SourceFileWatcher = newSourceFileWatcher;
+                                CrackerFsprojBundleCache = newCache
+                                ProjectFilesWatcher = newProjectFilesWatcher }
+                        projectFileChangedListener this
+                        return! loop newState
+
                     | FcsWatcherMsg.GetCache replyChannel ->
                         replyChannel.Reply(cache)
                         return! loop state
@@ -273,13 +283,64 @@ module FcsWatcher =
                         replyChannel.Reply (CompilerNumber compilerNumber)
                         return! loop state
 
+                        
+                    | FcsWatcherMsg.Dispose replyChannel ->
+                        match checker with 
+                        | RemotableFSharpChecker.FSharpChecker checker -> 
+                            checker.ClearLanguageServiceRootCachesAndCollectAndFinalizeAllTransients()
+                        | RemotableFSharpChecker.Remote  _ -> ()
+
+                        state.SourceFileWatcher.Dispose()
+                        state.ProjectFilesWatcher.Dispose()
+                        replyChannel.Reply()
+                        return! loop state
+
                 }
                 let sourceFileWatcher = newSourceFileWatcher initialCache
+                let projectFilesWatcher = createProjectFilesWatcher (initialCache.AllProjectFiles)
 
                 logger.Important "Waiting for changes... press CTRL+C to exit"
 
-                loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojBundleCache = initialCache }
+                loop { SourceFileWatcher = sourceFileWatcher; CrackerFsprojBundleCache = initialCache; ProjectFilesWatcher = projectFilesWatcher }
 
             )
 
-            agent,iCompilerTmpEmitterAgent
+            member x.Agent = agent
+
+            member x.CompilerTmpEmitterAgent = iCompilerTmpEmitterAgent
+
+            member x.GetCache() =
+                agent.PostAndReply(FcsWatcherMsg.GetCache)
+
+            member x.WaitCompiled() =
+                agent.PostAndReply(FcsWatcherMsg.WaitCompiled)
+
+            member x.Dispose() =
+                agent.PostAndReply(FcsWatcherMsg.Dispose)
+                agent.Dispose()
+                iCompilerTmpEmitterAgent.Dispose()
+                compilerAgent.Dispose()
+                isClosed <- true
+
+            member x.IsClosed = isClosed
+
+            member x.Checker = checker
+
+            interface System.IDisposable with 
+                member x.Dispose() = x.Dispose()
+
+            interface IFcsWatcherAndCompilerTmpAgent with 
+                member x.GetCache() = x.GetCache()
+                member x.WaitCompiled() = x.WaitCompiled()
+                member x.Agent = x.Agent
+                member x.Checker = checker
+                member x.IsClosed = x.IsClosed
+
+    let fcsWatcherAndCompilerTmpAgent
+        checker
+        compilerTmpEmitter
+        compiler
+        (config: Config)
+        (entryFileOp: EntryFile option)
+        (projectFileChangedEventLister: IFcsWatcherAndCompilerTmpAgent -> unit)
+        = new FcsWatcherAndCompilerTmpAgent<_, _, _>(checker, compilerTmpEmitter, compiler, config, entryFileOp, projectFileChangedEventLister)

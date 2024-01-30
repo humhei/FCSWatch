@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Library.fs" />
     <Compile Include="Library2.fs" />
     <Compile Include="Added.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.6.2" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="7.0.400" />
+    </ItemGroup>
 </Project>

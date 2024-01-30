@@ -25,9 +25,9 @@ let main _ =
 
     //printfn "Hell world from resource %s" resource
 
-    printfn "HEsSSS  9108 985966911 91100099999ASASSASA" 
+    printfn "ASSAS" 
 
-    /// simulate server
+    // simulate server
     Console.ReadLine()
     |> ignore
 

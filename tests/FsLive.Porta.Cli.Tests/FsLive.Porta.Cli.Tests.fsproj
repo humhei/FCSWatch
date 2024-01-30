@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>netcoreapp2.2</TargetFramework>
+        <TargetFrameworks>net7</TargetFrameworks>
         <OutputType>Exe</OutputType>
+        <TargetFrameworks Condition="'$(BuildNet8)' == 'true'">$(TargetFrameworks); net8</TargetFrameworks>
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="PortaCodeTests.fs" />
@@ -21,7 +22,7 @@
       <ProjectReference Include="..\..\src\fslive-cli\fslive-cli.fsproj" />
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Update="FSharp.Core" Version="4.6.2" />
+      <PackageReference Update="FSharp.Core" Version="7.0.400" />
     </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
   "profiles": {
     "fcswatch-cli": {
       "commandName": "Project",
-      "commandLineArgs": "--project-file \"D:\\VsCode\\Workspace\\FCSWatch\\tests\\datas\\TestProject\\TestProject.fsproj\""
+      "commandLineArgs": "--project-file \"D:\\VsCode\\Github\\FCSWatch\\tests\\datas\\TestProject\\TestProject.fsproj\" --logger-level debug"
     }
   }
 }

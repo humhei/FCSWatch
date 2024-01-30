@@ -4,7 +4,7 @@ open System.IO
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open System.Threading
-open FcsWatch.Core.Types
+open FcsWatch.Core.FullCrackedFsproj
 open FcsWatch.Core.FcsWatcher
 open FcsWatch.Tests.Types
 open FcsWatch.Core
@@ -62,7 +62,7 @@ let createWatcher (config: BinaryConfig) =
                 LoggerLevel = Logger.Level.Debug
                 WarmCompile = false }
 
-        binaryFcsWatcher config entryProjPath
+        (binaryFcsWatcher config entryProjPath).Agent
 
 let testSourceFilesChanged (watcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) sourceFiles expectedCompilerNumber  =
     watcher.Value.PostAndReply (makeSourceFileChanges sourceFiles)
@@ -70,7 +70,9 @@ let testSourceFilesChanged (watcher: Lazy<MailboxProcessor<FcsWatcherMsg>>) sour
     |> expectCompilerNumber expectedCompilerNumber
 
 let programTests =
-    let watcher = createWatcher { BinaryConfig.DefaultValue with DevelopmentTarget = DevelopmentTarget.debuggableProgram }
+    let watcher = 
+        createWatcher { BinaryConfig.DefaultValue with DevelopmentTarget = DevelopmentTarget.debuggableProgram }
+
 
     testList "program tests" [
 
@@ -195,8 +197,16 @@ let webhookTests =
 let functionTests =
 
     let testObjRefOnly configuration = async {
-        let! fullCracekdFsproj, _  =
-            FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Configuration = configuration})
+        let config: Config =    
+            BinaryConfig.DefaultValue.ToCoreConfig()
+        let fullCracekdFsproj, _  =
+            FullCrackedFsproj.create 
+                (FullCrackedFsprojBuilder.Project 
+                    { OtherFlags = [||]
+                      File = entryProjPath
+                      Config = config
+                    }
+                )
 
         let otherOptions =
             fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
@@ -241,8 +251,11 @@ let functionTests =
                 
             /// https://github.com/humhei/FCSWatch/issues/30
             testCaseAsync "Map project Other options --doc:path to --doc:fullPath and -o:path to -o:fullPath" <| async {
-                let! fullCracekdFsproj, _  =
-                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Configuration = Configuration.Debug})
+                let fullCracekdFsproj, _  =
+                    let config: Config =    
+                        BinaryConfig.DefaultValue.ToCoreConfig()
+
+                    FullCrackedFsproj.create (FullCrackedFsprojBuilder.Project {OtherFlags = [||]; File = entryProjPath; Config = config })
 
                 let otherOptions =
                     fullCracekdFsproj.Value.AsList |> Seq.collect (fun singleTargetCrackedFsproj ->
