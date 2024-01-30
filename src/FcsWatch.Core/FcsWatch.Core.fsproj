@@ -2,6 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net6</TargetFrameworks>
+      <TargetFramework Condition="'$(BuildNet8)' == 'true'">net8.0</TargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net462|AnyCPU'">
     <DefineConstants>TRACE</DefineConstants>
@@ -21,9 +22,11 @@
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <PackageReference Include="Ionide.ProjInfo.FCS" Version="0.62.0" />
       <PackageReference Include="Microsoft.Build.Framework" Version="17.2.0" ExcludeAssets="runtime" PrivateAssets="all" />
-      <PackageReference Include="Fake.IO.FileSystem" Version="5.20.4" />
-      <PackageReference Include="Fake.Core.Trace" Version="5.20.4" />
+
           
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FCSWatch.Core.Types\FCSWatch.Core.Types.fsproj" />
   </ItemGroup>
 
     <ItemGroup>

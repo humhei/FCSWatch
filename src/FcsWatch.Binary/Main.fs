@@ -4,6 +4,7 @@ open FcsWatch.Core
 open System.IO
 open FcsWatch.Core.Compiler
 open FcsWatch.Core.FcsWatcher
+open PlatformTool
 open System
 open Extensions
 open FSharp.Compiler.CodeAnalysis
@@ -48,7 +49,8 @@ type BinaryConfig =
       AdditionalSwitchArgs : string array
       CustomPrefixBuildAction: option<BinaryConfig -> unit>
       CustomFSharpChecker: RemotableFSharpChecker option
-      }
+      ProjectFileChangedEventHandle: IFcsWatcherAndCompilerTmpAgent -> unit
+    }
 
 with
     static member DefaultValue =
@@ -63,7 +65,8 @@ with
           Webhook = None
           AdditionalSwitchArgs = Array.empty
           CustomPrefixBuildAction = None
-          CustomFSharpChecker = None }
+          CustomFSharpChecker = None
+          ProjectFileChangedEventHandle = ignore }
 
     member config.ToCoreConfig() =
         { LoggerLevel = config.LoggerLevel
@@ -158,7 +161,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
         let compilerTmpEmitter = AutoReload.create programRunningArgs
 
         let fcsWatcher =
-            fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) ignore
+            fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) config.ProjectFileChangedEventHandle
 
         let cache = fcsWatcher.GetCache()
 
@@ -168,7 +171,7 @@ let binaryFcsWatcher (config: BinaryConfig) entryProjectFile =
 
     | DevelopmentTarget.Debuggable debuggable ->
         let compilerTmpEmitter = DebuggingServer.create debuggable
-        let fcsWatcher = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) ignore
+        let fcsWatcher = fcsWatcherAndCompilerTmpAgent checker compilerTmpEmitter compiler coreConfig (Some entryProjectFile) config.ProjectFileChangedEventHandle
         DebuggingServer.startServer config.WorkingDir fcsWatcher.CompilerTmpEmitterAgent
         fcsWatcher :> IFcsWatcherAndCompilerTmpAgent
 

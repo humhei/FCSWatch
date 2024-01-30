@@ -31,12 +31,15 @@ with
 module internal Global =
     let mutable logger = Logger.create Logger.Level.Minimal
 
+
+
+module PlatformTool =
     let platformTool tool =
         tool
         |> ProcessUtils.tryFindFileOnPath
         |> function Some t -> t | _ -> failwithf "%s not found" tool
 
-    let internal dotnet command args (cwd: string) =
+    let dotnet command args (cwd: string) =
         let args = command :: args
         let info = ProcessStartInfo()
         info.WorkingDirectory <- cwd

@@ -2,6 +2,7 @@
     <PropertyGroup>
         <TargetFramework>net6</TargetFramework>
         <OutputType>Exe</OutputType>
+        <TargetFramework Condition="'$(BuildNet8)' == 'true'">net8.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="PortaCodeTests.fs" />

@@ -155,6 +155,7 @@ module FcsWatcher =
         abstract member GetCache: unit -> CrackedFsprojBundleCache
         abstract member WaitCompiled: unit -> CompilerNumber
         abstract member Agent: MailboxProcessor<FcsWatcherMsg>
+        abstract member IsClosed: bool
 
     /// <param name="entryFileOp">file end with *.fs;*.fsproj;*.fsx;*.fsi; If None then otherflags will be applied</param>
     type FcsWatcherAndCompilerTmpAgent<'CompilerTmpEmitterCustomMsg, 'CompilerTmpEmitterCustomState,'CompilerOrCheckResult when 'CompilerOrCheckResult :> ICompilerOrCheckResult>(
@@ -166,6 +167,7 @@ module FcsWatcher =
         projectFileChangedListener
         ) as this =
             let config = { config with WorkingDir = Path.nomalizeToUnixCompatiable config.WorkingDir }
+            let mutable isClosed = false
 
             do logger <- Logger.create (config.LoggerLevel)
 
@@ -318,6 +320,9 @@ module FcsWatcher =
                 agent.Dispose()
                 iCompilerTmpEmitterAgent.Dispose()
                 compilerAgent.Dispose()
+                isClosed <- true
+
+            member x.IsClosed = isClosed
 
             member x.Checker = checker
 
@@ -329,7 +334,7 @@ module FcsWatcher =
                 member x.WaitCompiled() = x.WaitCompiled()
                 member x.Agent = x.Agent
                 member x.Checker = checker
-
+                member x.IsClosed = x.IsClosed
 
     let fcsWatcherAndCompilerTmpAgent
         checker
