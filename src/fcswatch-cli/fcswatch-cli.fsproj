@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7</TargetFramework>
-    <TargetFramework Condition="'$(BuildNet8)' == 'true'">net8.0</TargetFramework>
+    <TargetFramework Condition="'$(BuildNet8)' == 'true'">net8</TargetFramework>
     <ToolCommandName>fcswatch</ToolCommandName>
     <PackAsTool>True</PackAsTool>
 
