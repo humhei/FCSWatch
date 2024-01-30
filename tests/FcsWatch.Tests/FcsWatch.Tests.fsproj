@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7</TargetFramework>
-    <TargetFramework Condition="'$(BuildNet8)' == 'true'">net8</TargetFramework>
+    <TargetFramework Condition="'$(BuildNet8)' == 'true'">net7</TargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>

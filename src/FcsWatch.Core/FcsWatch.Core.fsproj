@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net6</TargetFrameworks>
-      <TargetFramework Condition="'$(BuildNet8)' == 'true'">net8</TargetFramework>
+      <TargetFramework Condition="'$(BuildNet8)' == 'true'">net7</TargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net462|AnyCPU'">
     <DefineConstants>TRACE</DefineConstants>
