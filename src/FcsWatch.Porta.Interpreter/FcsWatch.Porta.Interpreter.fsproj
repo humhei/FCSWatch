@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7</TargetFramework>
-      <TargetFramework Condition="'$(BuildNet8)' == 'true'">net7</TargetFramework>
+    <TargetFrameworks>net6</TargetFrameworks>
+      <TargetFrameworks Condition="'$(BuildNet8)' == 'true'">$(TargetFrameworks); net8</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

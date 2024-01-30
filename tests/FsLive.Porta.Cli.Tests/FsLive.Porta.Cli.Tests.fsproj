@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net7</TargetFramework>
+        <TargetFrameworks>net7</TargetFrameworks>
         <OutputType>Exe</OutputType>
-        <TargetFramework Condition="'$(BuildNet8)' == 'true'">net7</TargetFramework>
+        <TargetFrameworks Condition="'$(BuildNet8)' == 'true'">$(TargetFrameworks); net8</TargetFrameworks>
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="PortaCodeTests.fs" />

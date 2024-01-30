@@ -2,8 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7</TargetFramework>
-      <TargetFramework Condition="'$(BuildNet8)' == 'true'">net8.0</TargetFramework>
+    <TargetFrameworks>net7</TargetFrameworks>
+      <TargetFrameworks Condition="'$(BuildNet8)' == 'true'">$(TargetFrameworks); net8</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\fcswatch-cli\fcswatch-cli.fsproj" />
