@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net6</TargetFramework>
+        <TargetFramework>net7</TargetFramework>
         <OutputType>Exe</OutputType>
         <TargetFramework Condition="'$(BuildNet8)' == 'true'">net7</TargetFramework>
     </PropertyGroup>

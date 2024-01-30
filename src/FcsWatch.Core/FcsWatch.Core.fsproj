@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6</TargetFrameworks>
+    <TargetFrameworks>net7</TargetFrameworks>
       <TargetFramework Condition="'$(BuildNet8)' == 'true'">net7</TargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net462|AnyCPU'">
